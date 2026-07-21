@@ -1,0 +1,14 @@
+{
+  "title": "HA Inspector",
+  "config": {
+    "abort": {
+      "already_configured": "Only a single HA Inspector configuration is supported."
+    },
+    "step": {
+      "user": {
+        "title": "Set up HA Inspector",
+        "description": "Create the initial configuration entry for HA Inspector."
+      }
+    }
+  }
+}

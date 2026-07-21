@@ -1,0 +1,12 @@
+{
+  "domain": "ha_inspector",
+  "name": "HA Inspector",
+  "codeowners": [
+    "@kabrarroka"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/kabrarroka/ha-inspector",
+  "iot_class": "calculated",
+  "single_config_entry": true,
+  "version": "0.1.0"
+}
