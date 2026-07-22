@@ -1,0 +1,5 @@
+run:
+  name: Ejecutar inspección
+  description: >
+    Ejecuta los collectors y las reglas activas de HA Inspector y devuelve
+    el resultado completo de la inspección.
