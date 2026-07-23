@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import (
     HomeAssistant,
@@ -12,25 +14,20 @@ from homeassistant.core import (
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
-from .engine.collectors import (
-    EntitiesCollector,
-    IntegrationsCollector,
-    RecorderCollector,
-    SystemCollector,
-)
-from .engine.inspector import Inspector
-from .engine.rules import (
-    IntegrationLifecycleErrorRule,
-    IntegrationSetupErrorRule,
-    IntegrationSetupRetryRule,
-    RecorderAvailabilityRule,
-    RecorderKeepDaysRule,
-    SystemInformationRule,
-    UnavailableEntitiesRule,
-    UnknownEntitiesRule,
-)
+
+if TYPE_CHECKING:
+    from .engine.inspector import Inspector
+    from .engine.registry import EngineRegistry
 
 SERVICE_RUN = "run"
+
+
+def _load_engine() -> tuple[type[Inspector], EngineRegistry]:
+    """Import and initialize the engine outside Home Assistant's event loop."""
+    from .engine.inspector import Inspector
+    from .engine.registry import EngineRegistry
+
+    return Inspector, EngineRegistry.discover()
 
 
 async def async_setup(
@@ -38,31 +35,22 @@ async def async_setup(
     config: ConfigType,
 ) -> bool:
     """Set up the HA Inspector integration."""
+    inspector_type, registry = await hass.async_add_executor_job(_load_engine)
 
     async def async_handle_run(
         call: ServiceCall,
     ) -> ServiceResponse:
         """Run an HA Inspector inspection."""
-        inspector = Inspector(
-            collectors=[
-                SystemCollector(),
-                RecorderCollector(),
-                IntegrationsCollector(),
-                EntitiesCollector(),
-            ],
-            rules=[
-                SystemInformationRule(),
-                RecorderAvailabilityRule(),
-                RecorderKeepDaysRule(),
-                IntegrationSetupErrorRule(),
-                IntegrationSetupRetryRule(),
-                IntegrationLifecycleErrorRule(),
-                UnavailableEntitiesRule(),
-                UnknownEntitiesRule(),
-            ],
-)
+        inspector = inspector_type(
+            collectors=registry.create_collectors(),
+            rules=registry.create_rules(),
+        )
 
         result = await inspector.run(hass)
+        result.metadata["registry"] = {
+            "collectors": list(registry.collector_ids),
+            "rules": list(registry.rule_ids),
+        }
         return result.as_dict()
 
     hass.services.async_register(
