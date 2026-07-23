@@ -3,3 +3,12 @@ run:
   description: >
     Ejecuta los collectors y las reglas activas de HA Inspector y devuelve
     el resultado completo de la inspección.
+  fields:
+    diagnostics:
+      name: Incluir diagnóstico
+      description: >
+        Incluye en la respuesta el contexto técnico recopilado.
+      required: false
+      default: false
+      selector:
+        boolean:
