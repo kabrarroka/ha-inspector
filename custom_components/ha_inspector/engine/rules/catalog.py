@@ -69,4 +69,20 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=10,
         tags=("entities", "state"),
     ),
+    "DUPLICATE_ENTITY_NAMES": RuleDescriptor(
+        rule_id="entities.duplicate_names",
+        category="entities",
+        title="Duplicate entity names",
+        description="Detects friendly names shared by multiple entities.",
+        weight=5,
+        tags=("entities", "naming", "usability"),
+    ),
+    "DISABLED_AUTOMATIONS": RuleDescriptor(
+        rule_id="automations.disabled",
+        category="automations",
+        title="Disabled automations",
+        description="Detects automation entities disabled in the entity registry.",
+        weight=0,
+        tags=("automations", "maintenance", "inventory"),
+    ),
 }
