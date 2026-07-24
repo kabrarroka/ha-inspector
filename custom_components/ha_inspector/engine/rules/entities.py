@@ -12,23 +12,17 @@ class UnavailableEntitiesRule(BaseRule):
     """Detect an elevated number of unavailable entities."""
 
     rule_id = "UNAVAILABLE_ENTITIES"
-
     warning_percentage = 5.0
     error_percentage = 15.0
 
-    async def check(
-        self,
-        context: InspectionContext,
-    ) -> list[Finding]:
+    async def check(self, context: InspectionContext) -> list[Finding]:
         """Check the percentage of unavailable entities."""
         entities = context.entities
-
         total = entities.get("total_entities", 0)
         unavailable = entities.get("unavailable_count", 0)
 
         if not isinstance(total, int) or total <= 0:
             return []
-
         if not isinstance(unavailable, int) or unavailable <= 0:
             return []
 
@@ -56,17 +50,13 @@ class UnavailableEntitiesRule(BaseRule):
                 ),
                 recommendation=(
                     "Review the affected domains and identify devices or "
-                    "services that are disconnected, powered off or no "
-                    "longer in use."
+                    "services that are disconnected, powered off or no longer in use."
                 ),
                 data={
                     "total_entities": total,
                     "unavailable_count": unavailable,
                     "unavailable_percentage": percentage,
-                    "domains": entities.get(
-                        "unavailable_domains",
-                        {},
-                    ),
+                    "domains": entities.get("unavailable_domains", {}),
                 },
             )
         ]
@@ -76,23 +66,17 @@ class UnknownEntitiesRule(BaseRule):
     """Detect an elevated number of entities with unknown state."""
 
     rule_id = "UNKNOWN_ENTITIES"
-
     warning_percentage = 5.0
     error_percentage = 15.0
 
-    async def check(
-        self,
-        context: InspectionContext,
-    ) -> list[Finding]:
+    async def check(self, context: InspectionContext) -> list[Finding]:
         """Check the percentage of entities with unknown state."""
         entities = context.entities
-
         total = entities.get("total_entities", 0)
         unknown = entities.get("unknown_count", 0)
 
         if not isinstance(total, int) or total <= 0:
             return []
-
         if not isinstance(unknown, int) or unknown <= 0:
             return []
 
@@ -115,21 +99,46 @@ class UnknownEntitiesRule(BaseRule):
                 severity=severity,
                 title=title,
                 description=(
-                    f"{unknown} of {total} entities have an unknown "
-                    f"state ({percentage}%)."
+                    f"{unknown} of {total} entities have an unknown state "
+                    f"({percentage}%)."
                 ),
                 recommendation=(
-                    "Review template entities, helpers and integrations "
-                    "that may not yet have received their first valid value."
+                    "Review template entities, helpers and integrations that may "
+                    "not yet have received their first valid value."
                 ),
                 data={
                     "total_entities": total,
                     "unknown_count": unknown,
                     "unknown_percentage": percentage,
-                    "domains": entities.get(
-                        "unknown_domains",
-                        {},
-                    ),
+                    "domains": entities.get("unknown_domains", {}),
                 },
+            )
+        ]
+
+
+class DuplicateEntityNamesRule(BaseRule):
+    """Detect friendly names shared by more than one entity."""
+
+    rule_id = "DUPLICATE_ENTITY_NAMES"
+
+    async def check(self, context: InspectionContext) -> list[Finding]:
+        """Report duplicated entity names."""
+        duplicates = context.entities.get("duplicate_names", [])
+        if not isinstance(duplicates, list) or not duplicates:
+            return []
+
+        return [
+            Finding(
+                finding_id="DUPLICATE_ENTITY_NAMES_FOUND",
+                severity=Severity.WARNING,
+                title="Duplicate entity names detected",
+                description=(
+                    f"{len(duplicates)} friendly names are used by multiple entities."
+                ),
+                recommendation=(
+                    "Give the affected entities distinct names so dashboards, "
+                    "automations and voice commands are easier to understand."
+                ),
+                data={"duplicates": duplicates, "duplicate_count": len(duplicates)},
             )
         ]
