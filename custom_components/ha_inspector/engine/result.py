@@ -9,6 +9,14 @@ from typing import Any, Iterable
 from .models import Finding
 from .severity import Severity
 
+RESULT_SCHEMA_VERSION = 2
+SEVERITY_WEIGHT = {
+    Severity.INFO: 0.0,
+    Severity.WARNING: 0.30,
+    Severity.ERROR: 0.70,
+    Severity.CRITICAL: 1.0,
+}
+
 
 @dataclass(slots=True)
 class InspectionResult:
@@ -19,14 +27,36 @@ class InspectionResult:
     findings: list[Finding] = field(default_factory=list)
     checks_executed: int = 0
     metadata: dict[str, Any] = field(default_factory=dict)
-
-    def add(self, finding: Finding) -> None:
-        """Add one finding to the result."""
-        self.findings.append(finding)
+    category_checks: dict[str, int] = field(default_factory=dict)
+    category_findings: dict[str, int] = field(default_factory=dict)
+    category_penalties: dict[str, float] = field(default_factory=dict)
 
     def add_many(self, findings: Iterable[Finding]) -> None:
         """Add multiple findings to the result."""
         self.findings.extend(findings)
+
+    def record_rule(
+        self,
+        *,
+        category: str,
+        weight: int,
+        findings: Iterable[Finding],
+    ) -> None:
+        """Record one executed rule and its scoring impact."""
+        findings_list = list(findings)
+        self.checks_executed += 1
+        self.category_checks[category] = self.category_checks.get(category, 0) + 1
+        self.category_findings[category] = (
+            self.category_findings.get(category, 0) + len(findings_list)
+        )
+        penalty = sum(
+            max(0, weight) * SEVERITY_WEIGHT[finding.severity]
+            for finding in findings_list
+        )
+        self.category_penalties[category] = (
+            self.category_penalties.get(category, 0.0) + penalty
+        )
+        self.add_many(findings_list)
 
     def finish(self) -> None:
         """Mark the inspection as finished."""
@@ -34,10 +64,7 @@ class InspectionResult:
 
     def count_by_severity(self, severity: Severity) -> int:
         """Return the number of findings for a severity."""
-        return sum(
-            finding.severity == severity
-            for finding in self.findings
-        )
+        return sum(finding.severity == severity for finding in self.findings)
 
     @property
     def total_findings(self) -> int:
@@ -49,27 +76,32 @@ class InspectionResult:
         """Return inspection duration in seconds."""
         if self.finished_at is None:
             return None
-
         return (self.finished_at - self.started_at).total_seconds()
 
     @property
     def score(self) -> int:
-        """Calculate a provisional health score from 0 to 100."""
-        penalty = sum(
-            {
-                Severity.INFO: 0,
-                Severity.WARNING: 3,
-                Severity.ERROR: 10,
-                Severity.CRITICAL: 25,
-            }[finding.severity]
-            for finding in self.findings
-        )
+        """Calculate the weighted overall health score."""
+        return max(0, 100 - round(sum(self.category_penalties.values())))
 
-        return max(0, 100 - penalty)
+    @property
+    def categories(self) -> dict[str, dict[str, int]]:
+        """Return scoring information grouped by category."""
+        return {
+            category: {
+                "score": max(
+                    0,
+                    100 - round(self.category_penalties.get(category, 0.0)),
+                ),
+                "checks": self.category_checks.get(category, 0),
+                "findings": self.category_findings.get(category, 0),
+            }
+            for category in sorted(self.category_checks)
+        }
 
     def as_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation of the result."""
         return {
+            "schema_version": RESULT_SCHEMA_VERSION,
             "started_at": self.started_at.isoformat(),
             "finished_at": (
                 self.finished_at.isoformat()
@@ -80,13 +112,11 @@ class InspectionResult:
             "checks_executed": self.checks_executed,
             "total_findings": self.total_findings,
             "score": self.score,
+            "categories": self.categories,
             "summary": {
                 severity.label: self.count_by_severity(severity)
                 for severity in Severity
             },
-            "findings": [
-                finding.as_dict()
-                for finding in self.findings
-            ],
+            "findings": [finding.as_dict() for finding in self.findings],
             "metadata": self.metadata,
         }
