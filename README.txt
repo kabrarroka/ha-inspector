@@ -1,4 +1,11 @@
-Entrega Sprint 2.7 A2
+HA Inspector - Sprint 2.7 A3
 
-Copiar los archivos respetando sus rutas dentro del repositorio.
-Después ejecutar: python -m pytest
+Contenido:
+- Discovery automático desacoplado.
+- Registry con registro manual y detección de duplicados.
+- RuleCatalog serializable.
+- Tests de registry, catálogo y compatibilidad legacy.
+
+Copiar los archivos sobre la raíz del repositorio y ejecutar:
+
+python -m pytest
