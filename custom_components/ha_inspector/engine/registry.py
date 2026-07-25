@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from inspect import isabstract, isclass
+from types import ModuleType
+
 from .collectors.base import BaseCollector
 from .discovery import DiscoveryError, discover_collectors, discover_rules
 from .rules.base import BaseRule
@@ -48,6 +51,30 @@ class EngineRegistry:
             component_type=rule_type,
             target=self._rule_types,
         )
+
+    def _register_from_module(
+        self,
+        module: ModuleType,
+        base_type: type[BaseCollector] | type[BaseRule],
+    ) -> None:
+        """Register concrete component classes declared by a module.
+
+        Kept for compatibility with previous engine revisions and their tests.
+        """
+        for candidate in vars(module).values():
+            if not isclass(candidate) or candidate is base_type:
+                continue
+            if not issubclass(candidate, base_type) or isabstract(candidate):
+                continue
+            if candidate.__module__ != module.__name__:
+                continue
+
+            if base_type is BaseCollector:
+                self.register_collector(candidate)
+            elif base_type is BaseRule:
+                self.register_rule(candidate)
+            else:
+                raise RegistryError(f"Unsupported base type: {base_type.__name__}")
 
     @staticmethod
     def _register(
