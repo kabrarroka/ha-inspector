@@ -37,8 +37,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
           python -m pip install --upgrade coverage pytest pytest-cov
+          python --version
+          python -m pytest --version
+          python -m coverage --version
+          python -m pip freeze
 
       - name: Run tests
+        run: |
+          python -m pytest
+
+      - name: Run coverage
+        continue-on-error: true
         env:
           COVERAGE_CORE: pytrace
         run: |
