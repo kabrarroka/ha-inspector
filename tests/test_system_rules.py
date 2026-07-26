@@ -6,6 +6,7 @@ import pytest
 
 from custom_components.ha_inspector.engine.context import InspectionContext
 from custom_components.ha_inspector.engine.rules.system import (
+    SupervisorAvailabilityRule,
     SystemInformationRule,
 )
 from custom_components.ha_inspector.engine.severity import Severity
@@ -78,3 +79,72 @@ async def test_system_information_rule_reports_missing_context() -> None:
     assert len(findings) == 1
     assert findings[0].finding_id == "SYSTEM_INFORMATION_UNAVAILABLE"
     assert findings[0].severity is Severity.ERROR
+
+
+@pytest.mark.asyncio
+async def test_supervisor_available_on_home_assistant_os() -> None:
+    """HA OS with a detected Supervisor does not produce a finding."""
+    context = InspectionContext()
+    context.system.update(
+        {
+            "installation_type": "Home Assistant OS",
+            "supervisor_version": "2026.07.3",
+        }
+    )
+
+    findings = await SupervisorAvailabilityRule().check(context)
+
+    assert findings == []
+
+
+@pytest.mark.asyncio
+async def test_supervisor_missing_on_home_assistant_os() -> None:
+    """HA OS without a detected Supervisor produces a warning."""
+    context = InspectionContext()
+    context.system.update(
+        {
+            "installation_type": "Home Assistant OS",
+            "supervisor_version": None,
+        }
+    )
+
+    findings = await SupervisorAvailabilityRule().check(context)
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.finding_id == "SUPERVISOR_NOT_DETECTED"
+    assert finding.severity is Severity.WARNING
+    assert finding.data["installation_type"] == "Home Assistant OS"
+
+
+@pytest.mark.asyncio
+async def test_supervisor_missing_on_container_is_expected() -> None:
+    """Container installations do not require Supervisor."""
+    context = InspectionContext()
+    context.system.update(
+        {
+            "installation_type": "Home Assistant Container",
+            "supervisor_version": None,
+        }
+    )
+
+    findings = await SupervisorAvailabilityRule().check(context)
+
+    assert findings == []
+
+
+@pytest.mark.asyncio
+async def test_supervisor_missing_on_supervised_installation() -> None:
+    """A supervised installation without Supervisor data produces a warning."""
+    context = InspectionContext()
+    context.system.update(
+        {
+            "installation_type": "Home Assistant Supervised",
+            "supervisor_version": "",
+        }
+    )
+
+    findings = await SupervisorAvailabilityRule().check(context)
+
+    assert len(findings) == 1
+    assert findings[0].severity is Severity.WARNING
