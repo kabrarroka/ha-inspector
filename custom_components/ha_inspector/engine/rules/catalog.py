@@ -13,6 +13,17 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=0,
         tags=("system", "inventory"),
     ),
+    "OPERATING_SYSTEM_VERSION": RuleDescriptor(
+        rule_id="system.operating_system_version",
+        category="system",
+        title="Home Assistant OS version",
+        description=(
+            "Checks whether the installed Home Assistant OS version is "
+            "stable and uses a recognizable version format."
+        ),
+        weight=5,
+        tags=("system", "version", "operating-system"),
+    ),
     "RECORDER_AVAILABILITY": RuleDescriptor(
         rule_id="recorder.availability",
         category="recorder",
@@ -84,5 +95,60 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         description="Detects automation entities disabled in the entity registry.",
         weight=0,
         tags=("automations", "maintenance", "inventory"),
+    ),
+    "SUPERVISOR_AVAILABILITY": RuleDescriptor(
+        rule_id="system.supervisor_availability",
+        category="system",
+        title="Supervisor availability",
+        description=(
+        "Checks whether Supervisor information is available for "
+        "installation types that require it."
+        ),
+        weight=20,
+        tags=("system", "supervisor", "availability"),
+    ),
+    "CORE_VERSION": RuleDescriptor(
+        rule_id="system.core_version",
+        category="system",
+        title="Home Assistant Core version",
+        description=(
+            "Checks whether the installed Home Assistant Core version is "
+            "stable and uses a recognizable version format."
+        ),
+        weight=5,
+        tags=("system", "version", "core"),
+    ),
+    "SUPERVISOR_VERSION": RuleDescriptor(
+        rule_id="system.supervisor_version",
+        category="system",
+        title="Supervisor version",
+        description=(
+            "Checks whether the installed Home Assistant Supervisor version "
+            "is stable and uses a recognizable version format."
+        ),
+        weight=5,
+        tags=("system", "version", "supervisor"),
+    ),
+    "OPERATING_SYSTEM_VERSION": RuleDescriptor(
+        rule_id="system.operating_system_version",
+        category="system",
+        title="Home Assistant OS version",
+        description=(
+            "Checks whether the installed Home Assistant OS version is "
+            "stable and uses a recognizable version format."
+        ),
+        weight=5,
+        tags=("system", "version", "operating-system"),
+    ),
+    "INSTALLATION_CONSISTENCY": RuleDescriptor(
+        rule_id="system.installation_consistency",
+        category="system",
+        title="Installation consistency",
+        description=(
+            "Checks whether the installation type is consistent with the "
+            "reported Supervisor and Home Assistant OS components."
+        ),
+        weight=20,
+        tags=("system", "installation", "consistency"),
     ),
 }

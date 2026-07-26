@@ -1,14 +1,52 @@
-run:
-  name: Ejecutar inspección
-  description: >
-    Ejecuta los collectors y las reglas activas de HA Inspector y devuelve
-    el resultado completo de la inspección.
+run_inspection:
+  name: Run inspection
+  description: Run HA Inspector rules and return the inspection result.
   fields:
-    diagnostics:
-      name: Incluir diagnóstico
-      description: >
-        Incluye en la respuesta el contexto técnico recopilado.
-      required: false
-      default: false
+    profile:
+      name: Profile
+      description: Named rule profile to execute.
+      example: quick
+      selector:
+        text:
+    rule_ids:
+      name: Rule IDs
+      description: Rule identifiers to include.
+      example:
+        - system.core
+      selector:
+        object:
+    categories:
+      name: Categories
+      description: Rule categories to include.
+      example:
+        - system
+      selector:
+        object:
+    tags:
+      name: Tags
+      description: Rule tags to include.
+      example:
+        - core
+      selector:
+        object:
+    exclude_rule_ids:
+      name: Excluded rule IDs
+      description: Rule identifiers to exclude.
+      selector:
+        object:
+    exclude_categories:
+      name: Excluded categories
+      description: Rule categories to exclude.
+      selector:
+        object:
+    exclude_tags:
+      name: Excluded tags
+      description: Rule tags to exclude.
+      selector:
+        object:
+    strict:
+      name: Strict mode
+      description: Fail selection when explicitly requested rules are missing.
+      default: true
       selector:
         boolean:

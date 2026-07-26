@@ -9,6 +9,7 @@ from .collectors.base import BaseCollector
 from .context import InspectionContext
 from .registry import InspectionRegistry
 from .result import InspectionResult
+from .rule_engine import RuleEngine
 from .rules.base import BaseRule
 
 if TYPE_CHECKING:
@@ -25,6 +26,7 @@ class Inspector:
     ) -> None:
         self._collectors = list(collectors or [])
         self._rules = list(rules or [])
+        self._rule_engine = RuleEngine(self._rules)
 
     @classmethod
     def from_registry(cls, registry: InspectionRegistry) -> "Inspector":
@@ -40,24 +42,71 @@ class Inspector:
         """Run all collectors and rules."""
         context = InspectionContext()
         result = InspectionResult()
+        execution_errors: list[dict[str, str]] = []
 
+        collectors_executed = 0
         for collector in self._collectors:
-            await collector.collect(hass, context)
+            try:
+                await collector.collect(hass, context)
+            except Exception as err:  # noqa: BLE001 - component isolation
+                execution_errors.append(
+                    {
+                        "type": "collector",
+                        "id": collector.collector_id,
+                        "error": type(err).__name__,
+                        "message": str(err),
+                    }
+                )
+            else:
+                collectors_executed += 1
 
+        rule_executions = await self._rule_engine.run(context)
         rule_catalog: list[dict[str, object]] = []
-        for rule in self._rules:
+        rules_executed = 0
+
+        for rule, execution in zip(
+            self._rules,
+            rule_executions,
+            strict=True,
+        ):
             descriptor = rule.metadata
-            findings = await rule.check(context)
-            result.record_rule(
-                category=descriptor.category,
-                weight=descriptor.weight,
-                findings=findings,
-            )
             rule_catalog.append(descriptor.as_dict())
 
-        result.metadata["collectors_executed"] = len(self._collectors)
+            if execution.success:
+                result.record_rule(
+                    category=descriptor.category,
+                    weight=descriptor.weight,
+                    findings=execution.findings,
+                )
+                rules_executed += 1
+                continue
+
+            error_name, error_message = self._split_execution_error(
+                execution.error
+            )
+            execution_errors.append(
+                {
+                    "type": "rule",
+                    "id": descriptor.rule_id,
+                    "error": error_name,
+                    "message": error_message,
+                }
+            )
+
+        result.findings.sort(
+            key=lambda finding: (
+                -int(finding.severity),
+                finding.finding_id,
+            )
+        )
+
+        result.metadata["collectors_executed"] = collectors_executed
         result.metadata["rules_discovered"] = len(self._rules)
+        result.metadata["rules_executed"] = rules_executed
         result.metadata["diagnostics_included"] = diagnostics
+
+        if execution_errors:
+            result.metadata["execution_errors"] = execution_errors
 
         if diagnostics:
             safe_system = {
@@ -83,3 +132,17 @@ class Inspector:
 
         result.finish()
         return result
+
+    @staticmethod
+    def _split_execution_error(
+        error: str | None,
+    ) -> tuple[str, str]:
+        """Split the internal engine error into public error fields."""
+        if not error:
+            return "UnknownError", ""
+
+        error_name, separator, message = error.partition(": ")
+        if not separator:
+            return error_name, ""
+
+        return error_name, message

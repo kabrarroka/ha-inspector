@@ -25,3 +25,9 @@ Thumbs.db
 build/
 dist/
 *.egg-info/
+
+ENTREGA*.md
+ENTREGA*.zip
+PATCH-*.md
+APLICAR-*.ps1
+README.txt

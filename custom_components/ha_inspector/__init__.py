@@ -11,9 +11,15 @@ from homeassistant.core import (
     ServiceResponse,
     SupportsResponse,
 )
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
+from .const import (
+    DATA_LAST_RESULT,
+    DOMAIN,
+    PLATFORMS,
+    SIGNAL_INSPECTION_FINISHED,
+)
 
 if TYPE_CHECKING:
     from .engine.inspector import Inspector
@@ -37,6 +43,9 @@ async def async_setup(
     """Set up the HA Inspector integration."""
     inspector_type, registry = await hass.async_add_executor_job(_load_engine)
 
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN].setdefault(DATA_LAST_RESULT, None)
+
     async def async_handle_run(
         call: ServiceCall,
     ) -> ServiceResponse:
@@ -51,7 +60,12 @@ async def async_setup(
             "collectors": list(registry.collector_ids),
             "rules": list(registry.rule_ids),
         }
-        return result.as_dict()
+
+        result_dict = result.as_dict()
+        hass.data[DOMAIN][DATA_LAST_RESULT] = result_dict
+        async_dispatcher_send(hass, SIGNAL_INSPECTION_FINISHED, result_dict)
+
+        return result_dict
 
     hass.services.async_register(
         DOMAIN,
@@ -68,6 +82,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
 ) -> bool:
     """Set up HA Inspector from a config entry."""
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
@@ -76,4 +91,4 @@ async def async_unload_entry(
     entry: ConfigEntry,
 ) -> bool:
     """Unload a HA Inspector config entry."""
-    return True
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

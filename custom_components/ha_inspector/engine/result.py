@@ -1,4 +1,4 @@
-"""Inspection result model for HA Inspector."""
+"""Inspection result models for HA Inspector."""
 
 from __future__ import annotations
 
@@ -16,6 +16,63 @@ SEVERITY_WEIGHT = {
     Severity.ERROR: 0.70,
     Severity.CRITICAL: 1.0,
 }
+
+
+@dataclass(frozen=True, slots=True)
+class RuleExecutionResult:
+    """Represent the outcome of executing one inspection rule.
+
+    This model is intentionally independent from ``InspectionResult`` during
+    Sprint 2.9.2-A. The current Inspector keeps using ``record_rule()`` exactly
+    as before. Sprint 2.9.2-B will populate these objects.
+    """
+
+    rule_id: str
+    duration_ms: float
+    findings: tuple[Finding, ...] = field(default_factory=tuple)
+    success: bool = True
+    error: str | None = None
+
+    def __post_init__(self) -> None:
+        """Validate the execution result invariants."""
+        if not self.rule_id.strip():
+            raise ValueError("rule_id must not be empty")
+
+        if self.duration_ms < 0:
+            raise ValueError("duration_ms must not be negative")
+
+        if self.success and self.error is not None:
+            raise ValueError(
+                "a successful rule execution cannot contain an error"
+            )
+
+        if not self.success and not self.error:
+            raise ValueError(
+                "a failed rule execution must contain an error"
+            )
+
+    @property
+    def finding_count(self) -> int:
+        """Return the number of findings produced by the rule."""
+        return len(self.findings)
+
+    @property
+    def failed(self) -> bool:
+        """Return whether execution of the rule failed."""
+        return not self.success
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return a JSON-serializable representation."""
+        return {
+            "rule_id": self.rule_id,
+            "duration_ms": self.duration_ms,
+            "finding_count": self.finding_count,
+            "success": self.success,
+            "error": self.error,
+            "findings": [
+                finding.as_dict() for finding in self.findings
+            ],
+        }
 
 
 @dataclass(slots=True)
