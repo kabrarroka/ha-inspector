@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from enum import Enum
 import re
 
@@ -26,7 +27,7 @@ class VersionInfo:
     prerelease: str | None = None
 
 
-_VERSION_PATTERN = re.compile(
+_CORE_VERSION_PATTERN = re.compile(
     r"""
     ^
     (?P<year>\d{4})
@@ -46,29 +47,51 @@ _VERSION_PATTERN = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
+_OS_VERSION_PATTERN = re.compile(
+    r"""
+    ^
+    (?P<major>\d+)
+    \.
+    (?P<minor>\d+)
+    (?:
+        \.
+        (?:
+            (?P<beta>beta\d+|b\d+)
+            |
+            (?P<rc>rc\d+)
+            |
+            (?P<dev>dev\d*)
+        )
+    )?
+    $
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
-def parse_home_assistant_version(version: str | None) -> VersionInfo:
-    """Parse a Home Assistant Core version.
+_FRONTEND_VERSION_PATTERN = re.compile(
+    r"""
+    ^
+    (?P<year>\d{4})
+    (?P<month>\d{2})
+    (?P<day>\d{2})
+    \.
+    (?P<revision>\d+)
+    $
+    """,
+    re.VERBOSE,
+)
 
-    Supported examples:
-    - ``2026.7.2``
-    - ``2026.8.0b3``
-    - ``2026.8.0rc2``
-    - ``2026.8.0.dev0``
 
-    Empty values and unrecognized formats are returned as ``UNKNOWN``.
-    """
-    if version is None:
-        return VersionInfo(raw=None, kind=VersionKind.UNKNOWN)
+def _unknown(version: str | None) -> VersionInfo:
+    """Return a normalized unknown version result."""
+    return VersionInfo(raw=version, kind=VersionKind.UNKNOWN)
 
-    raw = version.strip()
-    if not raw:
-        return VersionInfo(raw=version, kind=VersionKind.UNKNOWN)
 
-    match = _VERSION_PATTERN.fullmatch(raw)
-    if match is None:
-        return VersionInfo(raw=version, kind=VersionKind.UNKNOWN)
-
+def _classify_match(
+    version: str,
+    match: re.Match[str],
+) -> VersionInfo:
+    """Convert a successful prerelease regex match into VersionInfo."""
     if prerelease := match.group("beta"):
         return VersionInfo(
             raw=version,
@@ -89,5 +112,72 @@ def parse_home_assistant_version(version: str | None) -> VersionInfo:
             kind=VersionKind.DEV,
             prerelease=prerelease.lower(),
         )
+
+    return VersionInfo(raw=version, kind=VersionKind.STABLE)
+
+
+def parse_home_assistant_version(version: str | None) -> VersionInfo:
+    """Parse a Home Assistant Core or Supervisor version."""
+    if version is None:
+        return _unknown(None)
+
+    raw = version.strip()
+    if not raw:
+        return _unknown(version)
+
+    match = _CORE_VERSION_PATTERN.fullmatch(raw)
+    if match is None:
+        return _unknown(version)
+
+    return _classify_match(version, match)
+
+
+def parse_home_assistant_os_version(
+    version: str | None,
+) -> VersionInfo:
+    """Parse a Home Assistant Operating System version."""
+    if version is None:
+        return _unknown(None)
+
+    raw = version.strip()
+    if not raw:
+        return _unknown(version)
+
+    match = _OS_VERSION_PATTERN.fullmatch(raw)
+    if match is None:
+        return _unknown(version)
+
+    return _classify_match(version, match)
+
+
+def parse_home_assistant_frontend_version(
+    version: str | None,
+) -> VersionInfo:
+    """Parse a Home Assistant Frontend version.
+
+    Frontend versions use a date and revision, for example
+    ``20260624.5``. The version string does not reliably identify whether
+    the corresponding GitHub release was stable or a prerelease, so every
+    valid format is classified as ``STABLE`` for parser compatibility.
+    """
+    if version is None:
+        return _unknown(None)
+
+    raw = version.strip()
+    if not raw:
+        return _unknown(version)
+
+    match = _FRONTEND_VERSION_PATTERN.fullmatch(raw)
+    if match is None:
+        return _unknown(version)
+
+    try:
+        date(
+            int(match.group("year")),
+            int(match.group("month")),
+            int(match.group("day")),
+        )
+    except ValueError:
+        return _unknown(version)
 
     return VersionInfo(raw=version, kind=VersionKind.STABLE)
