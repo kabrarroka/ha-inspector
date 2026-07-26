@@ -48,8 +48,23 @@ class SystemInformationRule(BaseRule):
                     "home_assistant_version": context.system.get(
                         "home_assistant_version"
                     ),
+                    "installation_type": context.system.get("installation_type"),
+                    "supervisor_version": context.system.get("supervisor_version"),
+                    "operating_system_version": context.system.get(
+                        "operating_system_version"
+                    ),
+                    "frontend_version": context.system.get("frontend_version"),
                     "python_version": context.system.get("python_version"),
+                    "python_implementation": context.system.get(
+                        "python_implementation"
+                    ),
                     "architecture": context.system.get("architecture"),
+                    "platform": context.system.get("platform"),
+                    "platform_release": context.system.get("platform_release"),
+                    "os_name": context.system.get("os_name"),
+                    "os_version": context.system.get("os_version"),
+                    "docker": context.system.get("docker"),
+                    "hassio": context.system.get("hassio"),
                     "timezone": context.system.get("timezone"),
                     "country": context.system.get("country"),
                 },
