@@ -140,4 +140,15 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=5,
         tags=("system", "version", "operating-system"),
     ),
+    "INSTALLATION_CONSISTENCY": RuleDescriptor(
+        rule_id="system.installation_consistency",
+        category="system",
+        title="Installation consistency",
+        description=(
+            "Checks whether the installation type is consistent with the "
+            "reported Supervisor and Home Assistant OS components."
+        ),
+        weight=20,
+        tags=("system", "installation", "consistency"),
+    ),
 }
