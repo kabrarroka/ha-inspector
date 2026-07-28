@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .category import Category
+
 
 @dataclass(frozen=True, slots=True)
 class RuleDescriptor:
     """Describe one inspection rule independently of its implementation."""
 
     rule_id: str
-    category: str
+    category: Category
     title: str
     description: str
     weight: int
@@ -18,13 +20,21 @@ class RuleDescriptor:
     enabled: bool = True
 
     def __post_init__(self) -> None:
-        """Validate descriptor values."""
+        """Validate and normalize descriptor values."""
         if not self.rule_id or "." not in self.rule_id:
             raise ValueError(
                 "Rule IDs must use dotted notation, for example system.info"
             )
-        if not self.category:
-            raise ValueError("Rule category cannot be empty")
+
+        try:
+            category = Category(self.category)
+        except ValueError as err:
+            raise ValueError(
+                f"Unknown rule category: {self.category!r}"
+            ) from err
+
+        object.__setattr__(self, "category", category)
+
         if not 0 <= self.weight <= 100:
             raise ValueError("Rule weight must be between 0 and 100")
 
@@ -32,7 +42,7 @@ class RuleDescriptor:
         """Return a JSON-serializable representation."""
         return {
             "id": self.rule_id,
-            "category": self.category,
+            "category": self.category.value,
             "title": self.title,
             "description": self.description,
             "weight": self.weight,
