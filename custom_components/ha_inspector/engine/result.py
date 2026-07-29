@@ -7,7 +7,13 @@ from datetime import UTC, datetime
 from typing import Any, Iterable
 
 from .models import Finding
-from .score import category_score, penalty_for_finding, score_from_penalties
+from .score import (
+    HealthStatus,
+    category_score,
+    penalty_for_finding,
+    score_from_penalties,
+    status_for_score,
+)
 from .severity import Severity
 
 RESULT_SCHEMA_VERSION = 2
@@ -80,6 +86,11 @@ class InspectionResult:
     def score(self) -> int:
         """Calculate the weighted overall health score."""
         return score_from_penalties(self.category_penalties)
+    
+    @property
+    def health_status(self) -> HealthStatus:
+        """Return the qualitative health status."""
+        return status_for_score(self.score)
 
     @property
     def categories(self) -> dict[str, dict[str, int]]:
@@ -109,6 +120,10 @@ class InspectionResult:
             "checks_executed": self.checks_executed,
             "total_findings": self.total_findings,
             "score": self.score,
+            "health": {
+                "score": self.score,
+                "status": self.health_status.value,
+    },
             "categories": self.categories,
             "summary": {
                 severity.label: self.count_by_severity(severity)

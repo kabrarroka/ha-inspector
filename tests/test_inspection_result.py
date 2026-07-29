@@ -105,5 +105,9 @@ def test_as_dict_is_json_serializable_shape() -> None:
     assert payload["started_at"] == started_at.isoformat()
     assert payload["finished_at"] is None
     assert payload["score"] == 97
+    assert payload["health"] == {
+        "score": 97,
+        "status": "excellent",
+    }
     assert payload["summary"][Severity.WARNING.label] == 1
     assert payload["findings"][0]["id"] == "recorder.warning"
