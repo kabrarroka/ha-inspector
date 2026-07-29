@@ -7,15 +7,10 @@ from datetime import UTC, datetime
 from typing import Any, Iterable
 
 from .models import Finding
+from .score import category_score, penalty_for_finding, score_from_penalties
 from .severity import Severity
 
 RESULT_SCHEMA_VERSION = 2
-SEVERITY_WEIGHT = {
-    Severity.INFO: 0.0,
-    Severity.WARNING: 0.30,
-    Severity.ERROR: 0.70,
-    Severity.CRITICAL: 1.0,
-}
 
 
 @dataclass(slots=True)
@@ -50,7 +45,10 @@ class InspectionResult:
             self.category_findings.get(category, 0) + len(findings_list)
         )
         penalty = sum(
-            max(0, weight) * SEVERITY_WEIGHT[finding.severity]
+            penalty_for_finding(
+                weight=weight,
+                severity=finding.severity,
+            )
             for finding in findings_list
         )
         self.category_penalties[category] = (
@@ -81,17 +79,16 @@ class InspectionResult:
     @property
     def score(self) -> int:
         """Calculate the weighted overall health score."""
-        return max(0, 100 - round(sum(self.category_penalties.values())))
+        return score_from_penalties(self.category_penalties)
 
     @property
     def categories(self) -> dict[str, dict[str, int]]:
         """Return scoring information grouped by category."""
         return {
             category: {
-                "score": max(
-                    0,
-                    100 - round(self.category_penalties.get(category, 0.0)),
-                ),
+                "score": category_score(
+                    self.category_penalties.get(category, 0.0)
+            ),
                 "checks": self.category_checks.get(category, 0),
                 "findings": self.category_findings.get(category, 0),
             }
