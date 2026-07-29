@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -14,41 +15,131 @@ from homeassistant.core import (
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
+from .engine.profiles import (
+    InspectionProfileError,
+    create_profile_request,
+)
+from .engine.request import InspectionRequest
 
 if TYPE_CHECKING:
     from .engine.inspector import Inspector
     from .engine.registry import EngineRegistry
-    from .engine.request import InspectionRequest
 
 SERVICE_RUN = "run"
+
+_REQUEST_FIELDS = (
+    "include_rule_ids",
+    "include_categories",
+    "include_tags",
+    "exclude_rule_ids",
+    "exclude_categories",
+    "exclude_tags",
+    "diagnostics",
+)
 
 
 def _load_engine() -> tuple[
     type[Inspector],
     EngineRegistry,
-    type[InspectionRequest],
 ]:
     """Import and initialize the engine outside Home Assistant's event loop."""
     from .engine.inspector import Inspector
     from .engine.registry import EngineRegistry
-    from .engine.request import InspectionRequest
 
-    return Inspector, EngineRegistry.discover(), InspectionRequest
+    return Inspector, EngineRegistry.discover()
 
 
-def _service_request_data(
-    call: ServiceCall,
-) -> dict[str, Any]:
-    """Return request data supplied to the inspection service."""
-    return {
-        "include_rule_ids": call.data.get("include_rule_ids"),
-        "include_categories": call.data.get("include_categories"),
-        "include_tags": call.data.get("include_tags"),
-        "exclude_rule_ids": call.data.get("exclude_rule_ids"),
-        "exclude_categories": call.data.get("exclude_categories"),
-        "exclude_tags": call.data.get("exclude_tags"),
-        "diagnostics": call.data.get("diagnostics", False),
+def _profile_definition(
+    value: object,
+) -> tuple[str, dict[str, Any]]:
+    """Normalize a profile service value."""
+    if isinstance(value, str):
+        profile_id = value.strip()
+
+        if not profile_id:
+            raise InspectionProfileError(
+                "Inspection profile identifier cannot be empty"
+            )
+
+        return profile_id, {}
+
+    if not isinstance(value, Mapping):
+        raise InspectionProfileError(
+            "Inspection profile must be a string or mapping"
+        )
+
+    profile_id = value.get("id")
+
+    if not isinstance(profile_id, str) or not profile_id.strip():
+        raise InspectionProfileError(
+            "Inspection profile mapping must contain a non-empty 'id'"
+        )
+
+    overrides = value.get("overrides", {})
+
+    if overrides is None:
+        overrides = {}
+
+    if not isinstance(overrides, Mapping):
+        raise InspectionProfileError(
+            "Inspection profile overrides must be a mapping"
+        )
+
+    unknown_profile_keys = set(value) - {
+        "id",
+        "overrides",
     }
+
+    if unknown_profile_keys:
+        unknown = ", ".join(sorted(unknown_profile_keys))
+        raise InspectionProfileError(
+            f"Unknown inspection profile options: {unknown}"
+        )
+
+    unknown_override_keys = set(overrides) - set(_REQUEST_FIELDS)
+
+    if unknown_override_keys:
+        unknown = ", ".join(sorted(unknown_override_keys))
+        raise InspectionProfileError(
+            f"Unknown inspection profile overrides: {unknown}"
+        )
+
+    return profile_id.strip(), dict(overrides)
+
+
+def _explicit_request_data(
+    data: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Return explicitly supplied request fields."""
+    return {
+        field: data[field]
+        for field in _REQUEST_FIELDS
+        if field in data
+    }
+
+
+def _build_request(
+    data: Mapping[str, Any],
+) -> InspectionRequest:
+    """Build an inspection request from service data."""
+    explicit_data = _explicit_request_data(data)
+
+    if "profile" not in data:
+        return InspectionRequest.from_dict(explicit_data)
+
+    profile_id, profile_overrides = _profile_definition(
+        data["profile"]
+    )
+
+    profile_request = create_profile_request(profile_id)
+    request_data = profile_request.as_dict()
+
+    # Priority:
+    # profile defaults -> profile overrides -> explicit service fields
+    request_data.update(profile_overrides)
+    request_data.update(explicit_data)
+
+    return InspectionRequest.from_dict(request_data)
 
 
 async def async_setup(
@@ -56,8 +147,8 @@ async def async_setup(
     config: ConfigType,
 ) -> bool:
     """Set up the HA Inspector integration."""
-    inspector_type, registry, request_type = (
-        await hass.async_add_executor_job(_load_engine)
+    inspector_type, registry = await hass.async_add_executor_job(
+        _load_engine
     )
 
     async def async_handle_run(
@@ -69,9 +160,7 @@ async def async_setup(
             rules=registry.create_rules(),
         )
 
-        request = request_type.from_dict(
-            _service_request_data(call),
-        )
+        request = _build_request(call.data)
 
         result = await inspector.run(
             hass,
@@ -82,6 +171,12 @@ async def async_setup(
             "collectors": list(registry.collector_ids),
             "rules": list(registry.rule_ids),
         }
+
+        if "profile" in call.data:
+            profile_id, _ = _profile_definition(
+                call.data["profile"]
+            )
+            result.metadata["profile"] = profile_id.strip().lower()
 
         return result.as_dict()
 
