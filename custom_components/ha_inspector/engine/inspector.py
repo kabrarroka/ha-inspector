@@ -8,9 +8,11 @@ from typing import TYPE_CHECKING
 from .collectors.base import BaseCollector
 from .context import InspectionContext
 from .registry import InspectionRegistry
+from .request import InspectionRequest
 from .result import InspectionResult
 from .rule_engine import RuleEngine
-from .rule_selector import RuleExecutionPlan
+from .rule_registry import RuleRegistry
+from .rule_selector import RuleSelector
 from .rules.base import BaseRule
 
 if TYPE_CHECKING:
@@ -28,6 +30,9 @@ class Inspector:
         """Initialize the inspector."""
         self._collectors = list(collectors or [])
         self._rules = list(rules or [])
+
+        self._rule_registry = RuleRegistry(self._rules)
+        self._rule_selector = RuleSelector(self._rule_registry)
         self._rule_engine = RuleEngine(self._rules)
 
     @classmethod
@@ -42,19 +47,25 @@ class Inspector:
         self,
         hass: HomeAssistant,
         *,
-        diagnostics: bool = False,
+        request: InspectionRequest | None = None,
+        diagnostics: bool | None = None,
     ) -> InspectionResult:
-        """Run all collectors and rules."""
+        """Run collectors and the rules selected by the request."""
+        if request is None:
+            request = InspectionRequest()
+
+        if diagnostics is not None:
+            request_data = request.as_dict()
+            request_data["diagnostics"] = diagnostics
+            request = InspectionRequest.from_dict(request_data)
+
         context = InspectionContext()
 
         for collector in self._collectors:
             await collector.collect(hass, context)
 
-        plan = RuleExecutionPlan(
-            tuple(
-                rule.metadata.rule_id
-                for rule in self._rules
-            )
+        plan = self._rule_selector.select(
+            **request.selector_options(),
         )
 
         result = await self._rule_engine.execute(
@@ -64,9 +75,12 @@ class Inspector:
 
         result.metadata["collectors_executed"] = len(self._collectors)
         result.metadata["rules_discovered"] = len(self._rules)
-        result.metadata["diagnostics_included"] = diagnostics
+        result.metadata["rules_selected"] = len(plan)
+        result.metadata["execution_plan"] = plan.as_dict()
+        result.metadata["request"] = request.as_dict()
+        result.metadata["diagnostics_included"] = request.diagnostics
 
-        if diagnostics:
+        if request.diagnostics:
             result.metadata["rules"] = [
                 rule.metadata.as_dict()
                 for rule in sorted(
