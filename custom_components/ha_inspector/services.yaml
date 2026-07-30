@@ -12,3 +12,26 @@ run:
       default: false
       selector:
         boolean:
+
+list_profiles:
+  name: Listar perfiles
+  description: >
+    Devuelve los perfiles de inspección disponibles en HA Inspector.
+
+describe_profile:
+  name: Describe profile
+  description: >
+    Return the complete definition of an inspection profile.
+  fields:
+    profile_id:
+      name: Profile ID
+      description: Identifier of the inspection profile.
+      required: true
+      selector:
+        text:
+
+info:
+  name: Engine information
+  description: Return information about the HA Inspector engine.
+  response:
+    optional: false
