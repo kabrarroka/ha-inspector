@@ -30,6 +30,14 @@ class InspectionProfile:
             "description": self.description,
             "request": self.request.as_dict(),
         }
+    def as_summary(self) -> dict[str, str]:
+        """Return the summary representation of the profile."""
+
+        return {
+            "profile_id": self.profile_id,
+            "title": self.title,
+            "description": self.description,
+        }
 
 
 _BUILT_IN_PROFILES: dict[str, InspectionProfile] = {

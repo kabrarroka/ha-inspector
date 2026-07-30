@@ -27,6 +27,12 @@ if TYPE_CHECKING:
 
 SERVICE_RUN = "run"
 
+SERVICE_DESCRIBE_PROFILE = "describe_profile"
+
+SERVICE_INFO = "info"
+
+API_VERSION = 1
+
 _REQUEST_FIELDS = (
     "include_rule_ids",
     "include_categories",
@@ -151,6 +157,21 @@ async def async_setup(
         _load_engine
     )
 
+    async def async_handle_info(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return information about the HA Inspector engine."""
+        from .engine.profiles import list_profiles
+
+        return {
+            "api_version": API_VERSION,
+            "engine": {
+                "profiles": len(list_profiles()),
+                "rules": len(registry.rule_ids),
+                "collectors": len(registry.collector_ids),
+            },
+        }
+
     async def async_handle_run(
         call: ServiceCall,
     ) -> ServiceResponse:
@@ -195,19 +216,41 @@ async def async_setup(
 
         return {
             "profiles": [
-                {
-                    "profile_id": profile.profile_id,
-                    "title": profile.title,
-                    "description": profile.description,
-                }
+                profile.as_summary()
                 for profile in list_profiles()
             ]
+        }
+
+    async def async_handle_describe_profile(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return the definition of an inspection profile."""
+        from .engine.profiles import get_profile
+
+        profile = get_profile(call.data["profile_id"])
+
+        return {
+            "profile": profile.as_dict(),
         }
 
     hass.services.async_register(
         DOMAIN,
         "list_profiles",
         async_handle_list_profiles,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DESCRIBE_PROFILE,
+        async_handle_describe_profile,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_INFO,
+        async_handle_info,
         supports_response=SupportsResponse.ONLY,
     )
 
