@@ -187,6 +187,30 @@ async def async_setup(
         supports_response=SupportsResponse.ONLY,
     )
 
+    async def async_handle_list_profiles(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return the available inspection profiles."""
+        from .engine.profiles import list_profiles
+
+        return {
+            "profiles": [
+                {
+                    "profile_id": profile.profile_id,
+                    "title": profile.title,
+                    "description": profile.description,
+                }
+                for profile in list_profiles()
+            ]
+        }
+
+    hass.services.async_register(
+        DOMAIN,
+        "list_profiles",
+        async_handle_list_profiles,
+        supports_response=SupportsResponse.ONLY,
+    )
+
     return True
 
 

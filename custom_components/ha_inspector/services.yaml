@@ -12,3 +12,8 @@ run:
       default: false
       selector:
         boolean:
+
+list_profiles:
+  name: Listar perfiles
+  description: >
+    Devuelve los perfiles de inspección disponibles en HA Inspector.
