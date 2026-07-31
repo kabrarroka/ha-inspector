@@ -1,7 +1,10 @@
 """Tests for the HA Inspector health score helpers."""
 
+from custom_components.ha_inspector.engine.severity import Severity
 from custom_components.ha_inspector.engine.score import (
     HealthStatus,
+    ScoringEntry,
+    ScoreCalculator,
     category_score,
     score_from_penalties,
     status_for_score,
@@ -35,3 +38,20 @@ def test_health_status_boundaries() -> None:
     assert status_for_score(25) is HealthStatus.POOR
     assert status_for_score(24) is HealthStatus.CRITICAL
     assert status_for_score(0) is HealthStatus.CRITICAL
+
+def test_score_calculator_from_scoring_entries() -> None:
+    """Health score can be calculated from scoring entries."""
+    entries = [
+        ScoringEntry(
+            category="recorder",
+            weight=10,
+            severity=Severity.WARNING,
+        )
+    ]
+
+    health = ScoreCalculator.calculate_entries(entries)
+
+    assert health.score == 97
+    assert health.max_score == 100
+    assert health.penalty == 3.0
+    assert health.status is HealthStatus.EXCELLENT
