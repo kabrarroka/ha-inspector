@@ -55,12 +55,25 @@ class BaseRule(ABC):
 
     @property
     def metadata(self) -> Any:
-        """Return native metadata or synthesize it for legacy rules."""
+        """Return native, catalogued or synthesized rule metadata."""
         descriptor = getattr(self, "descriptor", None)
         if descriptor is not None:
             return descriptor
 
-        rule_id = getattr(self, "rule_id", self.__class__.__name__)
+        rule_id = getattr(
+            self,
+            "rule_id",
+            self.__class__.__name__,
+        )
+
+        # Import lazily to avoid coupling the base module to the
+        # built-in rule catalog during initial package loading.
+        from .catalog import RULE_DESCRIPTORS
+
+        catalog_descriptor = RULE_DESCRIPTORS.get(rule_id)
+        if catalog_descriptor is not None:
+            return catalog_descriptor
+
         title = getattr(
             self,
             "title",

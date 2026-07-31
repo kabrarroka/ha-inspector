@@ -30,18 +30,43 @@ class RuleRegistryEntry:
         metadata = rule.metadata
         data = metadata.as_dict()
 
-        rule_id = str(data.get("rule_id") or data.get("id") or "").strip()
+        rule_id = str(
+            getattr(rule, "rule_id", "")
+            or data.get("rule_id")
+            or data.get("id")
+            or ""
+        ).strip()
+
         if not rule_id:
-            raise RuleRegistryError("Rule metadata must define a rule_id")
+            raise RuleRegistryError(
+                "Rule metadata must define a rule_id"
+            )
+
+        severity = data.get(
+            "severity",
+            getattr(metadata, "severity", "info"),
+        )
+
+        severity_value = getattr(
+            severity,
+            "label",
+            getattr(severity, "value", severity),
+        )
 
         return cls(
             rule_id=rule_id,
             title=str(data.get("title", "")),
             category=str(data.get("category", "general")),
-            severity=str(data.get("severity", "info")),
-            tags=tuple(str(tag) for tag in data.get("tags", ())),
+            severity=str(severity_value),
+            tags=tuple(
+                str(tag)
+                for tag in data.get("tags", ())
+            ),
             weight=int(data.get("weight", 0)),
-            recommendation=data.get("recommendation"),
+            recommendation=data.get(
+                "recommendation",
+                getattr(metadata, "recommendation", None),
+            ),
         )
 
     def as_dict(self) -> dict[str, Any]:
