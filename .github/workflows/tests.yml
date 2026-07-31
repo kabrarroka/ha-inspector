@@ -38,5 +38,6 @@ jobs:
           python -m pip install -r requirements-dev.txt
 
       - name: Run tests
-        run: |
-          python -m pytest --cov=custom_components.ha_inspector.engine --cov-report=term-missing
+        env:
+          PYTHONFAULTHANDLER: "1"
+        run: python -X faulthandler -m pytest --cov=custom_components.ha_inspector.engine --cov-report=term-missing
