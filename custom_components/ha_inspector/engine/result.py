@@ -9,14 +9,12 @@ from typing import Any, Iterable
 from .models import Finding
 from .score import (
     HealthScore,
-    HealthStatus,
-    ScoreCalculator,
     ScoringEntry,
-    category_score,
     penalty_for_finding,
-
+    HealthStatus,
 )
 from .severity import Severity
+from .analytics import InspectionAnalytics
 
 RESULT_SCHEMA_VERSION = 2
 
@@ -103,35 +101,35 @@ class InspectionResult:
         return (self.finished_at - self.started_at).total_seconds()
 
     @property
+    def analytics(self) -> InspectionAnalytics:
+        """Return the analytics helper for this inspection."""
+        return InspectionAnalytics(self)
+
+    @property
     def health(self) -> HealthScore:
         """Return the complete weighted health score."""
-        return ScoreCalculator.calculate_entries(
-            self.scoring_entries
-        )
+        return self.analytics.health
 
     @property
     def score(self) -> int:
         """Return the weighted overall health score."""
-        return self.health.score
+        return self.analytics.score
+
 
     @property
     def health_status(self) -> HealthStatus:
         """Return the qualitative health status."""
-        return self.health.status
+        return self.analytics.health_status
 
     @property
-    def categories(self) -> dict[str, dict[str, int]]:
-        """Return scoring information grouped by category."""
-        return {
-            category: {
-                "score": category_score(
-                    self.category_penalties.get(category, 0.0)
-                ),
-                "checks": self.category_checks.get(category, 0),
-                "findings": self.category_findings.get(category, 0),
-            }
-            for category in sorted(self.category_checks)
-        }
+    def categories(self) -> dict[str, dict[str, Any]]:
+        """Return health information grouped by category."""
+        return self.analytics.categories
+
+    @property
+    def health_summary(self) -> dict[str, int]:
+        """Return the number of categories grouped by health status."""
+        return self.analytics.health_summary
 
     def as_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation of the result."""
@@ -149,6 +147,7 @@ class InspectionResult:
             "score": self.score,
             "health": self.health.as_dict(),
             "categories": self.categories,
+            "health_summary": self.health_summary,
             "summary": {
                 severity.label: self.count_by_severity(severity)
                 for severity in Severity
