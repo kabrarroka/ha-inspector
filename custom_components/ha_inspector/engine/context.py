@@ -12,6 +12,7 @@ class InspectionContext:
 
     system: dict[str, Any] = field(default_factory=dict)
     storage: dict[str, Any] = field(default_factory=dict)
+    backups: dict[str, Any] = field(default_factory=dict)
     recorder: dict[str, Any] = field(default_factory=dict)
     integrations: dict[str, Any] = field(default_factory=dict)
     entities: dict[str, Any] = field(default_factory=dict)

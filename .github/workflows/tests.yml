@@ -40,4 +40,23 @@ jobs:
       - name: Run tests
         env:
           PYTHONFAULTHANDLER: "1"
-        run: python -X faulthandler -m pytest --cov=custom_components.ha_inspector.engine --cov-report=term-missing
+          COVERAGE_CORE: sysmon
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python -X faulthandler - <<'PY'
+          import os
+          import sys
+
+          import pytest
+
+          exit_code = pytest.main(
+              [
+                  "--cov=custom_components.ha_inspector.engine",
+                  "--cov-report=term-missing",
+              ]
+          )
+
+          sys.stdout.flush()
+          sys.stderr.flush()
+          os._exit(int(exit_code))
+          PY
