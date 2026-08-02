@@ -1,4 +1,4 @@
-﻿"""Inspection orchestrator for HA Inspector."""
+"""Inspection orchestrator for HA Inspector."""
 
 from __future__ import annotations
 
@@ -115,6 +115,7 @@ class Inspector:
         return {
             "system": safe_system,
             "storage": context.storage,
+            "backups": context.backups,
             "recorder": context.recorder,
             "integrations": context.integrations,
             "entities": context.entities,

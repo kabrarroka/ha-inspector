@@ -94,4 +94,12 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=30,
         tags=("storage", "disk", "health", "availability"),
     ),
+    "BACKUP_COUNT": RuleDescriptor(
+        rule_id="storage.backup_count",
+        category=Category.STORAGE,
+        title="Backup count",
+        description="Checks whether enough Home Assistant backups are available.",
+        weight=30,
+        tags=("storage", "backups", "recovery", "availability"),
+    ),
 }
