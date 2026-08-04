@@ -102,4 +102,12 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=30,
         tags=("storage", "backups", "recovery", "availability"),
     ),
+    "BACKUP_AGE": RuleDescriptor(
+        rule_id="storage.backup_age",
+        category=Category.STORAGE,
+        title="Backup age",
+        description="Checks whether the newest Home Assistant backup is recent enough.",
+        weight=30,
+        tags=("storage", "backups", "recovery", "age"),
+    ),
 }
