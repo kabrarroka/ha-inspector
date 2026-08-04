@@ -110,4 +110,12 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=30,
         tags=("storage", "backups", "recovery", "age"),
     ),
+    "BACKUP_AGENT_ERRORS": RuleDescriptor(
+        rule_id="storage.backup_agent_errors",
+        category=Category.STORAGE,
+        title="Backup agent errors",
+        description="Checks whether backup agents returned errors.",
+        weight=20,
+        tags=("storage", "backups", "recovery", "agents"),
+    ),
 }

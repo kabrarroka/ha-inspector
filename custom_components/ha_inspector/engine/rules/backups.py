@@ -73,3 +73,62 @@ class BackupCountRule(BaseRule):
                 },
             )
         ]
+class BackupAgentErrorsRule(BaseRule):
+    """Detect backup agents that failed while listing backups."""
+
+    rule_id = "BACKUP_AGENT_ERRORS"
+
+    async def check(
+        self,
+        context: InspectionContext,
+    ) -> list[Finding]:
+        """Report backup agents that returned errors."""
+        backups = context.backups
+
+        if backups.get("available") is not True:
+            return []
+
+        error_count = backups.get("agent_error_count")
+        error_ids = backups.get("agent_error_ids")
+
+        if (
+            not isinstance(error_count, int)
+            or isinstance(error_count, bool)
+            or error_count <= 0
+        ):
+            return []
+
+        if not isinstance(error_ids, list):
+            return []
+
+        normalized_ids = sorted(
+            {
+                agent_id.strip()
+                for agent_id in error_ids
+                if isinstance(agent_id, str) and agent_id.strip()
+            }
+        )
+
+        return [
+            Finding(
+                finding_id="BACKUP_AGENT_ERRORS_FOUND",
+                severity=Severity.WARNING,
+                title="Backup agent errors detected",
+                description=(
+                    f"{error_count} backup "
+                    f"{'agent returned' if error_count == 1 else 'agents returned'} "
+                    "an error while Home Assistant was reading the backup inventory."
+                ),
+                recommendation=(
+                    "Review the affected backup agents, verify their credentials "
+                    "and connectivity, and confirm that remote backups are still "
+                    "being created successfully."
+                ),
+                data={
+                    "agent_error_count": error_count,
+                    "agent_error_ids": normalized_ids,
+                    "backup_count": backups.get("count"),
+                    "latest_backup": backups.get("latest"),
+                },
+            )
+        ]
