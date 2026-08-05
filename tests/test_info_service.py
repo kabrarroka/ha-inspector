@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.ha_inspector import async_setup
-from custom_components.ha_inspector.const import DOMAIN
+from custom_components.ha_inspector.const import DOMAIN, VERSION
 
 
 @pytest.mark.asyncio
@@ -90,6 +90,7 @@ async def test_info_service_response(
         "rules": 3,
         "collectors": 2,
     }
+    assert response["version"] == VERSION
 
 
 @pytest.mark.asyncio
@@ -124,6 +125,7 @@ async def test_info_service_engine_structure(
     response = await registrations["info"](MagicMock())
 
     assert set(response) == {
+        "version",
         "api_version",
         "engine",
     }
@@ -182,3 +184,19 @@ async def test_info_service_counts_are_integers(
     assert engine["profiles"] > 0
     assert engine["rules"] > 0
     assert engine["collectors"] > 0
+
+def test_version_matches_manifest() -> None:
+    """Test that the integration version matches manifest.json."""
+    from json import loads
+    from pathlib import Path
+
+    manifest_path = (
+        Path(__file__).parents[1]
+        / "custom_components"
+        / "ha_inspector"
+        / "manifest.json"
+    )
+
+    manifest = loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert manifest["version"] == VERSION

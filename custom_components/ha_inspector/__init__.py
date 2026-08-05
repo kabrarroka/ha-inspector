@@ -21,6 +21,8 @@ from .engine.profiles import (
 )
 from .engine.request import InspectionRequest
 
+from .const import VERSION
+
 if TYPE_CHECKING:
     from .engine.inspector import Inspector
     from .engine.registry import EngineRegistry
@@ -164,13 +166,14 @@ async def async_setup(
         from .engine.profiles import list_profiles
 
         return {
+            "version": VERSION,
             "api_version": API_VERSION,
             "engine": {
                 "profiles": len(list_profiles()),
                 "rules": len(registry.rule_ids),
                 "collectors": len(registry.collector_ids),
             },
-        }
+    }
 
     async def async_handle_run(
         call: ServiceCall,
