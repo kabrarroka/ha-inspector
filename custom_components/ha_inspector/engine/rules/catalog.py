@@ -118,4 +118,12 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=20,
         tags=("storage", "backups", "recovery", "agents"),
     ),
+    "BACKUP_REDUNDANCY": RuleDescriptor(
+        rule_id="storage.backup_redundancy",
+        category=Category.STORAGE,
+        title="Backup redundancy",
+        description="Checks whether the newest backup exists in multiple locations.",
+        weight=25,
+        tags=("storage", "backups", "recovery", "redundancy"),
+    ),
 }
