@@ -132,3 +132,70 @@ class BackupAgentErrorsRule(BaseRule):
                 },
             )
         ]
+
+
+class BackupRedundancyRule(BaseRule):
+    """Detect when the newest backup is stored in too few locations."""
+
+    rule_id = "BACKUP_REDUNDANCY"
+
+    minimum_recommended_agents = 2
+
+    async def check(
+        self,
+        context: InspectionContext,
+    ) -> list[Finding]:
+        """Report when the latest backup is not stored redundantly."""
+        backups = context.backups
+
+        if backups.get("available") is not True:
+            return []
+
+        count = backups.get("count")
+        agent_count = backups.get("latest_backup_agent_count")
+        agent_ids = backups.get("latest_backup_agent_ids")
+
+        if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
+            return []
+
+        if (
+            not isinstance(agent_count, int)
+            or isinstance(agent_count, bool)
+            or agent_count < 0
+            or not isinstance(agent_ids, list)
+        ):
+            return []
+
+        normalized_ids = sorted(
+            {
+                agent_id.strip()
+                for agent_id in agent_ids
+                if isinstance(agent_id, str) and agent_id.strip()
+            }
+        )
+
+        if agent_count >= self.minimum_recommended_agents:
+            return []
+
+        return [
+            Finding(
+                finding_id="BACKUP_REDUNDANCY_LOW",
+                severity=Severity.WARNING,
+                title="Latest backup is not stored redundantly",
+                description=(
+                    f"The newest backup is available from {agent_count} backup "
+                    f"{'agent' if agent_count == 1 else 'agents'}; at least "
+                    f"{self.minimum_recommended_agents} are recommended."
+                ),
+                recommendation=(
+                    "Store the newest backup in at least two independent locations, "
+                    "including one outside the Home Assistant device."
+                ),
+                data={
+                    "latest_backup": backups.get("latest"),
+                    "latest_backup_agent_count": agent_count,
+                    "latest_backup_agent_ids": normalized_ids,
+                    "minimum_recommended_agents": self.minimum_recommended_agents,
+                },
+            )
+        ]
