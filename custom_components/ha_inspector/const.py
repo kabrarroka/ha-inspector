@@ -6,3 +6,4 @@ from typing import Final
 
 DOMAIN: Final = "ha_inspector"
 NAME: Final = "HA Inspector"
+VERSION: Final = "0.1.0"
