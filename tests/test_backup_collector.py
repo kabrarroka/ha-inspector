@@ -32,6 +32,8 @@ async def test_backup_collector_manager_unavailable() -> None:
         "oldest": None,
         "agent_error_count": 0,
         "agent_error_ids": [],
+        "latest_backup_agent_count": None,
+        "latest_backup_agent_ids": [],
     }
 
 
@@ -42,13 +44,19 @@ async def test_backup_collector_collects_unique_backups() -> None:
         return_value=(
             {
                 "backup-1": SimpleNamespace(
-                    date=datetime(2026, 7, 1, 8, 0, tzinfo=UTC)
+                    date=datetime(2026, 7, 1, 8, 0, tzinfo=UTC),
+                    agents={"local": SimpleNamespace()},
                 ),
                 "backup-2": SimpleNamespace(
-                    date=datetime(2026, 8, 1, 9, 30, tzinfo=UTC)
+                    date=datetime(2026, 8, 1, 9, 30, tzinfo=UTC),
+                    agents={
+                        "cloud": SimpleNamespace(),
+                        "local": SimpleNamespace(),
+                    },
                 ),
                 "backup-3": SimpleNamespace(
-                    date=datetime(2026, 7, 15, 12, 0, tzinfo=UTC)
+                    date=datetime(2026, 7, 15, 12, 0, tzinfo=UTC),
+                    agents={"nas": SimpleNamespace()},
                 ),
             },
             {},
@@ -69,6 +77,8 @@ async def test_backup_collector_collects_unique_backups() -> None:
         "oldest": "2026-07-01T08:00:00+00:00",
         "agent_error_count": 0,
         "agent_error_ids": [],
+        "latest_backup_agent_count": 2,
+        "latest_backup_agent_ids": ["cloud", "local"],
     }
 
 

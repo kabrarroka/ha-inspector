@@ -40,6 +40,8 @@ class BackupCollector(BaseCollector):
                     "oldest": None,
                     "agent_error_count": 0,
                     "agent_error_ids": [],
+                    "latest_backup_agent_count": None,
+                    "latest_backup_agent_ids": [],
                 }
             )
             return
@@ -60,6 +62,8 @@ class BackupCollector(BaseCollector):
                     "oldest": None,
                     "agent_error_count": 0,
                     "agent_error_ids": [],
+                    "latest_backup_agent_count": None,
+                    "latest_backup_agent_ids": [],
                 }
             )
             return
@@ -69,6 +73,23 @@ class BackupCollector(BaseCollector):
             for backup in backups.values()
             if isinstance(getattr(backup, "date", None), datetime)
         ]
+
+        dated_backups = [
+            backup
+            for backup in backups.values()
+            if isinstance(getattr(backup, "date", None), datetime)
+        ]
+        latest_backup = (
+            max(dated_backups, key=lambda backup: backup.date)
+            if dated_backups
+            else None
+        )
+        latest_agents = getattr(latest_backup, "agents", None)
+        latest_agent_ids = (
+            sorted(str(agent_id) for agent_id in latest_agents)
+            if isinstance(latest_agents, dict)
+            else []
+        )
 
         context.backups.update(
             {
@@ -82,5 +103,7 @@ class BackupCollector(BaseCollector):
                     str(agent_id)
                     for agent_id in agent_errors
                 ),
+                "latest_backup_agent_count": len(latest_agent_ids),
+                "latest_backup_agent_ids": latest_agent_ids,
             }
         )
