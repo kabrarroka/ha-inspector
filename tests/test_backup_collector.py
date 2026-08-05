@@ -34,6 +34,9 @@ async def test_backup_collector_manager_unavailable() -> None:
         "agent_error_ids": [],
         "latest_backup_agent_count": None,
         "latest_backup_agent_ids": [],
+        "latest_backup_failed_addons": [],
+        "latest_backup_failed_folders": [],
+        "latest_backup_failed_agent_ids": [],
     }
 
 
@@ -53,6 +56,11 @@ async def test_backup_collector_collects_unique_backups() -> None:
                         "cloud": SimpleNamespace(),
                         "local": SimpleNamespace(),
                     },
+                    failed_addons=[
+                        SimpleNamespace(slug="broken_addon"),
+                    ],
+                    failed_folders=["media"],
+                    failed_agent_ids=[" unavailable_cloud "],
                 ),
                 "backup-3": SimpleNamespace(
                     date=datetime(2026, 7, 15, 12, 0, tzinfo=UTC),
@@ -79,6 +87,9 @@ async def test_backup_collector_collects_unique_backups() -> None:
         "agent_error_ids": [],
         "latest_backup_agent_count": 2,
         "latest_backup_agent_ids": ["cloud", "local"],
+        "latest_backup_failed_addons": ["broken_addon"],
+        "latest_backup_failed_folders": ["media"],
+        "latest_backup_failed_agent_ids": ["unavailable_cloud"],
     }
 
 
