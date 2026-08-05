@@ -126,4 +126,15 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=25,
         tags=("storage", "backups", "recovery", "redundancy"),
     ),
+    "BACKUP_INTEGRITY": RuleDescriptor(
+        rule_id="storage.backup_integrity",
+        category=Category.STORAGE,
+        title="Backup integrity",
+        description=(
+            "Checks whether the newest backup contains failed components "
+            "or storage targets."
+        ),
+        weight=35,
+        tags=("storage", "backups", "recovery", "integrity"),
+    ),
 }

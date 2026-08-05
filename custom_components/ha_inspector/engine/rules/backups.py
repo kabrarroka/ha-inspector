@@ -199,3 +199,105 @@ class BackupRedundancyRule(BaseRule):
                 },
             )
         ]
+
+
+class BackupIntegrityRule(BaseRule):
+    """Detect incomplete content in the newest backup."""
+
+    rule_id = "BACKUP_INTEGRITY"
+
+    async def check(
+        self,
+        context: InspectionContext,
+    ) -> list[Finding]:
+        """Report failed content or storage targets for the latest backup."""
+        backups = context.backups
+
+        if backups.get("available") is not True:
+            return []
+
+        count = backups.get("count")
+        if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
+            return []
+
+        failed_addons = backups.get("latest_backup_failed_addons")
+        failed_folders = backups.get("latest_backup_failed_folders")
+        failed_agent_ids = backups.get("latest_backup_failed_agent_ids")
+
+        if not all(
+            isinstance(value, list)
+            for value in (
+                failed_addons,
+                failed_folders,
+                failed_agent_ids,
+            )
+        ):
+            return []
+
+        normalized_addons = sorted(
+            {
+                value.strip()
+                for value in failed_addons
+                if isinstance(value, str) and value.strip()
+            }
+        )
+        normalized_folders = sorted(
+            {
+                value.strip()
+                for value in failed_folders
+                if isinstance(value, str) and value.strip()
+            }
+        )
+        normalized_agent_ids = sorted(
+            {
+                value.strip()
+                for value in failed_agent_ids
+                if isinstance(value, str) and value.strip()
+            }
+        )
+
+        content_incomplete = bool(normalized_addons or normalized_folders)
+        storage_incomplete = bool(normalized_agent_ids)
+
+        if not content_incomplete and not storage_incomplete:
+            return []
+
+        if content_incomplete:
+            severity = Severity.ERROR
+            finding_id = "BACKUP_INTEGRITY_INCOMPLETE"
+            title = "Latest backup contains incomplete content"
+            description = (
+                "Home Assistant reports that one or more requested components "
+                "could not be included in the newest backup."
+            )
+        else:
+            severity = Severity.WARNING
+            finding_id = "BACKUP_INTEGRITY_AGENT_FAILURES"
+            title = "Latest backup failed on some storage agents"
+            description = (
+                "The newest backup was created, but Home Assistant reports "
+                "failures while writing it to one or more backup agents."
+            )
+
+        return [
+            Finding(
+                finding_id=finding_id,
+                severity=severity,
+                title=title,
+                description=description,
+                recommendation=(
+                    "Review the failed components and backup agents, correct the "
+                    "underlying errors, and create a new backup before relying on "
+                    "the current recovery point."
+                ),
+                data={
+                    "latest_backup": backups.get("latest"),
+                    "failed_addons": normalized_addons,
+                    "failed_folders": normalized_folders,
+                    "failed_agent_ids": normalized_agent_ids,
+                    "content_incomplete": content_incomplete,
+                    "storage_incomplete": storage_incomplete,
+                },
+            )
+        ]
+
