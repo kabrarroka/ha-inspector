@@ -42,6 +42,12 @@ class BackupCollector(BaseCollector):
                     "agent_error_ids": [],
                     "latest_backup_agent_count": None,
                     "latest_backup_agent_ids": [],
+                    "latest_backup_failed_addons": [],
+                    "latest_backup_failed_folders": [],
+                    "latest_backup_failed_agent_ids": [],
+                    "latest_backup_failed_addons": [],
+                    "latest_backup_failed_folders": [],
+                    "latest_backup_failed_agent_ids": [],
                 }
             )
             return
@@ -90,6 +96,35 @@ class BackupCollector(BaseCollector):
             if isinstance(latest_agents, dict)
             else []
         )
+        latest_failed_addons = sorted(
+            {
+                slug.strip()
+                for addon in getattr(latest_backup, "failed_addons", [])
+                if isinstance(
+                    slug := getattr(addon, "slug", None),
+                    str,
+                )
+                and slug.strip()
+            }
+        )
+        latest_failed_folders = sorted(
+            {
+                str(getattr(folder, "value", folder)).strip()
+                for folder in getattr(latest_backup, "failed_folders", [])
+                if str(getattr(folder, "value", folder)).strip()
+            }
+        )
+        latest_failed_agent_ids = sorted(
+            {
+                agent_id.strip()
+                for agent_id in getattr(
+                    latest_backup,
+                    "failed_agent_ids",
+                    [],
+                )
+                if isinstance(agent_id, str) and agent_id.strip()
+            }
+        )
 
         context.backups.update(
             {
@@ -105,5 +140,8 @@ class BackupCollector(BaseCollector):
                 ),
                 "latest_backup_agent_count": len(latest_agent_ids),
                 "latest_backup_agent_ids": latest_agent_ids,
+                "latest_backup_failed_addons": latest_failed_addons,
+                "latest_backup_failed_folders": latest_failed_folders,
+                "latest_backup_failed_agent_ids": latest_failed_agent_ids,
             }
         )
