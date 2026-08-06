@@ -17,6 +17,24 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+def _build_backup_inventory_state() -> dict[str, Any]:
+    """Return a fresh backup inventory state with the stable contract."""
+    return {
+        "available": False,
+        "reason": None,
+        "count": None,
+        "latest": None,
+        "oldest": None,
+        "agent_error_count": 0,
+        "agent_error_ids": [],
+        "latest_backup_agent_count": None,
+        "latest_backup_agent_ids": [],
+        "latest_backup_failed_addons": [],
+        "latest_backup_failed_folders": [],
+        "latest_backup_failed_agent_ids": [],
+    }
+
+
 class BackupCollector(BaseCollector):
     """Collect backup inventory from Home Assistant's backup manager."""
 
@@ -31,47 +49,21 @@ class BackupCollector(BaseCollector):
         manager = hass.data.get(DATA_MANAGER)
 
         if manager is None:
-            context.backups.update(
-                {
-                    "available": False,
-                    "reason": "Home Assistant backup manager is not available",
-                    "count": None,
-                    "latest": None,
-                    "oldest": None,
-                    "agent_error_count": 0,
-                    "agent_error_ids": [],
-                    "latest_backup_agent_count": None,
-                    "latest_backup_agent_ids": [],
-                    "latest_backup_failed_addons": [],
-                    "latest_backup_failed_folders": [],
-                    "latest_backup_failed_agent_ids": [],
-                    "latest_backup_failed_addons": [],
-                    "latest_backup_failed_folders": [],
-                    "latest_backup_failed_agent_ids": [],
-                }
-            )
+            state = _build_backup_inventory_state()
+            state["reason"] = "Home Assistant backup manager is not available"
+            context.backups.update(state)
             return
 
         try:
             backups, agent_errors = await manager.async_get_backups()
         except Exception as err:  # noqa: BLE001
             _LOGGER.exception("Unable to collect Home Assistant backups")
-            context.backups.update(
-                {
-                    "available": False,
-                    "reason": (
-                        "Backup inventory could not be read: "
-                        f"{type(err).__name__}"
-                    ),
-                    "count": None,
-                    "latest": None,
-                    "oldest": None,
-                    "agent_error_count": 0,
-                    "agent_error_ids": [],
-                    "latest_backup_agent_count": None,
-                    "latest_backup_agent_ids": [],
-                }
+            state = _build_backup_inventory_state()
+            state["reason"] = (
+                "Backup inventory could not be read: "
+                f"{type(err).__name__}"
             )
+            context.backups.update(state)
             return
 
         dates = [
@@ -126,10 +118,10 @@ class BackupCollector(BaseCollector):
             }
         )
 
-        context.backups.update(
+        state = _build_backup_inventory_state()
+        state.update(
             {
                 "available": True,
-                "reason": None,
                 "count": len(backups),
                 "latest": max(dates).isoformat() if dates else None,
                 "oldest": min(dates).isoformat() if dates else None,
@@ -145,3 +137,4 @@ class BackupCollector(BaseCollector):
                 "latest_backup_failed_agent_ids": latest_failed_agent_ids,
             }
         )
+        context.backups.update(state)
