@@ -16,6 +16,22 @@ from custom_components.ha_inspector.engine.collectors.backups import (
 from custom_components.ha_inspector.engine.context import InspectionContext
 
 
+EXPECTED_BACKUP_KEYS = {
+    "available",
+    "reason",
+    "count",
+    "latest",
+    "oldest",
+    "agent_error_count",
+    "agent_error_ids",
+    "latest_backup_agent_count",
+    "latest_backup_agent_ids",
+    "latest_backup_failed_addons",
+    "latest_backup_failed_folders",
+    "latest_backup_failed_agent_ids",
+}
+
+
 @pytest.mark.asyncio
 async def test_backup_collector_manager_unavailable() -> None:
     hass = MagicMock()
@@ -134,8 +150,78 @@ async def test_backup_collector_handles_manager_error() -> None:
 
     await BackupCollector().collect(hass, context)
 
-    assert context.backups["available"] is False
-    assert context.backups["count"] is None
-    assert context.backups["reason"] == (
-        "Backup inventory could not be read: RuntimeError"
+    assert context.backups == {
+        "available": False,
+        "reason": "Backup inventory could not be read: RuntimeError",
+        "count": None,
+        "latest": None,
+        "oldest": None,
+        "agent_error_count": 0,
+        "agent_error_ids": [],
+        "latest_backup_agent_count": None,
+        "latest_backup_agent_ids": [],
+        "latest_backup_failed_addons": [],
+        "latest_backup_failed_folders": [],
+        "latest_backup_failed_agent_ids": [],
+    }
+
+
+@pytest.mark.asyncio
+async def test_backup_collector_contract_keys_are_stable() -> None:
+    collector = BackupCollector()
+
+    absent_hass = MagicMock()
+    absent_hass.data = {}
+    absent_context = InspectionContext()
+    await collector.collect(absent_hass, absent_context)
+
+    error_manager = MagicMock()
+    error_manager.async_get_backups = AsyncMock(
+        side_effect=RuntimeError("boom")
     )
+    error_hass = MagicMock()
+    error_hass.data = {DATA_MANAGER: error_manager}
+    error_context = InspectionContext()
+    await collector.collect(error_hass, error_context)
+
+    empty_manager = MagicMock()
+    empty_manager.async_get_backups = AsyncMock(return_value=({}, {}))
+    empty_hass = MagicMock()
+    empty_hass.data = {DATA_MANAGER: empty_manager}
+    empty_context = InspectionContext()
+    await collector.collect(empty_hass, empty_context)
+
+    assert set(absent_context.backups) == EXPECTED_BACKUP_KEYS
+    assert set(error_context.backups) == EXPECTED_BACKUP_KEYS
+    assert set(empty_context.backups) == EXPECTED_BACKUP_KEYS
+
+
+@pytest.mark.asyncio
+async def test_backup_collector_base_state_lists_are_not_shared() -> None:
+    absent_hass = MagicMock()
+    absent_hass.data = {}
+    absent_context = InspectionContext()
+    await BackupCollector().collect(absent_hass, absent_context)
+
+    error_manager = MagicMock()
+    error_manager.async_get_backups = AsyncMock(
+        side_effect=RuntimeError("boom")
+    )
+    error_hass = MagicMock()
+    error_hass.data = {DATA_MANAGER: error_manager}
+    error_context = InspectionContext()
+    await BackupCollector().collect(error_hass, error_context)
+
+    absent_context.backups["agent_error_ids"].append("mutated")
+    absent_context.backups["latest_backup_agent_ids"].append("mutated")
+    absent_context.backups["latest_backup_failed_addons"].append("mutated")
+    absent_context.backups["latest_backup_failed_folders"].append("mutated")
+    absent_context.backups["latest_backup_failed_agent_ids"].append(
+        "mutated"
+    )
+
+    assert error_context.backups["agent_error_ids"] == []
+    assert error_context.backups["latest_backup_agent_ids"] == []
+    assert error_context.backups["latest_backup_failed_addons"] == []
+    assert error_context.backups["latest_backup_failed_folders"] == []
+    assert error_context.backups["latest_backup_failed_agent_ids"] == []
