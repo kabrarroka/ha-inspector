@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import Any
 
 
+@dataclass(slots=True)
 class BaseState:
     """Provide common behaviour for typed inspection states."""
 
