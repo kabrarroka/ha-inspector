@@ -51,6 +51,7 @@ class BackupCollector(BaseCollector):
         if manager is None:
             state = _build_backup_inventory_state()
             state["reason"] = "Home Assistant backup manager is not available"
+            context.backups.clear()
             context.backups.update(state)
             return
 
@@ -63,6 +64,7 @@ class BackupCollector(BaseCollector):
                 "Backup inventory could not be read: "
                 f"{type(err).__name__}"
             )
+            context.backups.clear()
             context.backups.update(state)
             return
 
@@ -137,4 +139,5 @@ class BackupCollector(BaseCollector):
                 "latest_backup_failed_agent_ids": latest_failed_agent_ids,
             }
         )
+        context.backups.clear()
         context.backups.update(state)
