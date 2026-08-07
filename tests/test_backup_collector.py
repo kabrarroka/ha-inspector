@@ -225,3 +225,43 @@ async def test_backup_collector_base_state_lists_are_not_shared() -> None:
     assert error_context.backups["latest_backup_failed_addons"] == []
     assert error_context.backups["latest_backup_failed_folders"] == []
     assert error_context.backups["latest_backup_failed_agent_ids"] == []
+
+@pytest.mark.asyncio
+async def test_backup_collector_replaces_previous_state() -> None:
+    """Ensure stale backup state does not survive a new collection."""
+    manager = MagicMock()
+    manager.async_get_backups = AsyncMock(return_value=({}, {}))
+
+    hass = MagicMock()
+    hass.data = {DATA_MANAGER: manager}
+
+    context = InspectionContext()
+    context.backups.update(
+        {
+            "available": True,
+            "count": 99,
+            "legacy_key": "stale",
+            "obsolete_data": ["must", "disappear"],
+        }
+    )
+
+    await BackupCollector().collect(hass, context)
+
+    assert set(context.backups) == EXPECTED_BACKUP_KEYS
+    assert "legacy_key" not in context.backups
+    assert "obsolete_data" not in context.backups
+
+    assert context.backups == {
+        "available": True,
+        "reason": None,
+        "count": 0,
+        "latest": None,
+        "oldest": None,
+        "agent_error_count": 0,
+        "agent_error_ids": [],
+        "latest_backup_agent_count": 0,
+        "latest_backup_agent_ids": [],
+        "latest_backup_failed_addons": [],
+        "latest_backup_failed_folders": [],
+        "latest_backup_failed_agent_ids": [],
+    }
