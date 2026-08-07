@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from homeassistant.components.backup.const import DATA_MANAGER
+from custom_components.ha_inspector.engine.backup_state import BackupState
 
 from ..context import InspectionContext
 from .base import BaseCollector
@@ -17,22 +18,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-def _build_backup_inventory_state() -> dict[str, Any]:
-    """Return a fresh backup inventory state with the stable contract."""
-    return {
-        "available": False,
-        "reason": None,
-        "count": None,
-        "latest": None,
-        "oldest": None,
-        "agent_error_count": 0,
-        "agent_error_ids": [],
-        "latest_backup_agent_count": None,
-        "latest_backup_agent_ids": [],
-        "latest_backup_failed_addons": [],
-        "latest_backup_failed_folders": [],
-        "latest_backup_failed_agent_ids": [],
-    }
+
 
 
 class BackupCollector(BaseCollector):
@@ -49,23 +35,25 @@ class BackupCollector(BaseCollector):
         manager = hass.data.get(DATA_MANAGER)
 
         if manager is None:
-            state = _build_backup_inventory_state()
-            state["reason"] = "Home Assistant backup manager is not available"
+            state = BackupState(
+                reason="Home Assistant backup manager is not available",
+            )
             context.backups.clear()
-            context.backups.update(state)
+            context.backups.update(state.as_dict())
             return
 
         try:
             backups, agent_errors = await manager.async_get_backups()
         except Exception as err:  # noqa: BLE001
             _LOGGER.exception("Unable to collect Home Assistant backups")
-            state = _build_backup_inventory_state()
-            state["reason"] = (
-                "Backup inventory could not be read: "
-                f"{type(err).__name__}"
+            state = BackupState(
+                reason=(
+                    "Backup inventory could not be read: "
+                    f"{type(err).__name__}"
+                ),
             )
             context.backups.clear()
-            context.backups.update(state)
+            context.backups.update(state.as_dict())
             return
 
         dates = [
@@ -120,24 +108,22 @@ class BackupCollector(BaseCollector):
             }
         )
 
-        state = _build_backup_inventory_state()
-        state.update(
-            {
-                "available": True,
-                "count": len(backups),
-                "latest": max(dates).isoformat() if dates else None,
-                "oldest": min(dates).isoformat() if dates else None,
-                "agent_error_count": len(agent_errors),
-                "agent_error_ids": sorted(
-                    str(agent_id)
-                    for agent_id in agent_errors
-                ),
-                "latest_backup_agent_count": len(latest_agent_ids),
-                "latest_backup_agent_ids": latest_agent_ids,
-                "latest_backup_failed_addons": latest_failed_addons,
-                "latest_backup_failed_folders": latest_failed_folders,
-                "latest_backup_failed_agent_ids": latest_failed_agent_ids,
-            }
+        state = BackupState(
+            available=True,
+            count=len(backups),
+            latest=max(dates).isoformat() if dates else None,
+            oldest=min(dates).isoformat() if dates else None,
+            agent_error_count=len(agent_errors),
+            agent_error_ids=sorted(
+                str(agent_id)
+                for agent_id in agent_errors
+            ),
+            latest_backup_agent_count=len(latest_agent_ids),    
+            latest_backup_agent_ids=latest_agent_ids,
+            latest_backup_failed_addons=latest_failed_addons,
+            latest_backup_failed_folders=latest_failed_folders,
+            latest_backup_failed_agent_ids=latest_failed_agent_ids,
         )
+
         context.backups.clear()
-        context.backups.update(state)
+        context.backups.update(state.as_dict())
