@@ -61,4 +61,4 @@ def test_recorder_state_values() -> None:
         "database_connected": True,
         "database_ready": True,
     }
-    
+
