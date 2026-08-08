@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from ..context import InspectionContext
 from .base import BaseCollector
-
+from ..integrations_state import (
+    IntegrationsState,
+    ProblematicIntegrationEntry,
+)
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
@@ -28,7 +31,7 @@ class IntegrationsCollector(BaseCollector):
         states = Counter(entry.state.value for entry in entries)
         domains = Counter(entry.domain for entry in entries)
 
-        problematic_entries: list[dict[str, Any]] = []
+        problematic_entries: list[ProblematicIntegrationEntry] = []
 
         problematic_states = {
             "setup_error",
@@ -44,20 +47,20 @@ class IntegrationsCollector(BaseCollector):
                 continue
 
             problematic_entries.append(
-                {
-                    "domain": entry.domain,
-                    "title": entry.title,
-                    "state": state,
-                    "reason": entry.reason,
-                }
+                ProblematicIntegrationEntry(
+                    domain=entry.domain,
+                    title=entry.title,
+                    state=state,
+                    reason=entry.reason,
+                )
             )
 
-        context.integrations.update(
-            {
-                "total_entries": len(entries),
-                "states": dict(sorted(states.items())),
-                "domains": dict(sorted(domains.items())),
-                "problematic_entries": problematic_entries,
-                "problematic_count": len(problematic_entries),
-            }
+        state = IntegrationsState(
+            total_entries=len(entries),
+            states=dict(sorted(states.items())),
+            domains=dict(sorted(domains.items())),
+            problematic_entries=problematic_entries,
+            problematic_count=len(problematic_entries),
         )
+
+        context.integrations.update(state.as_dict())
