@@ -65,4 +65,4 @@ def test_system_state_values() -> None:
         "external_url": "https://example.ui.nabu.casa",
         "python_executable": "/usr/local/bin/python",
     }
-    
+
