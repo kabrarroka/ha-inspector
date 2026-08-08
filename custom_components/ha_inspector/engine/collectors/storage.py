@@ -6,6 +6,7 @@ import shutil
 from typing import TYPE_CHECKING
 
 from ..context import InspectionContext
+from ..storage_state import StorageState
 from .base import BaseCollector
 
 if TYPE_CHECKING:
@@ -34,11 +35,11 @@ class StorageCollector(BaseCollector):
             else 0.0
         )
 
-        context.storage.update(
-            {
-                "total_bytes": usage.total,
-                "used_bytes": usage.used,
-                "free_bytes": usage.free,
-                "free_percent": free_percent,
-            }
+        state = StorageState(
+            total_bytes=usage.total,
+            used_bytes=usage.used,
+            free_bytes=usage.free,
+            free_percent=free_percent,
         )
+
+        context.storage.update(state.as_dict())
