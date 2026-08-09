@@ -108,17 +108,17 @@ class Inspector:
 
         safe_system = {
             key: value
-            for key, value in context.system.items()
+            for key, value in context.system.as_dict().items()
             if key not in sensitive_system_keys
         }
 
         return {
             "system": safe_system,
-            "storage": context.storage,
-            "backups": context.backups,
-            "recorder": context.recorder,
-            "integrations": context.integrations,
-            "entities": context.entities,
+            "storage": context.storage.as_dict(),
+            "backups": context.backups.as_dict(),
+            "recorder": context.recorder.as_dict(),
+            "integrations": context.integrations.as_dict(),
+            "entities": context.entities.as_dict(),
         }
 
 
