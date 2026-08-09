@@ -5,15 +5,22 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from .backup_state import BackupState
+from .entities_state import EntitiesState
+from .integrations_state import IntegrationsState
+from .recorder_state import RecorderState
+from .storage_state import StorageState
+from .system_state import SystemState
+
 
 @dataclass(slots=True)
 class InspectionContext:
     """Contain all data collected during an inspection."""
 
-    system: dict[str, Any] = field(default_factory=dict)
-    storage: dict[str, Any] = field(default_factory=dict)
-    backups: dict[str, Any] = field(default_factory=dict)
-    recorder: dict[str, Any] = field(default_factory=dict)
-    integrations: dict[str, Any] = field(default_factory=dict)
-    entities: dict[str, Any] = field(default_factory=dict)
+    system: SystemState = field(default_factory=SystemState)
+    storage: StorageState = field(default_factory=StorageState)
+    backups: BackupState = field(default_factory=BackupState)
+    recorder: RecorderState = field(default_factory=RecorderState)
+    integrations: IntegrationsState = field(default_factory=IntegrationsState)
+    entities: EntitiesState = field(default_factory=EntitiesState)
     metadata: dict[str, Any] = field(default_factory=dict)

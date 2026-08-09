@@ -63,4 +63,4 @@ class IntegrationsCollector(BaseCollector):
             problematic_count=len(problematic_entries),
         )
 
-        context.integrations.update(state.as_dict())
+        context.integrations = state

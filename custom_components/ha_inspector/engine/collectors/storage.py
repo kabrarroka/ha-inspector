@@ -42,4 +42,4 @@ class StorageCollector(BaseCollector):
             free_percent=free_percent,
         )
 
-        context.storage.update(state.as_dict())
+        context.storage = state

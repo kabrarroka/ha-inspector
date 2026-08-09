@@ -47,4 +47,4 @@ class SystemCollector(BaseCollector):
             python_executable=sys.executable,
         )
 
-        context.system.update(state.as_dict())
+        context.system = state

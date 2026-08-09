@@ -31,7 +31,7 @@ class RecorderCollector(BaseCollector):
                 reason="Recorder instance is not available",
             )
 
-            context.recorder.update(state.as_dict())
+            context.recorder = state
             return
 
         recorder = get_instance(hass)
@@ -66,4 +66,4 @@ class RecorderCollector(BaseCollector):
             ),
         )
 
-        context.recorder.update(state.as_dict())
+        context.recorder = state
