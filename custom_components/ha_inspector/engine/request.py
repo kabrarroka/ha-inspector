@@ -89,13 +89,13 @@ class InspectionRequest:
             return cls()
 
         return cls(
-            include_rule_ids=data.get("include_rule_ids"),
-            include_categories=data.get("include_categories"),
-            include_tags=data.get("include_tags"),
-            exclude_rule_ids=data.get("exclude_rule_ids"),
-            exclude_categories=data.get("exclude_categories"),
-            exclude_tags=data.get("exclude_tags"),
-            diagnostics=data.get("diagnostics", False),
+            include_rule_ids=_normalize(data.get("include_rule_ids")),
+            include_categories=_normalize(data.get("include_categories")),
+            include_tags=_normalize(data.get("include_tags")),
+            exclude_rule_ids=_normalize(data.get("exclude_rule_ids")),
+            exclude_categories=_normalize(data.get("exclude_categories")),
+            exclude_tags=_normalize(data.get("exclude_tags")),
+            diagnostics=bool(data.get("diagnostics", False)),
         )
 
     def selector_options(self) -> dict[str, tuple[str, ...]]:
