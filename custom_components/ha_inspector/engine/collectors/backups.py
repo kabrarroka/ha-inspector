@@ -38,8 +38,7 @@ class BackupCollector(BaseCollector):
             state = BackupState(
                 reason="Home Assistant backup manager is not available",
             )
-            context.backups.clear()
-            context.backups.update(state.as_dict())
+            context.backups = state
             return
 
         try:
@@ -52,8 +51,7 @@ class BackupCollector(BaseCollector):
                     f"{type(err).__name__}"
                 ),
             )
-            context.backups.clear()
-            context.backups.update(state.as_dict())
+            context.backups = state
             return
 
         dates = [
@@ -125,5 +123,4 @@ class BackupCollector(BaseCollector):
             latest_backup_failed_agent_ids=latest_failed_agent_ids,
         )
 
-        context.backups.clear()
-        context.backups.update(state.as_dict())
+        context.backups = state

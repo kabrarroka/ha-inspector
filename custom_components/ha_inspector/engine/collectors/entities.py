@@ -111,4 +111,4 @@ class EntitiesCollector(BaseCollector):
             disabled_automations=disabled_automations,
         )
 
-        context.entities.update(state.as_dict())
+        context.entities = state
