@@ -22,10 +22,10 @@ class BackupCountRule(BaseRule):
         """Report when fewer than three backups are available."""
         backups = context.backups
 
-        if backups.get("available") is not True:
+        if backups.available is not True:
             return []
 
-        count = backups.get("count")
+        count = backups.count
 
         if not isinstance(count, int) or isinstance(count, bool) or count < 0:
             return []
@@ -64,12 +64,9 @@ class BackupCountRule(BaseRule):
                 data={
                     "backup_count": count,
                     "minimum_recommended": self.minimum_recommended,
-                    "latest_backup": backups.get("latest"),
-                    "oldest_backup": backups.get("oldest"),
-                    "agent_error_count": backups.get(
-                        "agent_error_count",
-                        0,
-                    ),
+                    "latest_backup": backups.latest,
+                    "oldest_backup": backups.oldest,
+                    "agent_error_count": backups.agent_error_count,
                 },
             )
         ]
@@ -85,11 +82,11 @@ class BackupAgentErrorsRule(BaseRule):
         """Report backup agents that returned errors."""
         backups = context.backups
 
-        if backups.get("available") is not True:
+        if backups.available is not True:
             return []
 
-        error_count = backups.get("agent_error_count")
-        error_ids = backups.get("agent_error_ids")
+        error_count = backups.agent_error_count
+        error_ids = backups.agent_error_ids
 
         if (
             not isinstance(error_count, int)
@@ -127,8 +124,8 @@ class BackupAgentErrorsRule(BaseRule):
                 data={
                     "agent_error_count": error_count,
                     "agent_error_ids": normalized_ids,
-                    "backup_count": backups.get("count"),
-                    "latest_backup": backups.get("latest"),
+                    "backup_count": backups.count,
+                    "latest_backup": backups.latest,
                 },
             )
         ]
@@ -148,12 +145,12 @@ class BackupRedundancyRule(BaseRule):
         """Report when the latest backup is not stored redundantly."""
         backups = context.backups
 
-        if backups.get("available") is not True:
+        if backups.available is not True:
             return []
 
-        count = backups.get("count")
-        agent_count = backups.get("latest_backup_agent_count")
-        agent_ids = backups.get("latest_backup_agent_ids")
+        count = backups.count
+        agent_count = backups.latest_backup_agent_count
+        agent_ids = backups.latest_backup_agent_ids
 
         if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
             return []
@@ -192,7 +189,7 @@ class BackupRedundancyRule(BaseRule):
                     "including one outside the Home Assistant device."
                 ),
                 data={
-                    "latest_backup": backups.get("latest"),
+                    "latest_backup": backups.latest,
                     "latest_backup_agent_count": agent_count,
                     "latest_backup_agent_ids": normalized_ids,
                     "minimum_recommended_agents": self.minimum_recommended_agents,
@@ -213,16 +210,16 @@ class BackupIntegrityRule(BaseRule):
         """Report failed content or storage targets for the latest backup."""
         backups = context.backups
 
-        if backups.get("available") is not True:
+        if backups.available is not True:
             return []
 
-        count = backups.get("count")
+        count = backups.count
         if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
             return []
 
-        failed_addons = backups.get("latest_backup_failed_addons")
-        failed_folders = backups.get("latest_backup_failed_folders")
-        failed_agent_ids = backups.get("latest_backup_failed_agent_ids")
+        failed_addons = backups.latest_backup_failed_addons
+        failed_folders = backups.latest_backup_failed_folders
+        failed_agent_ids = backups.latest_backup_failed_agent_ids
 
         if not all(
             isinstance(value, list)
@@ -291,7 +288,7 @@ class BackupIntegrityRule(BaseRule):
                     "the current recovery point."
                 ),
                 data={
-                    "latest_backup": backups.get("latest"),
+                    "latest_backup": backups.latest,
                     "failed_addons": normalized_addons,
                     "failed_folders": normalized_folders,
                     "failed_agent_ids": normalized_agent_ids,

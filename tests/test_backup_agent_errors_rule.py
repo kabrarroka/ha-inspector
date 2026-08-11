@@ -9,6 +9,8 @@ from custom_components.ha_inspector.engine.rules.backups import (
     BackupAgentErrorsRule,
 )
 from custom_components.ha_inspector.engine.severity import Severity
+from typing import cast
+from custom_components.ha_inspector.engine.backup_state import BackupState
 
 
 def _context(
@@ -18,14 +20,14 @@ def _context(
     available: bool = True,
 ) -> InspectionContext:
     return InspectionContext(
-        backups={
-            "available": available,
-            "count": 4,
-            "latest": "2026-08-01T09:30:00+00:00",
-            "oldest": "2026-07-01T08:00:00+00:00",
-            "agent_error_count": error_count,
-            "agent_error_ids": error_ids,
-        }
+        backups=BackupState(
+            available=available,
+            count=4,
+            latest="2026-08-01T09:30:00+00:00",
+            oldest="2026-07-01T08:00:00+00:00",
+            agent_error_count=cast(int, error_count),
+            agent_error_ids=cast(list[str], error_ids),
+        )
     )
 
 

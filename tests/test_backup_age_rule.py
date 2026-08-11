@@ -9,6 +9,8 @@ import pytest
 from custom_components.ha_inspector.engine.context import InspectionContext
 from custom_components.ha_inspector.engine.rules.backup_age import BackupAgeRule
 from custom_components.ha_inspector.engine.severity import Severity
+from typing import cast
+from custom_components.ha_inspector.engine.backup_state import BackupState
 
 
 class FixedTimeBackupAgeRule(BackupAgeRule):
@@ -25,12 +27,12 @@ def _context(
     count: object = 3,
 ) -> InspectionContext:
     return InspectionContext(
-        backups={
-            "available": available,
-            "count": count,
-            "latest": latest,
-            "oldest": None,
-        }
+        backups=BackupState(
+            available=available,
+            count=cast(int | None, count),
+            latest=cast(str | None, latest),
+            oldest=None,
+        )
     )
 
 

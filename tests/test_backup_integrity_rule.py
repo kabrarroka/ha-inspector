@@ -7,6 +7,8 @@ import pytest
 from custom_components.ha_inspector.engine.context import InspectionContext
 from custom_components.ha_inspector.engine.rules.backups import BackupIntegrityRule
 from custom_components.ha_inspector.engine.severity import Severity
+from typing import cast
+from custom_components.ha_inspector.engine.backup_state import BackupState
 
 
 def _context(
@@ -18,20 +20,23 @@ def _context(
     count: object = 3,
 ) -> InspectionContext:
     return InspectionContext(
-        backups={
-            "available": available,
-            "count": count,
-            "latest": "2026-08-05T06:00:00+00:00",
-            "latest_backup_failed_addons": (
-                [] if failed_addons is None else failed_addons
+        backups=BackupState(
+            available=available,
+            count=cast(int | None, count),
+            latest="2026-08-05T06:00:00+00:00",
+            latest_backup_failed_addons=cast(
+                list[str],
+                [] if failed_addons is None else failed_addons,
             ),
-            "latest_backup_failed_folders": (
-                [] if failed_folders is None else failed_folders
+            latest_backup_failed_folders=cast(
+                list[str],
+                [] if failed_folders is None else failed_folders,
             ),
-            "latest_backup_failed_agent_ids": (
-                [] if failed_agent_ids is None else failed_agent_ids
+            latest_backup_failed_agent_ids=cast(
+                list[str],
+                [] if failed_agent_ids is None else failed_agent_ids,
             ),
-        }
+        )
     )
 
 
