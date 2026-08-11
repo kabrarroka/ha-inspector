@@ -29,10 +29,10 @@ class BackupAgeRule(BaseRule):
         """Report when the newest backup exceeds the age thresholds."""
         backups = context.backups
 
-        if backups.get("available") is not True:
+        if backups.available is not True:
             return []
 
-        latest = backups.get("latest")
+        latest = backups.latest
 
         if not isinstance(latest, str) or not latest.strip():
             return []
@@ -82,7 +82,7 @@ class BackupAgeRule(BaseRule):
                     "backup_age_days": age_days,
                     "warning_age_days": self.warning_age_days,
                     "error_age_days": self.error_age_days,
-                    "backup_count": backups.get("count"),
+                    "backup_count": backups.count,
                 },
             )
         ]

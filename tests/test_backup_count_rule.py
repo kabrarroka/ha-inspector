@@ -7,6 +7,8 @@ import pytest
 from custom_components.ha_inspector.engine.context import InspectionContext
 from custom_components.ha_inspector.engine.rules.backups import BackupCountRule
 from custom_components.ha_inspector.engine.severity import Severity
+from typing import cast
+from custom_components.ha_inspector.engine.backup_state import BackupState
 
 
 def _context(
@@ -15,13 +17,13 @@ def _context(
     available: bool = True,
 ) -> InspectionContext:
     return InspectionContext(
-        backups={
-            "available": available,
-            "count": count,
-            "latest": "2026-08-01T09:30:00+00:00",
-            "oldest": "2026-07-01T08:00:00+00:00",
-            "agent_error_count": 0,
-        }
+        backups=BackupState(
+            available=available,
+            count=cast(int | None, count),
+            latest="2026-08-01T09:30:00+00:00",
+            oldest="2026-07-01T08:00:00+00:00",
+            agent_error_count=0,
+        )
     )
 
 
