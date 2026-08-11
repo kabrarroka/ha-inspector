@@ -76,9 +76,12 @@ def _profile_definition(
             "Inspection profile must be a string or mapping"
         )
 
-    profile_id = value.get("id")
+    mapping_profile_id = value.get("id")
 
-    if not isinstance(profile_id, str) or not profile_id.strip():
+    if (
+        not isinstance(mapping_profile_id, str)
+        or not mapping_profile_id.strip()
+    ):
         raise InspectionProfileError(
             "Inspection profile mapping must contain a non-empty 'id'"
         )
@@ -112,7 +115,7 @@ def _profile_definition(
             f"Unknown inspection profile overrides: {unknown}"
         )
 
-    return profile_id.strip(), dict(overrides)
+    return mapping_profile_id.strip(), dict(overrides)
 
 
 def _explicit_request_data(
