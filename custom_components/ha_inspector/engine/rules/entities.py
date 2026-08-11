@@ -18,8 +18,8 @@ class UnavailableEntitiesRule(BaseRule):
     async def check(self, context: InspectionContext) -> list[Finding]:
         """Check the percentage of unavailable entities."""
         entities = context.entities
-        total = entities.get("total_entities", 0)
-        unavailable = entities.get("unavailable_count", 0)
+        total = entities.total_entities
+        unavailable = entities.unavailable_count
 
         if not isinstance(total, int) or total <= 0:
             return []
@@ -56,7 +56,7 @@ class UnavailableEntitiesRule(BaseRule):
                     "total_entities": total,
                     "unavailable_count": unavailable,
                     "unavailable_percentage": percentage,
-                    "domains": entities.get("unavailable_domains", {}),
+                    "domains": entities.unavailable_domains,
                 },
             )
         ]
@@ -72,8 +72,8 @@ class UnknownEntitiesRule(BaseRule):
     async def check(self, context: InspectionContext) -> list[Finding]:
         """Check the percentage of entities with unknown state."""
         entities = context.entities
-        total = entities.get("total_entities", 0)
-        unknown = entities.get("unknown_count", 0)
+        total = entities.total_entities
+        unknown = entities.unknown_count
 
         if not isinstance(total, int) or total <= 0:
             return []
@@ -110,7 +110,7 @@ class UnknownEntitiesRule(BaseRule):
                     "total_entities": total,
                     "unknown_count": unknown,
                     "unknown_percentage": percentage,
-                    "domains": entities.get("unknown_domains", {}),
+                    "domains": entities.unknown_domains,
                 },
             )
         ]
@@ -123,7 +123,7 @@ class DuplicateEntityNamesRule(BaseRule):
 
     async def check(self, context: InspectionContext) -> list[Finding]:
         """Report duplicated entity names."""
-        duplicates = context.entities.get("duplicate_names", [])
+        duplicates = context.entities.duplicate_names
         if not isinstance(duplicates, list) or not duplicates:
             return []
 

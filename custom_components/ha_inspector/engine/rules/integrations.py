@@ -20,11 +20,8 @@ class IntegrationSetupErrorRule(BaseRule):
         """Return findings for config entries in setup error."""
         entries = [
             entry
-            for entry in context.integrations.get(
-                "problematic_entries",
-                [],
-            )
-            if entry.get("state") == "setup_error"
+            for entry in context.integrations.problematic_entries
+            if entry.state == "setup_error"
         ]
 
         if not entries:
@@ -64,11 +61,8 @@ class IntegrationSetupRetryRule(BaseRule):
         """Return findings for config entries in setup retry."""
         entries = [
             entry
-            for entry in context.integrations.get(
-                "problematic_entries",
-                [],
-            )
-            if entry.get("state") == "setup_retry"
+            for entry in context.integrations.problematic_entries
+            if entry.state == "setup_retry"
         ]
 
         if not entries:
@@ -114,11 +108,8 @@ class IntegrationLifecycleErrorRule(BaseRule):
 
         entries = [
             entry
-            for entry in context.integrations.get(
-                "problematic_entries",
-                [],
-            )
-            if entry.get("state") in affected_states
+            for entry in context.integrations.problematic_entries
+            if entry.state in affected_states
         ]
 
         if not entries:

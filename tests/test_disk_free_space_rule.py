@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 
 from custom_components.ha_inspector.engine.context import InspectionContext
@@ -9,20 +11,24 @@ from custom_components.ha_inspector.engine.rules.disk_free_space import (
     DiskFreeSpaceRule,
 )
 from custom_components.ha_inspector.engine.severity import Severity
+from custom_components.ha_inspector.engine.storage_state import StorageState
 
 
 def _context(free_percent: object) -> InspectionContext:
+    if isinstance(free_percent, (int, float)):
+        free_bytes = int(float(free_percent) * 10)
+        used_bytes = 1000 - free_bytes
+    else:
+        free_bytes = 0
+        used_bytes = 0
+
     return InspectionContext(
-        storage={
-            "total_bytes": 1000,
-            "used_bytes": 1000 - int(float(free_percent) * 10)
-            if isinstance(free_percent, (int, float))
-            else None,
-            "free_bytes": int(float(free_percent) * 10)
-            if isinstance(free_percent, (int, float))
-            else None,
-            "free_percent": free_percent,
-        }
+        storage=StorageState(
+            total_bytes=1000,
+            used_bytes=used_bytes,
+            free_bytes=free_bytes,
+            free_percent=cast(float, free_percent),
+        )
     )
 
 

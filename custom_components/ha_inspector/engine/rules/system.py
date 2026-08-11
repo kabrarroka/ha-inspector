@@ -45,13 +45,11 @@ class SystemInformationRule(BaseRule):
                     "about this Home Assistant installation."
                 ),
                 data={
-                    "home_assistant_version": context.system.get(
-                        "home_assistant_version"
-                    ),
-                    "python_version": context.system.get("python_version"),
-                    "architecture": context.system.get("architecture"),
-                    "timezone": context.system.get("timezone"),
-                    "country": context.system.get("country"),
+                    "home_assistant_version": context.system.home_assistant_version,
+                    "python_version": context.system.python_version,
+                    "architecture": context.system.architecture,
+                    "timezone": context.system.timezone,
+                    "country": context.system.country,
                 },
             )
         ]

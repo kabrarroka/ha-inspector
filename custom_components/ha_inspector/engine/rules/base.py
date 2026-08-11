@@ -9,6 +9,7 @@ from typing import Any
 from ..context import InspectionContext
 from ..models import Finding
 from ..severity import Severity
+from ..descriptors import RuleDescriptor
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +53,7 @@ class BaseRule(ABC):
     """Base class for inspection rules."""
 
     rule_id: str
+    descriptor: RuleDescriptor
 
     @property
     def metadata(self) -> Any:
