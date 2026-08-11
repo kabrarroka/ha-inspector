@@ -12,7 +12,10 @@ from homeassistant.data_entry_flow import FlowResult
 from .const import DOMAIN, NAME
 
 
-class HAInspectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class HAInspectorConfigFlow(  # type: ignore[call-arg]
+    config_entries.ConfigFlow,  # type: ignore[misc]
+    domain=DOMAIN,
+):
     """Handle a config flow for HA Inspector."""
 
     VERSION = 1
