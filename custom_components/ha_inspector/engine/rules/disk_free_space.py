@@ -22,7 +22,7 @@ class DiskFreeSpaceRule(BaseRule):
     ) -> list[Finding]:
         """Return a finding when free disk space is below a threshold."""
         storage = context.storage
-        free_percent = storage.get("free_percent")
+        free_percent = storage.free_percent
 
         if not isinstance(free_percent, (int, float)):
             return []
@@ -58,9 +58,9 @@ class DiskFreeSpaceRule(BaseRule):
                     "available storage."
                 ),
                 data={
-                    "total_bytes": storage.get("total_bytes"),
-                    "used_bytes": storage.get("used_bytes"),
-                    "free_bytes": storage.get("free_bytes"),
+                    "total_bytes": storage.total_bytes,
+                    "used_bytes": storage.used_bytes,
+                    "free_bytes": storage.free_bytes,
                     "free_percent": free_percent,
                     "warning_threshold": self.warning_threshold,
                     "error_threshold": self.error_threshold,

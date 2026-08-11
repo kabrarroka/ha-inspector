@@ -15,8 +15,8 @@ class DisabledAutomationsRule(BaseRule):
 
     async def check(self, context: InspectionContext) -> list[Finding]:
         """Report automations disabled by the user or an integration."""
-        automations = context.entities.get("disabled_automations", [])
-        if not isinstance(automations, list) or not automations:
+        automations = context.entities.disabled_automations
+        if not automations:
             return []
 
         return [

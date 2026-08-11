@@ -3,6 +3,11 @@
 import pytest
 
 from custom_components.ha_inspector.engine.context import InspectionContext
+from custom_components.ha_inspector.engine.entities_state import (
+    DisabledAutomation,
+    DuplicateEntityName,
+    EntitiesState,
+)
 from custom_components.ha_inspector.engine.rules.automations import (
     DisabledAutomationsRule,
 )
@@ -14,25 +19,27 @@ from custom_components.ha_inspector.engine.severity import Severity
 
 @pytest.mark.asyncio
 async def test_duplicate_names_rule_returns_nothing_without_duplicates() -> None:
-    context = InspectionContext(entities={"duplicate_names": []})
+    context = InspectionContext(entities=EntitiesState())
+
     assert await DuplicateEntityNamesRule().check(context) == []
 
 
 @pytest.mark.asyncio
 async def test_duplicate_names_rule_reports_groups() -> None:
     context = InspectionContext(
-        entities={
-            "duplicate_names": [
-                {
-                    "name": "Temperature",
-                    "entity_ids": [
+        entities=EntitiesState(
+            duplicate_names=[
+                DuplicateEntityName(
+                    name="Temperature",
+                    entity_ids=[
                         "sensor.kitchen_temperature",
                         "sensor.living_room_temperature",
                     ],
-                    "count": 2,
-                }
-            ]
-        }
+                    count=2,
+                )
+            ],
+            duplicate_name_count=1,
+        )
     )
 
     findings = await DuplicateEntityNamesRule().check(context)
@@ -44,22 +51,24 @@ async def test_duplicate_names_rule_reports_groups() -> None:
 
 @pytest.mark.asyncio
 async def test_disabled_automations_rule_returns_nothing_when_empty() -> None:
-    context = InspectionContext(entities={"disabled_automations": []})
+    context = InspectionContext(entities=EntitiesState())
+
     assert await DisabledAutomationsRule().check(context) == []
 
 
 @pytest.mark.asyncio
 async def test_disabled_automations_rule_reports_entries() -> None:
     context = InspectionContext(
-        entities={
-            "disabled_automations": [
-                {
-                    "entity_id": "automation.old_rule",
-                    "name": "Old rule",
-                    "disabled_by": "user",
-                }
-            ]
-        }
+        entities=EntitiesState(
+            disabled_automations=[
+                DisabledAutomation(
+                    entity_id="automation.old_rule",
+                    name="Old rule",
+                    disabled_by="user",
+                )
+            ],
+            disabled_automation_count=1,
+        )
     )
 
     findings = await DisabledAutomationsRule().check(context)

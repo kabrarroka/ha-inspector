@@ -20,7 +20,7 @@ class RecorderAvailabilityRule(BaseRule):
         """Check recorder availability."""
         recorder = context.recorder
 
-        if recorder.get("available") is not True:
+        if recorder.available is not True:
             return [
                 Finding(
                     finding_id="RECORDER_UNAVAILABLE",
@@ -37,7 +37,7 @@ class RecorderAvailabilityRule(BaseRule):
                 )
             ]
 
-        if not recorder.get("database_connected"):
+        if not recorder.database_connected:
             return [
                 Finding(
                     finding_id="RECORDER_DATABASE_NOT_CONNECTED",
@@ -52,14 +52,12 @@ class RecorderAvailabilityRule(BaseRule):
                         "Home Assistant logs."
                     ),
                     data={
-                        "database_dialect": recorder.get(
-                            "database_dialect"
-                        ),
+                        "database_dialect": recorder.database_dialect,
                     },
                 )
             ]
 
-        if not recorder.get("database_ready"):
+        if not recorder.database_ready:
             return [
                 Finding(
                     finding_id="RECORDER_DATABASE_NOT_READY",
@@ -74,9 +72,7 @@ class RecorderAvailabilityRule(BaseRule):
                         "finish and run the inspection again."
                     ),
                     data={
-                        "migration_in_progress": recorder.get(
-                            "migration_in_progress"
-                        ),
+                        "migration_in_progress": recorder.migration_in_progress,
                     },
                 )
             ]
@@ -99,10 +95,10 @@ class RecorderKeepDaysRule(BaseRule):
         """Check whether Recorder retention may be excessive."""
         recorder = context.recorder
 
-        if recorder.get("available") is not True:
+        if recorder.available is not True:
             return []
 
-        keep_days = recorder.get("keep_days")
+        keep_days = recorder.keep_days
 
         if not isinstance(keep_days, int):
             return [

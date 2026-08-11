@@ -42,7 +42,7 @@ def discover_rule_classes() -> list[type[BaseRule]]:
             ):
                 continue
 
-            legacy_id = getattr(candidate, "rule_id", None)
+            legacy_id = candidate.rule_id
             descriptor = RULE_DESCRIPTORS.get(legacy_id)
             if descriptor is None:
                 raise ValueError(
