@@ -6,12 +6,11 @@ from importlib import import_module
 from inspect import isabstract, isclass
 from pkgutil import walk_packages
 from types import ModuleType
-from typing import TypeVar
+from typing import Any, cast
 
 from .collectors.base import BaseCollector
 from .rules.base import BaseRule
 
-RegistryItem = TypeVar("RegistryItem", BaseCollector, BaseRule)
 
 
 class RegistryError(RuntimeError):
@@ -76,8 +75,8 @@ class EngineRegistry:
     def _discover_package(
         self,
         package_name: str,
-        base_type: type[RegistryItem],
-    ) -> None:
+        base_type: type[Any],
+) -> None:
         package = import_module(package_name)
         self._register_from_module(package, base_type)
 
@@ -98,7 +97,7 @@ class EngineRegistry:
     def _register_from_module(
         self,
         module: ModuleType,
-        base_type: type[RegistryItem],
+        base_type: type[Any],
     ) -> None:
         for candidate in vars(module).values():
             if not isclass(candidate) or candidate is base_type:
@@ -110,24 +109,42 @@ class EngineRegistry:
 
             if base_type is BaseCollector:
                 identifier = getattr(candidate, "collector_id", None)
-                target = self._collector_types
+
+                if not isinstance(identifier, str) or not identifier.strip():
+                    raise RegistryError(
+                        f"{candidate.__name__} does not define a valid identifier"
+                    )
+
+                if identifier in self._collector_types:
+                    previous_collector = self._collector_types[identifier]
+                    raise RegistryError(
+                        f"Duplicate identifier {identifier!r}: "
+                        f"{previous_collector.__name__} and {candidate.__name__}"
+                    )
+
+                self._collector_types[identifier] = cast(
+                    type[BaseCollector],
+                    candidate,
+                )
             else:
                 identifier = getattr(candidate, "rule_id", None)
-                target = self._rule_types
 
-            if not isinstance(identifier, str) or not identifier.strip():
-                raise RegistryError(
-                    f"{candidate.__name__} does not define a valid identifier"
+                if not isinstance(identifier, str) or not identifier.strip():
+                    raise RegistryError(
+                        f"{candidate.__name__} does not define a valid identifier"
+                    )
+
+                if identifier in self._rule_types:
+                    previous_rule = self._rule_types[identifier]
+                    raise RegistryError(
+                        f"Duplicate identifier {identifier!r}: "
+                        f"{previous_rule.__name__} and {candidate.__name__}"
+                    )
+
+                self._rule_types[identifier] = cast(
+                    type[BaseRule],
+                    candidate,
                 )
-
-            if identifier in target:
-                previous = target[identifier]
-                raise RegistryError(
-                    f"Duplicate identifier {identifier!r}: "
-                    f"{previous.__name__} and {candidate.__name__}"
-                )
-
-            target[identifier] = candidate
 
 
 # Backward-compatible name used by previous engine revisions.

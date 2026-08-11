@@ -119,7 +119,7 @@ class RuleRegistry:
         tag: str | None = None,
     ) -> tuple[RuleRegistryEntry, ...]:
         """Return entries filtered by category and tag."""
-        entries = self._entries.values()
+        entries: Iterable[RuleRegistryEntry] = self._entries.values()
 
         if category is not None:
             entries = (
