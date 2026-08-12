@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pytest:
-    name: Python 3.14
+  mypy:
+    name: Mypy
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -39,6 +39,27 @@ jobs:
 
       - name: Run mypy
         run: python -m mypy
+
+  pytest:
+    name: Pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
 
       - name: Run tests
         env:
