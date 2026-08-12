@@ -37,6 +37,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
+      - name: Run mypy
+        run: python -m mypy
+
       - name: Run tests
         env:
           PYTHONFAULTHANDLER: "1"
