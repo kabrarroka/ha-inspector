@@ -1,14 +1,14 @@
 """Tests for the HA Inspector health score helpers."""
 
-from custom_components.ha_inspector.engine.severity import Severity
 from custom_components.ha_inspector.engine.score import (
     HealthStatus,
-    ScoringEntry,
     ScoreCalculator,
+    ScoringEntry,
     category_score,
     score_from_penalties,
     status_for_score,
 )
+from custom_components.ha_inspector.engine.severity import Severity
 
 
 def test_score_from_empty_penalties_is_perfect() -> None:

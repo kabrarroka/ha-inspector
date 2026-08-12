@@ -7,14 +7,13 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from homeassistant.components.backup.const import DATA_MANAGER
+
 from custom_components.ha_inspector.engine.backup_state import BackupState
 from custom_components.ha_inspector.engine.collectors.backups import (
     BackupCollector,
 )
 from custom_components.ha_inspector.engine.context import InspectionContext
-
 
 EXPECTED_BACKUP_KEYS = {
     "available",

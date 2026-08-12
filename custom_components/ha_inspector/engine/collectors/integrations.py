@@ -6,11 +6,12 @@ from collections import Counter
 from typing import TYPE_CHECKING
 
 from ..context import InspectionContext
-from .base import BaseCollector
 from ..integrations_state import (
     IntegrationsState,
     ProblematicIntegrationEntry,
 )
+from .base import BaseCollector
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 

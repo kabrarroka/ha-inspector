@@ -83,7 +83,7 @@ class InspectionRequest:
     def from_dict(
         cls,
         data: dict[str, Any] | None,
-    ) -> "InspectionRequest":
+    ) -> InspectionRequest:
         """Create a request from untrusted mapping data."""
         if not data:
             return cls()

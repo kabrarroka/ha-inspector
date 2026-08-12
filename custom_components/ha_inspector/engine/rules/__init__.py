@@ -16,12 +16,12 @@ from .recorder import (
 from .system import SystemInformationRule
 
 __all__ = [
-    "UnavailableEntitiesRule",
-    "UnknownEntitiesRule",
     "IntegrationLifecycleErrorRule",
     "IntegrationSetupErrorRule",
     "IntegrationSetupRetryRule",
     "RecorderAvailabilityRule",
     "RecorderKeepDaysRule",
     "SystemInformationRule",
+    "UnavailableEntitiesRule",
+    "UnknownEntitiesRule",
 ]

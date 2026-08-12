@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 from .rules.base import BaseRule
 
@@ -25,7 +26,7 @@ class RuleRegistryEntry:
     recommendation: str | None
 
     @classmethod
-    def from_rule(cls, rule: BaseRule) -> "RuleRegistryEntry":
+    def from_rule(cls, rule: BaseRule) -> RuleRegistryEntry:
         """Create an entry without executing the rule."""
         metadata = rule.metadata
         data = metadata.as_dict()

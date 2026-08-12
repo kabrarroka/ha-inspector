@@ -36,7 +36,7 @@ class Inspector:
         self._rule_engine = RuleEngine(self._rules)
 
     @classmethod
-    def from_registry(cls, registry: InspectionRegistry) -> "Inspector":
+    def from_registry(cls, registry: InspectionRegistry) -> Inspector:
         """Create an inspector from a registry."""
         return cls(
             collectors=registry.collectors,

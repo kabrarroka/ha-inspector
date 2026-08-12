@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.components.backup.const import DATA_MANAGER
+
 from custom_components.ha_inspector.engine.backup_state import BackupState
 
 from ..context import InspectionContext
@@ -43,7 +44,7 @@ class BackupCollector(BaseCollector):
 
         try:
             backups, agent_errors = await manager.async_get_backups()
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             _LOGGER.exception("Unable to collect Home Assistant backups")
             state = BackupState(
                 reason=(

@@ -157,7 +157,7 @@ def test_exported_dicts_do_not_mutate_registry() -> None:
 def test_duplicate_rule_ids_raise_registry_error() -> None:
     with pytest.raises(
         RuleRegistryError,
-        match="Duplicate rule identifier: system.example",
+        match=r"Duplicate rule identifier: system.example",
     ):
         RuleRegistry([ExampleRule(), DuplicateRule()])
 

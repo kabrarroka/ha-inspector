@@ -9,13 +9,13 @@ from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers import entity_registry as er
 
 from ..context import InspectionContext
-from .base import BaseCollector
 from ..entities_state import (
     DisabledAutomation,
     DuplicateEntityName,
     EntitiesState,
     EntitySummary,
 )
+from .base import BaseCollector
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant

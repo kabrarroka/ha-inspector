@@ -1,14 +1,14 @@
 """Tests for inspection comparison."""
 
 from custom_components.ha_inspector.engine.comparison import (
-    InspectionComparison,
     CategoryComparison,
     FindingsComparison,
+    InspectionComparison,
 )
-from custom_components.ha_inspector.engine.result import InspectionResult
 from custom_components.ha_inspector.engine.models import Finding
-from custom_components.ha_inspector.engine.severity import Severity
+from custom_components.ha_inspector.engine.result import InspectionResult
 from custom_components.ha_inspector.engine.score import HealthStatus
+from custom_components.ha_inspector.engine.severity import Severity
 
 
 def test_score_delta() -> None:

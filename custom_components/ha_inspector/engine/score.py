@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Iterable, Mapping, Protocol
+from typing import Protocol
+
 from .severity import Severity
 
 MAX_HEALTH_SCORE = 100

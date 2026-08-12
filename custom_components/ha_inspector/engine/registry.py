@@ -12,7 +12,6 @@ from .collectors.base import BaseCollector
 from .rules.base import BaseRule
 
 
-
 class RegistryError(RuntimeError):
     """Raised when the engine registry cannot be built safely."""
 
@@ -25,7 +24,7 @@ class EngineRegistry:
         self._rule_types: dict[str, type[BaseRule]] = {}
 
     @classmethod
-    def discover(cls) -> "EngineRegistry":
+    def discover(cls) -> EngineRegistry:
         """Build a registry by scanning the collectors and rules packages."""
         registry = cls()
         registry._discover_package(

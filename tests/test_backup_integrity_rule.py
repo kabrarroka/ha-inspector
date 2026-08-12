@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 
+from custom_components.ha_inspector.engine.backup_state import BackupState
 from custom_components.ha_inspector.engine.context import InspectionContext
 from custom_components.ha_inspector.engine.rules.backups import BackupIntegrityRule
 from custom_components.ha_inspector.engine.severity import Severity
-from typing import cast
-from custom_components.ha_inspector.engine.backup_state import BackupState
 
 
 def _context(

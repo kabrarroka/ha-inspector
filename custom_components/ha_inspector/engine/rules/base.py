@@ -7,9 +7,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..context import InspectionContext
+from ..descriptors import RuleDescriptor
 from ..models import Finding
 from ..severity import Severity
-from ..descriptors import RuleDescriptor
 
 
 @dataclass(frozen=True, slots=True)

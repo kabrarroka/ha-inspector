@@ -44,7 +44,10 @@ def _module_with(*classes: type) -> ModuleType:
 def test_registry_registers_collectors_and_rules() -> None:
     registry = EngineRegistry()
 
-    registry._register_from_module(_module_with(BetaCollector, AlphaCollector), BaseCollector)
+    registry._register_from_module(
+        _module_with(BetaCollector, AlphaCollector),
+        BaseCollector,
+    )
     registry._register_from_module(_module_with(AlphaRule), BaseRule)
 
     assert registry.collector_ids == ("alpha", "beta")
