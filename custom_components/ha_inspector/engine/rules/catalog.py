@@ -10,7 +10,9 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         rule_id="system.information",
         category=Category.SYSTEM,
         title="System information",
-        description="Collects general information about the Home Assistant installation.",
+        description=(
+            "Collects general information about the Home Assistant installation."
+        ),
         weight=0,
         tags=("system", "inventory"),
     ),
@@ -90,7 +92,9 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         rule_id="storage.disk_free_space",
         category=Category.STORAGE,
         title="Disk free space",
-        description="Checks whether the Home Assistant storage has sufficient free space.",
+        description=(
+            "Checks whether the Home Assistant storage has sufficient free space."
+        ),
         weight=30,
         tags=("storage", "disk", "health", "availability"),
     ),

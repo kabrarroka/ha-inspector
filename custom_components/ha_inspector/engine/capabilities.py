@@ -43,7 +43,7 @@ class EngineCapabilities:
     def from_registry(
         cls,
         registry: EngineRegistry,
-    ) -> "EngineCapabilities":
+    ) -> EngineCapabilities:
         """Build capabilities from a discovered engine registry."""
         rule_registry = RuleRegistry(registry.create_rules())
 
@@ -118,8 +118,8 @@ def describe_engine(
 
 __all__ = [
     "CAPABILITIES_SCHEMA_VERSION",
-    "EngineCapabilities",
     "REQUEST_FILTERS",
     "REQUEST_OPTIONS",
+    "EngineCapabilities",
     "describe_engine",
 ]

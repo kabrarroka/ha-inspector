@@ -189,9 +189,9 @@ def list_profiles() -> tuple[InspectionProfile, ...]:
 
 
 __all__ = [
+    "PROFILES",
     "InspectionProfile",
     "InspectionProfileError",
-    "PROFILES",
     "create_profile_request",
     "get_profile",
     "list_profiles",

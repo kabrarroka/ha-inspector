@@ -1,0 +1,11 @@
+target-version = "py314"
+
+[lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "SIM",
+    "RUF",
+]

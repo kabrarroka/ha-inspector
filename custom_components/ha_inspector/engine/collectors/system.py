@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 from homeassistant.const import __version__ as HA_VERSION
 
 from ..context import InspectionContext
-from .base import BaseCollector
 from ..system_state import SystemState
+from .base import BaseCollector
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant

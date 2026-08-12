@@ -14,14 +14,12 @@ from homeassistant.core import (
 )
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
+from .const import DOMAIN, VERSION
 from .engine.profiles import (
     InspectionProfileError,
     create_profile_request,
 )
 from .engine.request import InspectionRequest
-
-from .const import VERSION
 
 if TYPE_CHECKING:
     from .engine.inspector import Inspector

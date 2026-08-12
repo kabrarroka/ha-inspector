@@ -66,7 +66,7 @@ class RuleEngine:
 
             try:
                 findings = await rule.check(context)
-            except Exception as err:  # noqa: BLE001
+            except Exception as err:
                 _LOGGER.exception(
                     "Unexpected error executing HA Inspector rule %s",
                     rule_id,

@@ -123,10 +123,7 @@ class RuleSelector:
         if categories and entry.category not in categories:
             return False
 
-        if tags and not tags.intersection(entry.tags):
-            return False
-
-        return True
+        return not (tags and not tags.intersection(entry.tags))
 
     @staticmethod
     def _matches_exclusion(
@@ -143,10 +140,7 @@ class RuleSelector:
         if entry.category in categories:
             return True
 
-        if tags.intersection(entry.tags):
-            return True
-
-        return False
+        return bool(tags.intersection(entry.tags))
 
     @staticmethod
     def _normalize(values: Iterable[str] | None) -> frozenset[str]:

@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Iterable
+from typing import Any
 
+from .analytics import InspectionAnalytics
 from .models import Finding
 from .score import (
     HealthScore,
+    HealthStatus,
     ScoringEntry,
     penalty_for_finding,
-    HealthStatus,
 )
 from .severity import Severity
-from .analytics import InspectionAnalytics
 
 RESULT_SCHEMA_VERSION = 2
 

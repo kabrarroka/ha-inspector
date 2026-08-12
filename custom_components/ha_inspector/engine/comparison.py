@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+
 from .models import Finding
 from .score import HealthStatus
+
 if TYPE_CHECKING:
     from .result import InspectionResult
 

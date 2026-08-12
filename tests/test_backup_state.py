@@ -2,7 +2,6 @@
 
 from custom_components.ha_inspector.engine.backup_state import BackupState
 
-
 EXPECTED_BACKUP_KEYS = {
     "available",
     "reason",
