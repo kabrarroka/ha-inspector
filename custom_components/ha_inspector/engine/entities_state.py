@@ -55,3 +55,6 @@ class EntitiesState(BaseState):
 
     disabled_automation_count: int = 0
     disabled_automations: list[DisabledAutomation] = field(default_factory=list)
+
+    unassigned_area_count: int = 0
+    unassigned_area_entities: list[EntitySummary] = field(default_factory=list)

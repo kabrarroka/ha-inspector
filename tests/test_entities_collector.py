@@ -32,6 +32,23 @@ class FakeStates:
     def async_all(self) -> list[FakeState]:
         return self._states
 
+    def get(self, entity_id: str) -> FakeState | None:
+        return next(
+            (
+                state
+                for state in self._states
+                if state.entity_id == entity_id
+            ),
+            None,
+        )
+
+class FakeDeviceRegistry:
+    def __init__(self, devices: dict[str, SimpleNamespace] | None = None) -> None:
+        self._devices = devices or {}
+
+    def async_get(self, device_id: str) -> SimpleNamespace | None:
+        return self._devices.get(device_id)
+
 
 class FakeHass:
     def __init__(self, states: list[FakeState]) -> None:
@@ -46,6 +63,12 @@ async def test_collect_empty_entities(monkeypatch) -> None:
         entities_module.er,
         "async_get",
         lambda hass: registry,
+    )
+
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
     )
 
     context = InspectionContext()
@@ -68,6 +91,8 @@ async def test_collect_empty_entities(monkeypatch) -> None:
         "duplicate_names": [],
         "disabled_automation_count": 0,
         "disabled_automations": [],
+        "unassigned_area_count": 0,
+        "unassigned_area_entities": [],
     }
 
 
@@ -79,6 +104,12 @@ async def test_collect_entity_statistics_and_duplicates(monkeypatch) -> None:
         entities_module.er,
         "async_get",
         lambda hass: registry,
+    )
+
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
     )
 
     states = [
@@ -153,6 +184,9 @@ async def test_collect_disabled_automations(monkeypatch) -> None:
                 name=None,
                 original_name="Z rule",
                 disabled_by=SimpleNamespace(value="user"),
+                entity_category=None,
+                area_id=None,
+                device_id=None,
             ),
             "2": SimpleNamespace(
                 entity_id="automation.a_rule",
@@ -160,6 +194,9 @@ async def test_collect_disabled_automations(monkeypatch) -> None:
                 name="A rule",
                 original_name=None,
                 disabled_by="integration",
+                entity_category=None,
+                area_id=None,
+                device_id=None,
             ),
             "3": SimpleNamespace(
                 entity_id="automation.enabled",
@@ -167,6 +204,9 @@ async def test_collect_disabled_automations(monkeypatch) -> None:
                 name="Enabled",
                 original_name=None,
                 disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
             ),
             "4": SimpleNamespace(
                 entity_id="sensor.disabled",
@@ -174,6 +214,9 @@ async def test_collect_disabled_automations(monkeypatch) -> None:
                 name="Sensor",
                 original_name=None,
                 disabled_by="user",
+                entity_category=None,
+                area_id=None,
+                device_id=None,
             ),
         }
     )
@@ -182,6 +225,12 @@ async def test_collect_disabled_automations(monkeypatch) -> None:
         entities_module.er,
         "async_get",
         lambda hass: registry,
+    )
+
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
     )
 
     context = InspectionContext()
@@ -206,3 +255,112 @@ async def test_collect_disabled_automations(monkeypatch) -> None:
 
     assert context.entities.disabled_automations[1].name == "Z rule"
     assert context.entities.disabled_automations[1].disabled_by == "user"
+
+@pytest.mark.asyncio
+async def test_collect_unassigned_area_entities(monkeypatch) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "1": SimpleNamespace(
+                entity_id="sensor.direct_area",
+                domain="sensor",
+                name="Direct area",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id="kitchen",
+                device_id=None,
+            ),
+            "2": SimpleNamespace(
+                entity_id="sensor.device_area",
+                domain="sensor",
+                name="Device area",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id="device-1",
+            ),
+            "3": SimpleNamespace(
+                entity_id="sensor.no_area",
+                domain="sensor",
+                name="No area",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "4": SimpleNamespace(
+                entity_id="sensor.diagnostic",
+                domain="sensor",
+                name="Diagnostic",
+                original_name=None,
+                disabled_by=None,
+                entity_category="diagnostic",
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(
+            {
+                "device-1": SimpleNamespace(
+                    area_id="living_room",
+                )
+            }
+        ),
+    )
+
+    states = [
+        FakeState(
+            "sensor.direct_area",
+            "10",
+            "Direct area",
+        ),
+        FakeState(
+            "sensor.device_area",
+            "20",
+            "Device area",
+        ),
+        FakeState(
+            "sensor.no_area",
+            "30",
+            "No area",
+        ),
+        FakeState(
+            "sensor.diagnostic",
+            "40",
+            "Diagnostic",
+        ),
+    ]
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass(states),
+        context,
+    )
+
+    assert context.entities.unassigned_area_count == 1
+
+    assert [
+        entity.entity_id
+        for entity in context.entities.unassigned_area_entities
+    ] == [
+        "sensor.no_area",
+    ]
+
+    entity = context.entities.unassigned_area_entities[0]
+
+    assert entity.name == "No area"
+    assert entity.domain == "sensor"
