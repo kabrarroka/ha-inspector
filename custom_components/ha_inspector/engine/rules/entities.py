@@ -142,3 +142,34 @@ class DuplicateEntityNamesRule(BaseRule):
                 data={"duplicates": duplicates, "duplicate_count": len(duplicates)},
             )
         ]
+
+class EntitiesWithoutAreaRule(BaseRule):
+    """Report entities that are not assigned to an area."""
+
+    rule_id = "ENTITIES_WITHOUT_AREA"
+
+    async def check(self, context: InspectionContext) -> list[Finding]:
+        """Report entities without an effective area assignment."""
+        entities = context.entities.unassigned_area_entities
+
+        if not entities:
+            return []
+
+        return [
+            Finding(
+                finding_id="ENTITIES_WITHOUT_AREA_FOUND",
+                severity=Severity.INFO,
+                title="Entities without an assigned area",
+                description=(
+                    f"{len(entities)} entities are not assigned to an area."
+                ),
+                recommendation=(
+                    "Assign areas where appropriate to improve dashboards, "
+                    "voice control and entity organization."
+                ),
+                data={
+                    "unassigned_area_count": len(entities),
+                    "entities": entities,
+                },
+            )
+        ]

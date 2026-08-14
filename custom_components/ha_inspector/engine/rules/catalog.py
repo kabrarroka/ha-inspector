@@ -80,6 +80,16 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=5,
         tags=("entities", "naming", "usability"),
     ),
+    "ENTITIES_WITHOUT_AREA": RuleDescriptor(
+        rule_id="entities.without_area",
+        category=Category.ENTITIES,
+        title="Entities without an assigned area",
+        description=(
+            "Detects entities that do not have an effective area assignment."
+        ),
+        weight=0,
+        tags=("entities", "areas", "organization", "inventory"),
+    ),
     "DISABLED_AUTOMATIONS": RuleDescriptor(
         rule_id="automations.disabled",
         category=Category.AUTOMATIONS,

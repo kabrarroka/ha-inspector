@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from typing import TYPE_CHECKING
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from ..context import InspectionContext
@@ -81,6 +82,39 @@ class EntitiesCollector(BaseCollector):
         ]
 
         registry = er.async_get(hass)
+        device_registry = dr.async_get(hass)
+
+        unassigned_area_entities: list[EntitySummary] = []
+
+        for entry in registry.entities.values():
+            if entry.entity_category is not None:
+                continue
+
+            if entry.area_id is not None:
+                continue
+
+            if entry.device_id is not None:
+                device = device_registry.async_get(entry.device_id)
+
+                if device is not None and device.area_id is not None:
+                    continue
+
+            state = hass.states.get(entry.entity_id)
+            name = (
+                state.name
+                if state is not None
+                else entry.name or entry.original_name or entry.entity_id
+            )
+
+            unassigned_area_entities.append(
+                EntitySummary(
+                    entity_id=entry.entity_id,
+                    name=name,
+                    domain=entry.domain,
+                )
+            )
+
+        unassigned_area_entities.sort(key=lambda item: item.entity_id)
         disabled_automations = [
             DisabledAutomation(
                 entity_id=entry.entity_id,
@@ -109,6 +143,8 @@ class EntitiesCollector(BaseCollector):
             duplicate_names=duplicate_names,
             disabled_automation_count=len(disabled_automations),
             disabled_automations=disabled_automations,
+            unassigned_area_count=len(unassigned_area_entities),
+            unassigned_area_entities=unassigned_area_entities,
         )
 
         context.entities = state

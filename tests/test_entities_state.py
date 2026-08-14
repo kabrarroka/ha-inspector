@@ -22,6 +22,8 @@ def test_entities_state_defaults() -> None:
         "duplicate_names": [],
         "disabled_automation_count": 0,
         "disabled_automations": [],
+        "unassigned_area_count": 0,
+        "unassigned_area_entities": [],
     }
 
 
@@ -98,4 +100,7 @@ def test_entities_state_nested_values() -> None:
                 "disabled_by": "user",
             }
         ],
+        "unassigned_area_count": 0,
+        "unassigned_area_entities": [],
+
     }
