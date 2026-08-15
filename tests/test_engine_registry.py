@@ -100,3 +100,98 @@ def test_registry_rejects_blank_identifier() -> None:
 
     with pytest.raises(RegistryError, match="valid identifier"):
         registry._register_from_module(_module_with(invalid), BaseCollector)
+
+def test_registry_compatibility_properties_return_instances() -> None:
+    registry = EngineRegistry()
+    registry._register_from_module(_module_with(AlphaCollector), BaseCollector)
+    registry._register_from_module(_module_with(AlphaRule), BaseRule)
+
+    collectors = registry.collectors
+    rules = registry.rules
+
+    assert [collector.collector_id for collector in collectors] == ["alpha"]
+    assert [rule.rule_id for rule in rules] == ["alpha.rule"]
+
+
+def test_registry_rejects_rule_with_blank_identifier() -> None:
+    invalid = type(
+        "InvalidRule",
+        (BaseRule,),
+        {
+            "rule_id": " ",
+            "check": AlphaRule.check,
+        },
+    )
+
+    registry = EngineRegistry()
+
+    with pytest.raises(RegistryError, match="valid identifier"):
+        registry._register_from_module(_module_with(invalid), BaseRule)
+
+
+def test_registry_rejects_duplicate_rule_identifiers() -> None:
+    duplicate = type(
+        "DuplicateRule",
+        (BaseRule,),
+        {
+            "rule_id": "alpha.rule",
+            "check": AlphaRule.check,
+        },
+    )
+
+    registry = EngineRegistry()
+    registry._register_from_module(_module_with(AlphaRule), BaseRule)
+
+    with pytest.raises(RegistryError, match="Duplicate identifier"):
+        registry._register_from_module(_module_with(duplicate), BaseRule)
+
+
+def test_registry_ignores_unrelated_and_imported_classes() -> None:
+    module = ModuleType("tests.dynamic_registry_module")
+
+    class Unrelated:
+        pass
+
+    imported_collector = type(
+        "ImportedCollector",
+        (BaseCollector,),
+        {
+            "__module__": "tests.some_other_module",
+            "collector_id": "imported",
+            "collect": AlphaCollector.collect,
+        },
+    )
+
+    setattr(module, "Unrelated", Unrelated)
+    setattr(module, "ImportedCollector", imported_collector)
+
+    registry = EngineRegistry()
+    registry._register_from_module(module, BaseCollector)
+
+    assert registry.collector_ids == ()
+
+
+def test_registry_discovers_real_packages() -> None:
+    registry = EngineRegistry.discover()
+
+    assert registry.collector_ids
+    assert registry.rule_ids
+
+    assert "entities" in registry.collector_ids
+    assert "UNAVAILABLE_ENTITIES" in registry.rule_ids
+
+
+def test_discover_package_ignores_module_without_package_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = ModuleType("tests.not_a_package")
+    registry = EngineRegistry()
+
+    monkeypatch.setattr(
+        "custom_components.ha_inspector.engine.registry.import_module",
+        lambda _name: module,
+    )
+
+    registry._discover_package("tests.not_a_package", BaseCollector)
+
+    assert registry.collector_ids == ()
