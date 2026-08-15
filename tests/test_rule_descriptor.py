@@ -111,3 +111,18 @@ def test_rule_descriptor_rejects_weight_outside_range(weight: int) -> None:
             description="Description",
             weight=weight,
         )
+
+@pytest.mark.parametrize(
+    ("severity", "expected_icon"),
+    [
+        (Severity.INFO, "mdi:information-outline"),
+        (Severity.WARNING, "mdi:alert-outline"),
+        (Severity.ERROR, "mdi:alert-circle-outline"),
+        (Severity.CRITICAL, "mdi:alert-octagon-outline"),
+    ],
+)
+def test_severity_icons(
+    severity: Severity,
+    expected_icon: str,
+) -> None:
+    assert severity.icon == expected_icon
