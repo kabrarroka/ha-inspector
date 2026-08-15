@@ -131,3 +131,28 @@ def test_duplicate_rule_registration():
 
     with pytest.raises(RuleEngineError):
         RuleEngine([rule, rule])
+
+def test_rule_ids_are_sorted() -> None:
+    first = FakeRule(
+        descriptor("B_RULE"),
+        [],
+    )
+    second = FakeRule(
+        descriptor("A_RULE"),
+        [],
+    )
+
+    engine = RuleEngine([first, second])
+
+    assert engine.rule_ids == ("A_RULE", "B_RULE")
+
+
+def test_get_rule_returns_registered_instance() -> None:
+    rule = FakeRule(
+        descriptor("RULE1"),
+        [],
+    )
+
+    engine = RuleEngine([rule])
+
+    assert engine.get_rule("RULE1") is rule
