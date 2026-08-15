@@ -193,3 +193,35 @@ def test_unknown_profile_is_rejected():
                 "profile": "missing",
             }
         )
+
+def test_profile_rejects_empty_string() -> None:
+    with pytest.raises(
+        InspectionProfileError,
+        match="identifier cannot be empty",
+    ):
+        _profile_definition("   ")
+
+
+def test_profile_mapping_accepts_none_overrides() -> None:
+    profile_id, overrides = _profile_definition(
+        {
+            "id": "quick",
+            "overrides": None,
+        }
+    )
+
+    assert profile_id == "quick"
+    assert overrides == {}
+
+
+def test_profile_rejects_non_mapping_overrides() -> None:
+    with pytest.raises(
+        InspectionProfileError,
+        match="overrides must be a mapping",
+    ):
+        _profile_definition(
+            {
+                "id": "quick",
+                "overrides": "invalid",
+            }
+        )
