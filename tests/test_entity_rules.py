@@ -1,5 +1,7 @@
 """Tests for HA Inspector entity and automation rules."""
 
+from typing import cast
+
 import pytest
 
 from custom_components.ha_inspector.engine.context import InspectionContext
@@ -269,3 +271,26 @@ async def test_entities_without_area_rule_reports_entities() -> None:
         "sensor.temperature",
         "light.garage",
     ]
+
+@pytest.mark.asyncio
+async def test_unavailable_entities_rule_ignores_invalid_count() -> None:
+    context = InspectionContext(
+        entities=EntitiesState(
+            total_entities=100,
+            unavailable_count=cast(int, "invalid"),
+        )
+    )
+
+    assert await UnavailableEntitiesRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_unknown_entities_rule_ignores_invalid_total() -> None:
+    context = InspectionContext(
+        entities=EntitiesState(
+            total_entities=cast(int, "invalid"),
+            unknown_count=5,
+        )
+    )
+
+    assert await UnknownEntitiesRule().check(context) == []
