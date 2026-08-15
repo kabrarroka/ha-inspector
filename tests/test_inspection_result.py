@@ -152,3 +152,28 @@ def test_health_summary_counts_categories_by_status() -> None:
         "poor": 0,
         "critical": 1,
     }
+
+def test_finish_sets_finished_at_and_duration() -> None:
+    started_at = datetime.now(UTC) - timedelta(seconds=1)
+    result = InspectionResult(started_at=started_at)
+
+    result.finish()
+
+    assert result.finished_at is not None
+    assert result.finished_at >= started_at
+    assert result.duration_seconds is not None
+    assert result.duration_seconds >= 1
+
+def test_health_status_returns_analytics_status() -> None:
+    result = InspectionResult()
+
+    result.record_rule(
+        category="entities",
+        weight=20,
+        findings=[
+            _finding("entities.warning", Severity.WARNING),
+            _finding("entities.error", Severity.ERROR),
+        ],
+    )
+
+    assert result.health_status.value == "good"
