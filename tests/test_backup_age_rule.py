@@ -143,3 +143,8 @@ async def test_backup_date_timezone_is_normalized_to_utc() -> None:
     assert findings[0].data["latest_backup"] == (
         "2026-07-05T08:00:00+00:00"
     )
+
+def test_now_returns_timezone_aware_utc_datetime() -> None:
+    now = BackupAgeRule()._now()
+
+    assert now.tzinfo is UTC
