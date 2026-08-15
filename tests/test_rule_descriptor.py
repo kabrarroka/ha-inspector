@@ -5,6 +5,7 @@ import pytest
 from custom_components.ha_inspector.engine.category import Category
 from custom_components.ha_inspector.engine.descriptors import RuleDescriptor
 from custom_components.ha_inspector.engine.rules.base import (
+    BaseRule,
     CompatibilityRuleDescriptor,
 )
 from custom_components.ha_inspector.engine.severity import Severity
@@ -126,3 +127,39 @@ def test_severity_icons(
     expected_icon: str,
 ) -> None:
     assert severity.icon == expected_icon
+
+class NativeDescriptorRule(BaseRule):
+    descriptor = RuleDescriptor(
+        rule_id="test.native_descriptor",
+        category=Category.SYSTEM,
+        title="Native descriptor",
+        description="Native descriptor test rule",
+        weight=1,
+        tags=("test",),
+    )
+
+    async def check(self, context):
+        return []
+
+
+class CatalogDescriptorRule(BaseRule):
+    rule_id = "SYSTEM_INFORMATION"
+
+    async def check(self, context):
+        return []
+
+
+def test_base_rule_metadata_returns_native_descriptor() -> None:
+    rule = NativeDescriptorRule()
+
+    assert rule.metadata is rule.descriptor
+
+
+def test_base_rule_metadata_returns_catalog_descriptor() -> None:
+    from custom_components.ha_inspector.engine.rules.catalog import (
+        RULE_DESCRIPTORS,
+    )
+
+    rule = CatalogDescriptorRule()
+
+    assert rule.metadata is RULE_DESCRIPTORS["SYSTEM_INFORMATION"]
