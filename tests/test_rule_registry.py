@@ -170,3 +170,25 @@ def test_empty_registry_is_valid() -> None:
     assert registry.categories() == ()
     assert registry.tags() == ()
     assert registry.as_dicts() == []
+
+class MissingRuleIdRule(BaseRule):
+    """Rule without a valid identifier."""
+
+    rule_id = ""
+    title = "Missing identifier"
+    category = "system"
+    severity = Severity.INFO
+    tags = ()
+    weight = 0
+    recommendation = None
+
+    async def check(self, context):
+        return []
+
+
+def test_missing_rule_id_raises_registry_error() -> None:
+    with pytest.raises(
+        RuleRegistryError,
+        match="Rule metadata must define a rule_id",
+    ):
+        RuleRegistry([MissingRuleIdRule()])
