@@ -163,3 +163,38 @@ async def test_describe_profile_unknown_profile(
         match="Unknown inspection profile",
     ):
         await registrations["describe_profile"](call)
+
+@pytest.mark.asyncio
+async def test_describe_profile_uses_home_assistant_language(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Describe profile should use the Home Assistant language."""
+    inspector_type = MagicMock()
+    registry = MagicMock()
+
+    monkeypatch.setattr(
+        "custom_components.ha_inspector._load_engine",
+        lambda: (inspector_type, registry),
+    )
+
+    hass = MagicMock()
+    hass.config.language = "es-ES"
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    registrations = {
+        call.args[1]: call.args[2]
+        for call in hass.services.async_register.call_args_list
+        if call.args[0] == DOMAIN
+    }
+
+    call = MagicMock()
+    call.data = {"profile_id": "quick"}
+
+    response = await registrations["describe_profile"](call)
+
+    assert response["profile"]["profile_id"] == "quick"
+    assert response["profile"]["title"] == "Inspección rápida"

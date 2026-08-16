@@ -235,9 +235,15 @@ async def async_setup(
         """Return the available inspection profiles."""
         from .engine.profiles import list_profiles
 
+        language = getattr(
+            getattr(hass, "config", None),
+            "language",
+            None,
+        )
+
         return {
             "profiles": [
-                profile.as_summary()
+                profile.as_summary(language)
                 for profile in list_profiles()
             ]
         }
@@ -250,8 +256,14 @@ async def async_setup(
 
         profile = get_profile(call.data["profile_id"])
 
+        language = getattr(
+            getattr(hass, "config", None),
+            "language",
+            None,
+        )
+
         return {
-            "profile": profile.as_dict(),
+            "profile": profile.as_dict(language),
         }
 
     hass.services.async_register(

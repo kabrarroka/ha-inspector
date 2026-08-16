@@ -126,3 +126,40 @@ async def test_list_profiles_contains_builtin_profiles(
         "storage",
         "system",
     }
+
+@pytest.mark.asyncio
+async def test_list_profiles_uses_home_assistant_language(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """List profiles should use the Home Assistant language."""
+    inspector_type = MagicMock()
+    registry = MagicMock()
+
+    monkeypatch.setattr(
+        "custom_components.ha_inspector._load_engine",
+        lambda: (inspector_type, registry),
+    )
+
+    hass = MagicMock()
+    hass.config.language = "es-ES"
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    registrations = {
+        call.args[1]: call.args[2]
+        for call in hass.services.async_register.call_args_list
+        if call.args[0] == DOMAIN
+    }
+
+    response = await registrations["list_profiles"](MagicMock())
+
+    profiles = {
+        profile["profile_id"]: profile
+        for profile in response["profiles"]
+    }
+
+    assert profiles["quick"]["title"] == "Inspección rápida"
+    assert profiles["system"]["title"] == "Inspección del sistema"

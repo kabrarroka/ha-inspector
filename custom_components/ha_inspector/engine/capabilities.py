@@ -23,6 +23,7 @@ REQUEST_FILTERS = (
 
 REQUEST_OPTIONS = (
     "diagnostics",
+    "language",
 )
 
 

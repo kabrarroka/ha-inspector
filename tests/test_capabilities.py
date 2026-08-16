@@ -157,3 +157,13 @@ def test_describe_engine_returns_capability_document() -> None:
     assert data["schema_version"] == CAPABILITIES_SCHEMA_VERSION
     assert data["collectors"] == ["alpha"]
     assert data["rule_ids"] == ["alpha.rule"]
+
+
+def test_capabilities_exposes_language_option() -> None:
+    capabilities = EngineCapabilities.from_registry(_registry())
+
+    data = capabilities.as_dict()
+
+    assert "language" in data["request"]["options"]
+    assert data["request"]["defaults"]["language"] is None
+
