@@ -39,6 +39,7 @@ class InspectionRequest:
     exclude_tags: tuple[str, ...] = field(default_factory=tuple)
 
     diagnostics: bool = False
+    language: str | None = None
 
     def __post_init__(self) -> None:
         """Normalize all request filters."""
@@ -79,6 +80,16 @@ class InspectionRequest:
             bool(self.diagnostics),
         )
 
+        language = self.language
+        if isinstance(language, str):
+            language = language.strip() or None
+
+        object.__setattr__(
+            self,
+            "language",
+            language,
+        )
+
     @classmethod
     def from_dict(
         cls,
@@ -96,6 +107,7 @@ class InspectionRequest:
             exclude_categories=_normalize(data.get("exclude_categories")),
             exclude_tags=_normalize(data.get("exclude_tags")),
             diagnostics=bool(data.get("diagnostics", False)),
+            language=data.get("language"),
         )
 
     def selector_options(self) -> dict[str, tuple[str, ...]]:
@@ -119,6 +131,7 @@ class InspectionRequest:
             "exclude_categories": list(self.exclude_categories),
             "exclude_tags": list(self.exclude_tags),
             "diagnostics": self.diagnostics,
+            "language": self.language,
         }
 
 

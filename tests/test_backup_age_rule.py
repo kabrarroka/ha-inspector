@@ -9,6 +9,7 @@ import pytest
 
 from custom_components.ha_inspector.engine.backup_state import BackupState
 from custom_components.ha_inspector.engine.context import InspectionContext
+from custom_components.ha_inspector.engine.i18n import localize_finding
 from custom_components.ha_inspector.engine.rules.backup_age import BackupAgeRule
 from custom_components.ha_inspector.engine.severity import Severity
 
@@ -148,3 +149,41 @@ def test_now_returns_timezone_aware_utc_datetime() -> None:
     now = BackupAgeRule()._now()
 
     assert now.tzinfo is UTC
+
+
+@pytest.mark.asyncio
+async def test_backup_age_rule_returns_spanish_messages() -> None:
+    rule = BackupAgeRule()
+
+    now = datetime(2026, 8, 16, tzinfo=UTC)
+    rule._now = lambda: now  # type: ignore[method-assign]
+
+    context = InspectionContext(language="es")
+    context.backups.available = True
+    context.backups.count = 3
+    context.backups.latest = datetime(
+        2026,
+        7,
+        1,
+        tzinfo=UTC,
+    ).isoformat()
+
+    findings = await rule.check(context)
+
+    assert len(findings) == 1
+
+    finding = localize_finding(findings[0], "es")
+
+    assert finding.finding_id == "BACKUP_AGE_CRITICAL"
+    assert (
+        finding.title
+        == "La copia de seguridad más reciente es demasiado antigua"
+    )
+    assert (
+        finding.description
+        == "La copia de seguridad más reciente de Home Assistant tiene 46 días."
+    )
+    assert finding.recommendation == (
+        "Crea una nueva copia de seguridad y comprueba que las "
+        "copias programadas se ejecutan correctamente."
+    )

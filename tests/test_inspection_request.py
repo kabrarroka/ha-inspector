@@ -83,4 +83,16 @@ def test_as_dict_is_json_safe():
         "exclude_categories": [],
         "exclude_tags": [],
         "diagnostics": True,
+        "language": None,
     }
+
+
+def test_language_is_normalized_as_request_value() -> None:
+    request = InspectionRequest.from_dict(
+        {
+            "language": " es-ES ",
+        }
+    )
+
+    assert request.language == "es-ES"
+    assert request.as_dict()["language"] == "es-ES"

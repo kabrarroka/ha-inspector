@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from .collectors.base import BaseCollector
 from .context import InspectionContext
+from .i18n import normalize_language
 from .registry import InspectionRegistry
 from .request import InspectionRequest
 from .result import InspectionResult
@@ -59,7 +60,17 @@ class Inspector:
             request_data["diagnostics"] = diagnostics
             request = InspectionRequest.from_dict(request_data)
 
-        context = InspectionContext()
+        requested_language = request.language
+
+        if requested_language is None:
+            requested_language = getattr(
+                getattr(hass, "config", None),
+                "language",
+                None,
+            )
+
+        language = normalize_language(requested_language)
+        context = InspectionContext(language=language)
 
         for collector in self._collectors:
             await collector.collect(hass, context)
@@ -77,6 +88,7 @@ class Inspector:
         result.metadata["rules_discovered"] = len(self._rules)
         result.metadata["rules_selected"] = len(plan)
         result.metadata["execution_plan"] = plan.as_dict()
+        result.metadata["language"] = language
         result.metadata["request"] = request.as_dict()
         result.metadata["diagnostics_included"] = request.diagnostics
 

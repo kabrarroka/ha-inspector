@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from .i18n import normalize_language
 from .request import InspectionRequest
 
 
@@ -22,23 +23,38 @@ class InspectionProfile:
     description: str
     request: InspectionRequest
 
-    def as_dict(self) -> dict[str, object]:
-        """Return a JSON-safe representation."""
+    def as_dict(
+        self,
+        language: str | None = None,
+    ) -> dict[str, object]:
+        """Return a JSON-safe localized representation."""
+        title, description = _localized_profile_text(
+            self,
+            language,
+        )
+
         return {
             "profile_id": self.profile_id,
-            "title": self.title,
-            "description": self.description,
+            "title": title,
+            "description": description,
             "request": self.request.as_dict(),
         }
-    def as_summary(self) -> dict[str, str]:
-        """Return the summary representation of the profile."""
+
+    def as_summary(
+        self,
+        language: str | None = None,
+    ) -> dict[str, str]:
+        """Return the localized summary representation."""
+        title, description = _localized_profile_text(
+            self,
+            language,
+        )
 
         return {
             "profile_id": self.profile_id,
-            "title": self.title,
-            "description": self.description,
+            "title": title,
+            "description": description,
         }
-
 
 _BUILT_IN_PROFILES: dict[str, InspectionProfile] = {
     "full": InspectionProfile(
@@ -127,6 +143,72 @@ _BUILT_IN_PROFILES: dict[str, InspectionProfile] = {
         ),
     ),
 }
+
+
+
+_PROFILE_TRANSLATIONS: Mapping[
+    str,
+    Mapping[str, tuple[str, str]],
+] = MappingProxyType(
+    {
+        "es": MappingProxyType(
+            {
+                "full": (
+                    "Inspección completa",
+                    "Ejecuta todas las reglas de inspección registradas.",
+                ),
+                "quick": (
+                    "Inspección rápida",
+                    "Ejecuta un conjunto reducido de comprobaciones "
+                    "importantes del sistema y de disponibilidad.",
+                ),
+                "system": (
+                    "Inspección del sistema",
+                    "Inspecciona la información del sistema y de la "
+                    "plataforma de Home Assistant.",
+                ),
+                "entities": (
+                    "Inspección de entidades",
+                    "Inspecciona la disponibilidad, el estado y los "
+                    "nombres de las entidades.",
+                ),
+                "integrations": (
+                    "Inspección de integraciones",
+                    "Inspecciona errores de configuración y del ciclo "
+                    "de vida de las integraciones.",
+                ),
+                "recorder": (
+                    "Inspección del registrador",
+                    "Inspecciona la disponibilidad del registrador y "
+                    "la configuración de retención.",
+                ),
+                "storage": (
+                    "Inspección del almacenamiento",
+                    "Inspecciona la disponibilidad del almacenamiento "
+                    "y el espacio libre en disco.",
+                ),
+            }
+        ),
+    }
+)
+
+
+def _localized_profile_text(
+    profile: InspectionProfile,
+    language: str | None,
+) -> tuple[str, str]:
+    """Return localized profile title and description."""
+    selected_language = normalize_language(language)
+
+    translation = _PROFILE_TRANSLATIONS.get(
+        selected_language,
+        {},
+    ).get(profile.profile_id)
+
+    if translation is None:
+        return profile.title, profile.description
+
+    return translation
 
 
 PROFILES: Mapping[str, InspectionProfile] = MappingProxyType(

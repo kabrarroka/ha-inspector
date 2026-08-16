@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -168,3 +168,32 @@ def test_from_registry_uses_registered_collectors_and_rules() -> None:
     assert len(inspector._rules) == 1
     assert inspector._collectors[0].collector_id == "recording"
     assert inspector._rules[0].rule_id == "alpha.rule"
+
+
+@pytest.mark.asyncio
+async def test_run_uses_home_assistant_language() -> None:
+    hass = SimpleNamespace(
+        config=SimpleNamespace(language="es-ES"),
+    )
+
+    inspector = Inspector()
+
+    result = await inspector.run(hass)  # type: ignore[arg-type]
+
+    assert result.metadata["language"] == "es"
+
+
+@pytest.mark.asyncio
+async def test_run_request_language_overrides_home_assistant() -> None:
+    hass = SimpleNamespace(
+        config=SimpleNamespace(language="en"),
+    )
+
+    inspector = Inspector()
+
+    result = await inspector.run(
+        hass,  # type: ignore[arg-type]
+        request=InspectionRequest(language="es"),
+    )
+
+    assert result.metadata["language"] == "es"

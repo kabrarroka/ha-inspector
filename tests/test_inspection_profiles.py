@@ -121,3 +121,29 @@ def test_profile_is_json_safe():
         "UNAVAILABLE_ENTITIES",
         "UNKNOWN_ENTITIES",
     ]
+
+
+def test_profile_summary_can_be_localized() -> None:
+    profile = get_profile("quick")
+
+    data = profile.as_summary("es-ES")
+
+    assert data["profile_id"] == "quick"
+    assert data["title"] == "Inspección rápida"
+    assert (
+        data["description"]
+        == "Ejecuta un conjunto reducido de comprobaciones "
+        "importantes del sistema y de disponibilidad."
+    )
+
+
+def test_profile_dict_falls_back_to_english() -> None:
+    profile = get_profile("system")
+
+    data = profile.as_dict("fr")
+
+    assert data["title"] == "System inspection"
+    assert (
+        data["description"]
+        == "Inspect Home Assistant system and platform information."
+    )
