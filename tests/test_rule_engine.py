@@ -156,3 +156,27 @@ def test_get_rule_returns_registered_instance() -> None:
     engine = RuleEngine([rule])
 
     assert engine.get_rule("RULE1") is rule
+
+@pytest.mark.asyncio
+async def test_engine_uses_rule_id_for_execution_plan() -> None:
+    """Execute catalogued rules using their public rule identifier."""
+    from custom_components.ha_inspector.engine.context import InspectionContext
+    from custom_components.ha_inspector.engine.rule_selector import (
+        RuleExecutionPlan,
+    )
+    from custom_components.ha_inspector.engine.rules.backup_age import (
+        BackupAgeRule,
+    )
+
+    engine = RuleEngine([BackupAgeRule()])
+
+    assert engine.rule_ids == ("BACKUP_AGE",)
+
+    plan = RuleExecutionPlan(("BACKUP_AGE",))
+
+    result = await engine.execute(
+        InspectionContext(),
+        plan,
+    )
+
+    assert result.checks_executed == 1
