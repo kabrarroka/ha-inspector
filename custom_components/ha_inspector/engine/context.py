@@ -7,6 +7,7 @@ from typing import Any
 
 from .backup_state import BackupState
 from .entities_state import EntitiesState
+from .i18n import DEFAULT_LANGUAGE
 from .integrations_state import IntegrationsState
 from .recorder_state import RecorderState
 from .storage_state import StorageState
@@ -24,3 +25,4 @@ class InspectionContext:
     integrations: IntegrationsState = field(default_factory=IntegrationsState)
     entities: EntitiesState = field(default_factory=EntitiesState)
     metadata: dict[str, Any] = field(default_factory=dict)
+    language: str = DEFAULT_LANGUAGE

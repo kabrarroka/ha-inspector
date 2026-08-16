@@ -27,6 +27,16 @@ def test_build_request_without_profile():
     assert request.diagnostics is True
 
 
+def test_build_request_with_language() -> None:
+    request = _build_request(
+        {
+            "language": "es",
+        }
+    )
+
+    assert request.language == "es"
+
+
 def test_build_request_with_short_profile():
     request = _build_request(
         {

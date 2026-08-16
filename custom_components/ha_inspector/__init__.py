@@ -48,6 +48,7 @@ _REQUEST_FIELDS = (
     "exclude_categories",
     "exclude_tags",
     "diagnostics",
+    "language",
 )
 
 

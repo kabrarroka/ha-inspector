@@ -6,6 +6,7 @@ import logging
 from collections.abc import Sequence
 
 from .context import InspectionContext
+from .i18n import localize_finding
 from .models import Finding
 from .result import InspectionResult
 from .rule_selector import RuleExecutionPlan
@@ -93,10 +94,18 @@ class RuleEngine:
                     )
                 ]
 
+            localized_findings = [
+                localize_finding(
+                    finding,
+                    context.language,
+                )
+                for finding in findings
+            ]
+
             result.record_rule(
                 category=descriptor.category,
                 weight=descriptor.weight,
-                findings=findings,
+                findings=localized_findings,
             )
 
         result.metadata["rules_available"] = len(self._rules)

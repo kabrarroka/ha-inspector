@@ -147,6 +147,7 @@ def test_capabilities_as_dict_returns_public_document() -> None:
         "exclude_categories": [],
         "exclude_tags": [],
         "diagnostics": False,
+            "language": None,
     }
 
 

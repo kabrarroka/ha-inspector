@@ -1,7 +1,7 @@
 run:
   name: Ejecutar inspección
   description: >
-    Ejecuta los collectors y las reglas activas de HA Inspector y devuelve
+    Ejecuta los recopiladores y las reglas activas de HA Inspector y devuelve
     el resultado completo de la inspección.
   fields:
     diagnostics:
@@ -12,6 +12,19 @@ run:
       default: false
       selector:
         boolean:
+    language:
+      name: Idioma
+      description: >
+        Idioma de los avisos, recomendaciones y resultados. Si no se indica,
+        se utiliza el idioma configurado en Home Assistant.
+      required: false
+      selector:
+        select:
+          options:
+            - label: Español
+              value: es
+            - label: English
+              value: en
 
 list_profiles:
   name: Listar perfiles
@@ -19,19 +32,20 @@ list_profiles:
     Devuelve los perfiles de inspección disponibles en HA Inspector.
 
 describe_profile:
-  name: Describe profile
+  name: Describir perfil
   description: >
-    Return the complete definition of an inspection profile.
+    Devuelve la definición completa de un perfil de inspección.
   fields:
     profile_id:
-      name: Profile ID
-      description: Identifier of the inspection profile.
+      name: ID del perfil
+      description: Identificador del perfil de inspección.
       required: true
       selector:
         text:
 
 info:
-  name: Engine information
-  description: Return information about the HA Inspector engine.
+  name: Información del motor
+  description: >
+    Devuelve información sobre el motor de HA Inspector.
   response:
     optional: false
