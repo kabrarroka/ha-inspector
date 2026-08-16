@@ -1,4 +1,4 @@
-﻿"""The HA Inspector integration."""
+"""The HA Inspector integration."""
 
 from __future__ import annotations
 
@@ -12,9 +12,16 @@ from homeassistant.core import (
     ServiceResponse,
     SupportsResponse,
 )
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, VERSION
+from .const import (
+    DATA_LAST_RESULT,
+    DOMAIN,
+    PLATFORMS,
+    SIGNAL_INSPECTION_FINISHED,
+    VERSION,
+)
 from .engine.profiles import (
     InspectionProfileError,
     create_profile_request,
@@ -203,7 +210,16 @@ async def async_setup(
             )
             result.metadata["profile"] = profile_id.strip().lower()
 
-        return result.as_dict()
+        result_data = result.as_dict()
+
+        hass.data.setdefault(DOMAIN, {})[DATA_LAST_RESULT] = result_data
+        async_dispatcher_send(
+            hass,
+            SIGNAL_INSPECTION_FINISHED,
+            result_data,
+        )
+
+        return result_data
 
     hass.services.async_register(
         DOMAIN,
@@ -266,6 +282,10 @@ async def async_setup_entry(
     entry: ConfigEntry,
 ) -> bool:
     """Set up HA Inspector from a config entry."""
+    await hass.config_entries.async_forward_entry_setups(
+        entry,
+        PLATFORMS,
+    )
     return True
 
 
@@ -274,4 +294,8 @@ async def async_unload_entry(
     entry: ConfigEntry,
 ) -> bool:
     """Unload a HA Inspector config entry."""
-    return True
+    unloaded = await hass.config_entries.async_unload_platforms(
+        entry,
+        PLATFORMS,
+    )
+    return bool(unloaded)

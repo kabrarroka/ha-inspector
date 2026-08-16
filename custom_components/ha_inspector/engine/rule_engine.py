@@ -27,7 +27,7 @@ class RuleEngine:
         self._rules: dict[str, BaseRule] = {}
 
         for rule in rules:
-            rule_id = rule.metadata.rule_id
+            rule_id = getattr(rule, "rule_id", None) or rule.metadata.rule_id
 
             if rule_id in self._rules:
                 raise RuleEngineError(
