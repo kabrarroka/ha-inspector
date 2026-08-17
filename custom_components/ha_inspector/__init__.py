@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import (
     HomeAssistant,
@@ -49,6 +50,15 @@ _REQUEST_FIELDS = (
     "exclude_tags",
     "diagnostics",
     "language",
+)
+
+SERVICE_RUN_SCHEMA = vol.Schema(
+    {
+        vol.Optional("profile"): object,
+        vol.Optional("diagnostics"): bool,
+        vol.Optional("language"): str,
+    },
+    extra=vol.ALLOW_EXTRA,
 )
 
 
@@ -226,6 +236,7 @@ async def async_setup(
         DOMAIN,
         SERVICE_RUN,
         async_handle_run,
+        schema=SERVICE_RUN_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 

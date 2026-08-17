@@ -66,12 +66,12 @@ def test_quick_profile_selects_reduced_rule_set():
     request = create_profile_request("quick")
 
     assert request.include_rule_ids == (
-        "CORE_VERSION",
+        "BACKUP_AGE",
+        "BACKUP_INTEGRITY",
+        "DISK_FREE_SPACE",
         "INTEGRATION_SETUP_ERRORS",
-        "OPERATING_SYSTEM_VERSION",
         "RECORDER_AVAILABILITY",
-        "SUPERVISOR_AVAILABILITY",
-        "SUPERVISOR_VERSION",
+        "SYSTEM_INFORMATION",
         "UNAVAILABLE_ENTITIES",
     )
 
@@ -147,3 +147,15 @@ def test_profile_dict_falls_back_to_english() -> None:
         data["description"]
         == "Inspect Home Assistant system and platform information."
     )
+
+
+
+def test_all_profile_rule_ids_exist_in_registry() -> None:
+    from custom_components.ha_inspector.engine.profiles import PROFILES
+    from custom_components.ha_inspector.engine.registry import EngineRegistry
+
+    registry = EngineRegistry.discover()
+    known_rule_ids = set(registry.rule_ids)
+
+    for profile in PROFILES.values():
+        assert set(profile.request.include_rule_ids) <= known_rule_ids

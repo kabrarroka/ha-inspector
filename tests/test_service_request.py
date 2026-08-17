@@ -44,7 +44,9 @@ def test_build_request_with_short_profile():
         }
     )
 
-    assert "CORE_VERSION" in request.include_rule_ids
+    assert "SYSTEM_INFORMATION" in request.include_rule_ids
+    assert "RECORDER_AVAILABILITY" in request.include_rule_ids
+    assert "INTEGRATION_SETUP_ERRORS" in request.include_rule_ids
     assert "UNAVAILABLE_ENTITIES" in request.include_rule_ids
     assert request.diagnostics is False
 

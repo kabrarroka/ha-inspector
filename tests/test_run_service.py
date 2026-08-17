@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.ha_inspector import async_setup
+from custom_components.ha_inspector import SERVICE_RUN_SCHEMA, async_setup
 from custom_components.ha_inspector.const import DOMAIN
 
 
@@ -44,6 +44,13 @@ async def test_run_service_executes_inspection_with_profile() -> None:
         for call in hass.services.async_register.call_args_list
         if call.args[0] == DOMAIN
     }
+
+    run_registration = next(
+        call
+        for call in hass.services.async_register.call_args_list
+        if call.args[:2] == (DOMAIN, "run")
+    )
+    assert run_registration.kwargs["schema"] is SERVICE_RUN_SCHEMA
 
     service_call = MagicMock()
     service_call.data = {
