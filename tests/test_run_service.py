@@ -74,3 +74,9 @@ async def test_run_service_executes_inspection_with_profile() -> None:
         "findings": [],
         "metadata": result.metadata,
     }
+
+def test_run_service_schema_rejects_unknown_fields() -> None:
+    import voluptuous as vol
+
+    with pytest.raises(vol.MultipleInvalid):
+        SERVICE_RUN_SCHEMA({"unexpected": True})

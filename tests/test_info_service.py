@@ -6,7 +6,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.ha_inspector import async_setup
+from custom_components.ha_inspector import (
+    SERVICE_INFO_SCHEMA,
+    async_setup,
+)
 from custom_components.ha_inspector.const import DOMAIN, VERSION
 
 
@@ -200,3 +203,9 @@ def test_version_matches_manifest() -> None:
     manifest = loads(manifest_path.read_text(encoding="utf-8"))
 
     assert manifest["version"] == VERSION
+
+def test_info_schema_rejects_fields() -> None:
+    import voluptuous as vol
+
+    with pytest.raises(vol.MultipleInvalid):
+        SERVICE_INFO_SCHEMA({"unexpected": True})
