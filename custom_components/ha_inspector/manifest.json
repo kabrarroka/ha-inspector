@@ -8,5 +8,5 @@
   "documentation": "https://github.com/kabrarroka/ha-inspector",
   "iot_class": "calculated",
   "single_config_entry": true,
-  "version": "0.5.0"
+  "version": "0.5.1"
 }
