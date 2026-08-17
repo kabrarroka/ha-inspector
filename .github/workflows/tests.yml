@@ -99,7 +99,7 @@ jobs:
 
           exit_code = pytest.main(
               [
-                  "--cov=custom_components.ha_inspector.engine",
+                  "--cov=custom_components.ha_inspector",
                   "--cov-report=term-missing",
               ]
           )
