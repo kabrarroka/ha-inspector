@@ -6,7 +6,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.ha_inspector import async_setup
+from custom_components.ha_inspector import (
+    SERVICE_LIST_PROFILES_SCHEMA,
+    async_setup,
+)
 from custom_components.ha_inspector.const import DOMAIN
 
 
@@ -163,3 +166,9 @@ async def test_list_profiles_uses_home_assistant_language(
 
     assert profiles["quick"]["title"] == "Inspección rápida"
     assert profiles["system"]["title"] == "Inspección del sistema"
+
+def test_list_profiles_schema_rejects_fields() -> None:
+    import voluptuous as vol
+
+    with pytest.raises(vol.MultipleInvalid):
+        SERVICE_LIST_PROFILES_SCHEMA({"unexpected": True})

@@ -54,12 +54,27 @@ _REQUEST_FIELDS = (
 
 SERVICE_RUN_SCHEMA = vol.Schema(
     {
-        vol.Optional("profile"): object,
+        vol.Optional("profile"): vol.Any(str, dict),
+        vol.Optional("include_rule_ids"): vol.Any(str, [str]),
+        vol.Optional("include_categories"): vol.Any(str, [str]),
+        vol.Optional("include_tags"): vol.Any(str, [str]),
+        vol.Optional("exclude_rule_ids"): vol.Any(str, [str]),
+        vol.Optional("exclude_categories"): vol.Any(str, [str]),
+        vol.Optional("exclude_tags"): vol.Any(str, [str]),
         vol.Optional("diagnostics"): bool,
         vol.Optional("language"): str,
-    },
-    extra=vol.ALLOW_EXTRA,
+    }
 )
+
+SERVICE_LIST_PROFILES_SCHEMA = vol.Schema({})
+
+SERVICE_DESCRIBE_PROFILE_SCHEMA = vol.Schema(
+    {
+        vol.Required("profile_id"): str,
+    }
+)
+
+SERVICE_INFO_SCHEMA = vol.Schema({})
 
 
 def _load_engine() -> tuple[
@@ -281,6 +296,7 @@ async def async_setup(
         DOMAIN,
         "list_profiles",
         async_handle_list_profiles,
+        schema=SERVICE_LIST_PROFILES_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 
@@ -288,6 +304,7 @@ async def async_setup(
         DOMAIN,
         SERVICE_DESCRIBE_PROFILE,
         async_handle_describe_profile,
+        schema=SERVICE_DESCRIBE_PROFILE_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 
@@ -295,6 +312,7 @@ async def async_setup(
         DOMAIN,
         SERVICE_INFO,
         async_handle_info,
+        schema=SERVICE_INFO_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 

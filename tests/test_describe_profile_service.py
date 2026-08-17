@@ -6,7 +6,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.ha_inspector import async_setup
+from custom_components.ha_inspector import (
+    SERVICE_DESCRIBE_PROFILE_SCHEMA,
+    async_setup,
+)
 from custom_components.ha_inspector.const import DOMAIN
 from custom_components.ha_inspector.engine.profiles import (
     InspectionProfileError,
@@ -198,3 +201,13 @@ async def test_describe_profile_uses_home_assistant_language(
 
     assert response["profile"]["profile_id"] == "quick"
     assert response["profile"]["title"] == "Inspección rápida"
+
+def test_describe_profile_schema_requires_profile_id() -> None:
+    import voluptuous as vol
+
+    with pytest.raises(vol.MultipleInvalid):
+        SERVICE_DESCRIBE_PROFILE_SCHEMA({})
+
+    assert SERVICE_DESCRIBE_PROFILE_SCHEMA(
+        {"profile_id": "quick"}
+    ) == {"profile_id": "quick"}
