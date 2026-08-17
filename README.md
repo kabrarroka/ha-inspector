@@ -56,8 +56,17 @@ Runs the active collectors and inspection rules and returns the complete inspect
 
 Optional fields:
 
+- `profile`: Built-in inspection profile to use as the base configuration.
+- `include_rule_ids`: Run only the specified rule IDs.
+- `include_categories`: Run rules from the specified categories.
+- `include_tags`: Run rules matching the specified tags.
+- `exclude_rule_ids`: Exclude the specified rule IDs.
+- `exclude_categories`: Exclude rules from the specified categories.
+- `exclude_tags`: Exclude rules matching the specified tags.
 - `diagnostics`: Include the collected technical diagnostic context.
 - `language`: Language for findings and recommendations (`en` or `es`).
+
+Explicit service fields override the values provided by a profile.
 
 If `language` is omitted, the configured Home Assistant language is used when available.
 
@@ -66,6 +75,7 @@ Example:
 ```yaml
 action: ha_inspector.run
 data:
+  profile: quick
   diagnostics: true
   language: es
 response_variable: inspection
