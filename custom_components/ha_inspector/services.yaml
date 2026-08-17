@@ -4,6 +4,28 @@ run:
     Ejecuta los recopiladores y las reglas activas de HA Inspector y devuelve
     el resultado completo de la inspección.
   fields:
+    profile:
+      name: Perfil
+      description: >
+        Perfil de inspección que se utilizará como base para la ejecución.
+      required: false
+      selector:
+        select:
+          options:
+            - label: Completa
+              value: full
+            - label: Rápida
+              value: quick
+            - label: Sistema
+              value: system
+            - label: Entidades
+              value: entities
+            - label: Integraciones
+              value: integrations
+            - label: Registrador
+              value: recorder
+            - label: Almacenamiento
+              value: storage
     diagnostics:
       name: Incluir diagnóstico
       description: >

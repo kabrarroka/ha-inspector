@@ -71,13 +71,13 @@ _BUILT_IN_PROFILES: dict[str, InspectionProfile] = {
         ),
         request=InspectionRequest(
             include_rule_ids=(
-                "CORE_VERSION",
-                "SUPERVISOR_AVAILABILITY",
-                "SUPERVISOR_VERSION",
-                "OPERATING_SYSTEM_VERSION",
+                "SYSTEM_INFORMATION",
                 "RECORDER_AVAILABILITY",
                 "INTEGRATION_SETUP_ERRORS",
                 "UNAVAILABLE_ENTITIES",
+                "DISK_FREE_SPACE",
+                "BACKUP_AGE",
+                "BACKUP_INTEGRITY",
             ),
         ),
     ),
@@ -87,13 +87,9 @@ _BUILT_IN_PROFILES: dict[str, InspectionProfile] = {
         description="Inspect Home Assistant system and platform information.",
         request=InspectionRequest(
             include_rule_ids=(
-                "CORE_VERSION",
-                "FRONTEND_VERSION",
-                "INSTALLATION_CONSISTENCY",
-                "OPERATING_SYSTEM_VERSION",
-                "SUPERVISOR_AVAILABILITY",
-                "SUPERVISOR_VERSION",
                 "SYSTEM_INFORMATION",
+                "DISK_FREE_SPACE",
+                "RECORDER_AVAILABILITY",
             ),
         ),
     ),
