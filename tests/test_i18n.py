@@ -133,3 +133,68 @@ def test_all_findings_have_spanish_translation() -> None:
 
     assert spanish_translations == finding_ids
 
+
+
+def test_localize_finding_returns_original_for_default_language() -> None:
+    from custom_components.ha_inspector.engine.i18n import localize_finding
+    from custom_components.ha_inspector.engine.models import Finding
+    from custom_components.ha_inspector.engine.severity import Severity
+
+    finding = Finding(
+        finding_id="TEST_FINDING",
+        severity=Severity.INFO,
+        title="Original title",
+        description="Original description",
+        recommendation="Original recommendation",
+        data={},
+    )
+
+    assert localize_finding(finding, "en") is finding
+
+
+def test_localize_finding_returns_original_when_translation_missing() -> None:
+    from custom_components.ha_inspector.engine.i18n import localize_finding
+    from custom_components.ha_inspector.engine.models import Finding
+    from custom_components.ha_inspector.engine.severity import Severity
+
+    finding = Finding(
+        finding_id="UNKNOWN_FINDING",
+        severity=Severity.INFO,
+        title="Original title",
+        description="Original description",
+        recommendation="Original recommendation",
+        data={},
+    )
+
+    assert localize_finding(finding, "es") is finding
+
+
+def test_localize_finding_falls_back_for_missing_or_invalid_fields(
+    monkeypatch,
+) -> None:
+    from custom_components.ha_inspector.engine import i18n
+    from custom_components.ha_inspector.engine.models import Finding
+    from custom_components.ha_inspector.engine.severity import Severity
+
+    monkeypatch.setitem(
+        i18n._FINDING_TRANSLATIONS["es"],  # type: ignore[attr-defined]
+        "TEST_FALLBACKS",
+        {
+            "title": "Invalid {missing_variable}",
+        },
+    )
+
+    finding = Finding(
+        finding_id="TEST_FALLBACKS",
+        severity=Severity.INFO,
+        title="Original title",
+        description="Original description",
+        recommendation="Original recommendation",
+        data={},
+    )
+
+    localized = i18n.localize_finding(finding, "es")
+
+    assert localized.title == finding.title
+    assert localized.description == finding.description
+    assert localized.recommendation == finding.recommendation
