@@ -4,6 +4,7 @@ from custom_components.ha_inspector.engine.context import InspectionContext
 from custom_components.ha_inspector.engine.recorder_state import RecorderState
 from custom_components.ha_inspector.engine.rules.recorder import (
     RecorderAvailabilityRule,
+    RecorderDatabaseSizeRule,
     RecorderKeepDaysRule,
 )
 from custom_components.ha_inspector.engine.severity import Severity
@@ -184,3 +185,97 @@ async def test_recorder_keep_days_returns_nothing_with_acceptable_retention(
     )
 
     assert await RecorderKeepDaysRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_recorder_database_size_returns_nothing_when_unavailable() -> None:
+    context = InspectionContext(
+        recorder=RecorderState(
+            available=False,
+            database_size_bytes=20 * 1024**3,
+        )
+    )
+
+    assert await RecorderDatabaseSizeRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_recorder_database_size_returns_nothing_when_unknown() -> None:
+    context = InspectionContext(
+        recorder=RecorderState(
+            available=True,
+            database_size_bytes=None,
+        )
+    )
+
+    assert await RecorderDatabaseSizeRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_recorder_database_size_reports_warning() -> None:
+    size_bytes = 6 * 1024**3
+
+    context = InspectionContext(
+        recorder=RecorderState(
+            available=True,
+            database_size_bytes=size_bytes,
+        )
+    )
+
+    findings = await RecorderDatabaseSizeRule().check(context)
+
+    assert len(findings) == 1
+    finding = findings[0]
+
+    assert finding.finding_id == "RECORDER_DATABASE_SIZE_HIGH"
+    assert finding.severity is Severity.WARNING
+    assert finding.data == {
+        "database_size_bytes": size_bytes,
+        "warning_threshold_bytes": 5 * 1024**3,
+    }
+
+
+@pytest.mark.asyncio
+async def test_recorder_database_size_reports_error() -> None:
+    size_bytes = 11 * 1024**3
+
+    context = InspectionContext(
+        recorder=RecorderState(
+            available=True,
+            database_size_bytes=size_bytes,
+        )
+    )
+
+    findings = await RecorderDatabaseSizeRule().check(context)
+
+    assert len(findings) == 1
+    finding = findings[0]
+
+    assert finding.finding_id == "RECORDER_DATABASE_SIZE_EXCESSIVE"
+    assert finding.severity is Severity.ERROR
+    assert finding.data == {
+        "database_size_bytes": size_bytes,
+        "warning_threshold_bytes": 5 * 1024**3,
+        "error_threshold_bytes": 10 * 1024**3,
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "size_bytes",
+    [
+        0,
+        5 * 1024**3,
+    ],
+)
+async def test_recorder_database_size_returns_nothing_at_thresholds(
+    size_bytes: int,
+) -> None:
+    context = InspectionContext(
+        recorder=RecorderState(
+            available=True,
+            database_size_bytes=size_bytes,
+        )
+    )
+
+    assert await RecorderDatabaseSizeRule().check(context) == []

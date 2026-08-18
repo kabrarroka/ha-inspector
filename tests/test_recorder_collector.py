@@ -48,8 +48,12 @@ async def test_collect_recorder_unavailable() -> None:
 
 @pytest.mark.asyncio
 async def test_collect_recorder_state(monkeypatch) -> None:
+    async def async_add_executor_job(func, *args):
+        return 123456789
+
     recorder = SimpleNamespace(
         dialect_name=SimpleNamespace(value="sqlite"),
+        async_add_executor_job=async_add_executor_job,
         enabled=True,
         recording=True,
         is_running=True,
@@ -107,6 +111,7 @@ async def test_collect_recorder_state(monkeypatch) -> None:
     assert state.database_dialect == "sqlite"
     assert state.database_connected is True
     assert state.database_ready is True
+    assert state.database_size_bytes == 123456789
 
 
 @pytest.mark.asyncio
@@ -209,3 +214,85 @@ async def test_collect_database_future_not_done(monkeypatch) -> None:
     assert context.recorder.database_dialect == "postgresql"
     assert context.recorder.database_connected is False
     assert context.recorder.database_ready is False
+
+def test_database_size_bytes_returns_integer(monkeypatch) -> None:
+    class FakeSessionContext:
+        def __enter__(self):
+            return object()
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    recorder = SimpleNamespace(
+        dialect_name="mysql",
+        db_url="mysql://user:pass@db/homeassistant",
+        get_session=lambda: object(),
+    )
+
+    monkeypatch.setattr(
+        recorder_module,
+        "DIALECT_TO_GET_SIZE",
+        {
+            "mysql": lambda session, database_name: 1234.56,
+        },
+    )
+    monkeypatch.setattr(
+        recorder_module,
+        "session_scope",
+        lambda *, session, read_only: FakeSessionContext(),
+    )
+
+    assert recorder_module._database_size_bytes(recorder) == 1234
+
+
+@pytest.mark.asyncio
+async def test_collect_recorder_does_not_measure_size_when_database_not_ready(
+    monkeypatch,
+) -> None:
+    async def async_add_executor_job(func, *args):
+        raise AssertionError("executor should not be called")
+
+    recorder = SimpleNamespace(
+        dialect_name=SimpleNamespace(value="sqlite"),
+        async_add_executor_job=async_add_executor_job,
+        enabled=True,
+        recording=True,
+        is_running=True,
+        auto_purge=True,
+        auto_repack=False,
+        keep_days=10,
+        commit_interval=5,
+        backlog=3,
+        schema_version=45,
+        migration_in_progress=False,
+        migration_is_live=False,
+        async_db_connected=FakeFuture(
+            done=True,
+            result=True,
+        ),
+        async_db_ready=FakeFuture(
+            done=True,
+            result=False,
+        ),
+    )
+
+    monkeypatch.setattr(
+        recorder_module,
+        "get_instance",
+        lambda hass: recorder,
+    )
+
+    hass = FakeHass(
+        {
+            recorder_module.DATA_INSTANCE: object(),
+        }
+    )
+
+    context = InspectionContext()
+
+    await RecorderCollector().collect(
+        hass,
+        context,
+    )
+
+    assert context.recorder.database_size_bytes is None

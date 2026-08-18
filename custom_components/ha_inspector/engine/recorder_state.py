@@ -31,3 +31,4 @@ class RecorderState(BaseState):
     database_dialect: str | None = None
     database_connected: bool | None = None
     database_ready: bool | None = None
+    database_size_bytes: int | None = None
