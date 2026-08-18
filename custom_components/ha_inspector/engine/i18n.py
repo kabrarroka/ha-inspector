@@ -419,6 +419,27 @@ _FINDING_TRANSLATIONS: Final[
         },
 
         # System
+        "CPU_LOAD_HIGH": {
+            "title": "El uso de CPU es alto",
+            "description": (
+                "El uso actual de CPU del host es del {cpu_percent:.1f}%."
+            ),
+            "recommendation": (
+                "Supervisa el uso de CPU y revisa integraciones o "
+                "automatizaciones exigentes si la carga permanece alta."
+            ),
+        },
+        "CPU_LOAD_CRITICAL": {
+            "title": "El uso de CPU es críticamente alto",
+            "description": (
+                "El uso actual de CPU del host es del {cpu_percent:.1f}%."
+            ),
+            "recommendation": (
+                "Revisa integraciones activas, automatizaciones y otros "
+                "procesos que puedan estar consumiendo demasiada CPU."
+            ),
+        },
+
         "SYSTEM_INFORMATION_UNAVAILABLE": {
             "title": "La información del sistema no está disponible",
             "description": (
