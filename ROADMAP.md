@@ -18,8 +18,8 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 - [x] Disk free-space inspection
 - [x] Backup count inspection
-- [ ] Backup age inspection
-- [ ] Backup agent availability
+- [x] Backup age inspection
+- [x] Backup agent availability
 - [ ] Recorder database-size inspection
 - [ ] Log-size inspection
 
@@ -48,7 +48,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [ ] Storage, system, integration and entity health summaries
 - [ ] Pre-upgrade and post-restore profiles
 - [ ] Dashboard summary
-- [ ] Localization
+- [x] Localization
 - [ ] Stable public API
 
 ## Version direction
