@@ -7,7 +7,10 @@ from types import SimpleNamespace
 import pytest
 
 from custom_components.ha_inspector.engine.collectors import system as system_module
-from custom_components.ha_inspector.engine.collectors.system import SystemCollector
+from custom_components.ha_inspector.engine.collectors.system import (
+    SystemCollector,
+    _CpuMetrics,
+)
 from custom_components.ha_inspector.engine.context import InspectionContext
 
 
@@ -26,9 +29,24 @@ class FakeHass:
             external_url="https://example.ui.nabu.casa",
         )
 
+    async def async_add_executor_job(self, func):
+        return func()
+
 
 @pytest.mark.asyncio
 async def test_collect_system_information(monkeypatch) -> None:
+    monkeypatch.setattr(
+        system_module,
+        "_collect_cpu_metrics",
+        lambda: _CpuMetrics(
+            cpu_percent=12.5,
+            cpu_count_logical=4,
+            cpu_count_physical=2,
+            load_1m=0.75,
+            load_5m=0.50,
+            load_15m=0.25,
+        ),
+    )
     monkeypatch.setattr(
         system_module,
         "HA_VERSION",
@@ -94,9 +112,28 @@ async def test_collect_system_information(monkeypatch) -> None:
     assert state.external_url == "https://example.ui.nabu.casa"
     assert state.python_executable == "/usr/bin/python3"
 
+    assert state.cpu_percent == 12.5
+    assert state.cpu_count_logical == 4
+    assert state.cpu_count_physical == 2
+    assert state.load_1m == 0.75
+    assert state.load_5m == 0.50
+    assert state.load_15m == 0.25
+
 
 @pytest.mark.asyncio
-async def test_collect_system_optional_urls() -> None:
+async def test_collect_system_optional_urls(monkeypatch) -> None:
+    monkeypatch.setattr(
+        system_module,
+        "_collect_cpu_metrics",
+        lambda: _CpuMetrics(
+            cpu_percent=0.0,
+            cpu_count_logical=None,
+            cpu_count_physical=None,
+            load_1m=None,
+            load_5m=None,
+            load_15m=None,
+        ),
+    )
     hass = FakeHass()
     hass.config.internal_url = None
     hass.config.external_url = None
@@ -110,3 +147,78 @@ async def test_collect_system_optional_urls() -> None:
 
     assert context.system.internal_url is None
     assert context.system.external_url is None
+
+
+def test_collect_cpu_metrics(monkeypatch) -> None:
+    class FakePsutil:
+        @staticmethod
+        def cpu_percent(*, interval):
+            assert interval == 0.1
+            return 27.5
+
+        @staticmethod
+        def cpu_count(*, logical):
+            return 4 if logical else 2
+
+    class FakeWrapper:
+        def __init__(self):
+            self.psutil = FakePsutil()
+
+    monkeypatch.setattr(
+        system_module.ha_psutil,
+        "PsutilWrapper",
+        FakeWrapper,
+    )
+    monkeypatch.setattr(
+        system_module.os,
+        "getloadavg",
+        lambda: (1.25, 0.75, 0.50),
+    )
+
+    metrics = system_module._collect_cpu_metrics()
+
+    assert metrics.cpu_percent == 27.5
+    assert metrics.cpu_count_logical == 4
+    assert metrics.cpu_count_physical == 2
+    assert metrics.load_1m == 1.25
+    assert metrics.load_5m == 0.75
+    assert metrics.load_15m == 0.50
+
+
+def test_collect_cpu_metrics_without_loadavg(monkeypatch) -> None:
+    class FakePsutil:
+        @staticmethod
+        def cpu_percent(*, interval):
+            assert interval == 0.1
+            return 5.0
+
+        @staticmethod
+        def cpu_count(*, logical):
+            return None
+
+    class FakeWrapper:
+        def __init__(self):
+            self.psutil = FakePsutil()
+
+    def unavailable_loadavg():
+        raise OSError
+
+    monkeypatch.setattr(
+        system_module.ha_psutil,
+        "PsutilWrapper",
+        FakeWrapper,
+    )
+    monkeypatch.setattr(
+        system_module.os,
+        "getloadavg",
+        unavailable_loadavg,
+    )
+
+    metrics = system_module._collect_cpu_metrics()
+
+    assert metrics.cpu_percent == 5.0
+    assert metrics.cpu_count_logical is None
+    assert metrics.cpu_count_physical is None
+    assert metrics.load_1m is None
+    assert metrics.load_5m is None
+    assert metrics.load_15m is None

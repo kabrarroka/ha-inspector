@@ -30,3 +30,10 @@ class SystemState(BaseState):
     internal_url: str | None = None
     external_url: str | None = None
     python_executable: str = ""
+
+    cpu_percent: float | None = None
+    cpu_count_logical: int | None = None
+    cpu_count_physical: int | None = None
+    load_1m: float | None = None
+    load_5m: float | None = None
+    load_15m: float | None = None

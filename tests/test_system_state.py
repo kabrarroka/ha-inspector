@@ -22,6 +22,12 @@ def test_system_state_defaults() -> None:
         "internal_url": None,
         "external_url": None,
         "python_executable": "",
+        "cpu_percent": None,
+        "cpu_count_logical": None,
+        "cpu_count_physical": None,
+        "load_1m": None,
+        "load_5m": None,
+        "load_15m": None,
     }
 
 
@@ -44,6 +50,12 @@ def test_system_state_values() -> None:
         internal_url="http://homeassistant.local:8123",
         external_url="https://example.ui.nabu.casa",
         python_executable="/usr/local/bin/python",
+        cpu_percent=12.5,
+        cpu_count_logical=4,
+        cpu_count_physical=2,
+        load_1m=0.75,
+        load_5m=0.50,
+        load_15m=0.25,
     )
 
     assert state.as_dict() == {
@@ -64,5 +76,10 @@ def test_system_state_values() -> None:
         "internal_url": "http://homeassistant.local:8123",
         "external_url": "https://example.ui.nabu.casa",
         "python_executable": "/usr/local/bin/python",
+        "cpu_percent": 12.5,
+        "cpu_count_logical": 4,
+        "cpu_count_physical": 2,
+        "load_1m": 0.75,
+        "load_5m": 0.50,
+        "load_15m": 0.25,
     }
-
