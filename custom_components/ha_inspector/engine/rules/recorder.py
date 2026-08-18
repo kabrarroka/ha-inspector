@@ -159,3 +159,73 @@ class RecorderKeepDaysRule(BaseRule):
             ]
 
         return []
+
+
+class RecorderDatabaseSizeRule(BaseRule):
+    """Check whether the Recorder database is excessively large."""
+
+    rule_id = "RECORDER_DATABASE_SIZE"
+
+    warning_threshold_bytes = 5 * 1024**3
+    error_threshold_bytes = 10 * 1024**3
+
+    async def check(
+        self,
+        context: InspectionContext,
+    ) -> list[Finding]:
+        """Check Recorder database size."""
+        recorder = context.recorder
+
+        if recorder.available is not True:
+            return []
+
+        size_bytes = recorder.database_size_bytes
+
+        if not isinstance(size_bytes, int):
+            return []
+
+        if size_bytes > self.error_threshold_bytes:
+            return [
+                Finding(
+                    finding_id="RECORDER_DATABASE_SIZE_EXCESSIVE",
+                    severity=Severity.ERROR,
+                    title="Recorder database is very large",
+                    description=(
+                        "The Recorder database is larger than the "
+                        "recommended error threshold."
+                    ),
+                    recommendation=(
+                        "Review Recorder retention, exclusions and database "
+                        "growth. Consider reducing purge_keep_days or excluding "
+                        "high-volume entities if the size is not intentional."
+                    ),
+                    data={
+                        "database_size_bytes": size_bytes,
+                        "warning_threshold_bytes": self.warning_threshold_bytes,
+                        "error_threshold_bytes": self.error_threshold_bytes,
+                    },
+                )
+            ]
+
+        if size_bytes > self.warning_threshold_bytes:
+            return [
+                Finding(
+                    finding_id="RECORDER_DATABASE_SIZE_HIGH",
+                    severity=Severity.WARNING,
+                    title="Recorder database is large",
+                    description=(
+                        "The Recorder database is larger than the "
+                        "recommended warning threshold."
+                    ),
+                    recommendation=(
+                        "Review Recorder retention and exclusions and monitor "
+                        "database growth."
+                    ),
+                    data={
+                        "database_size_bytes": size_bytes,
+                        "warning_threshold_bytes": self.warning_threshold_bytes,
+                    },
+                )
+            ]
+
+        return []

@@ -21,6 +21,7 @@ def test_recorder_state_defaults() -> None:
         "database_dialect": None,
         "database_connected": None,
         "database_ready": None,
+        "database_size_bytes": None,
     }
 
 
@@ -60,5 +61,6 @@ def test_recorder_state_values() -> None:
         "database_dialect": "sqlite",
         "database_connected": True,
         "database_ready": True,
+        "database_size_bytes": None,
     }
 

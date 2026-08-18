@@ -393,6 +393,30 @@ _FINDING_TRANSLATIONS: Final[
                 "de datos y el tiempo de mantenimiento."
             ),
         },
+        "RECORDER_DATABASE_SIZE_HIGH": {
+            "title": "La base de datos de Recorder es grande",
+            "description": (
+                "La base de datos de Recorder supera el umbral recomendado "
+                "de advertencia."
+            ),
+            "recommendation": (
+                "Revisa la retención y las exclusiones de Recorder y "
+                "supervisa el crecimiento de la base de datos."
+            ),
+        },
+        "RECORDER_DATABASE_SIZE_EXCESSIVE": {
+            "title": "La base de datos de Recorder es muy grande",
+            "description": (
+                "La base de datos de Recorder supera el umbral recomendado "
+                "de error."
+            ),
+            "recommendation": (
+                "Revisa la retención, las exclusiones y el crecimiento de "
+                "la base de datos. Considera reducir purge_keep_days o "
+                "excluir entidades de alta frecuencia si este tamaño no "
+                "es intencionado."
+            ),
+        },
 
         # System
         "SYSTEM_INFORMATION_UNAVAILABLE": {

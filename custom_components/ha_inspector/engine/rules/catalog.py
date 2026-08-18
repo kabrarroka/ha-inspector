@@ -32,6 +32,14 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=10,
         tags=("recorder", "database", "performance"),
     ),
+    "RECORDER_DATABASE_SIZE": RuleDescriptor(
+        rule_id="recorder.database_size",
+        category=Category.RECORDER,
+        title="Recorder database size",
+        description="Checks whether the Recorder database has grown excessively.",
+        weight=20,
+        tags=("recorder", "database", "storage", "performance"),
+    ),
     "INTEGRATION_SETUP_ERRORS": RuleDescriptor(
         rule_id="integrations.setup_error",
         category=Category.INTEGRATIONS,
