@@ -20,7 +20,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Backup count inspection
 - [x] Backup age inspection
 - [x] Backup agent availability
-- [ ] Recorder database-size inspection
+- [x] Recorder database-size inspection
 - [ ] Log-size inspection
 
 ## Epic C — System health
