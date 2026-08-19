@@ -129,6 +129,7 @@ async def test_run_diagnostics_override_includes_diagnostics() -> None:
     assert set(context) == {
         "system",
         "storage",
+        "logs",
         "backups",
         "recorder",
         "integrations",

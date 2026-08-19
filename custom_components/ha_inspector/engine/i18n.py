@@ -455,6 +455,31 @@ _FINDING_TRANSLATIONS: Final[
             ),
         },
 
+        # System log
+        "SYSTEM_LOG_ERRORS": {
+            "title": "Se encontraron errores recientes en el registro",
+            "description": (
+                "Se registraron {error_entries} entradas distintas de "
+                "error y {critical_entries} entradas críticas recientemente."
+            ),
+            "recommendation": (
+                "Revisa el registro del sistema de Home Assistant e "
+                "investiga los loggers que aparecen con mayor frecuencia."
+            ),
+        },
+        "SYSTEM_LOG_WARNINGS": {
+            "title": "Se encontraron avisos recientes en el registro",
+            "description": (
+                "Se registraron {warning_entries} entradas distintas de "
+                "aviso recientemente."
+            ),
+            "recommendation": (
+                "Revisa el registro del sistema de Home Assistant y "
+                "supervisa los avisos repetidos que puedan indicar un "
+                "funcionamiento degradado."
+            ),
+        },
+
         # System
         "TIME_SYNCHRONIZATION_FAILED": {
             "title": "La hora del sistema no está sincronizada",
