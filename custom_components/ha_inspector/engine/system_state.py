@@ -42,3 +42,6 @@ class SystemState(BaseState):
     memory_available_bytes: int | None = None
     memory_used_bytes: int | None = None
     memory_percent: float | None = None
+
+    restart_count_24h: int | None = None
+    restart_count_7d: int | None = None

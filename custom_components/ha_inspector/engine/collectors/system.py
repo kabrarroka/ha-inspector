@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 import psutil_home_assistant as ha_psutil  # type: ignore[import-untyped]
 from homeassistant.const import __version__ as HA_VERSION
 
+from ...const import DATA_RESTART_HISTORY, DOMAIN
 from ..context import InspectionContext
 from ..system_state import SystemState
 from .base import BaseCollector
@@ -97,6 +98,19 @@ class SystemCollector(BaseCollector):
             _collect_memory_metrics
         )
 
+        restart_count_24h: int | None = None
+        restart_count_7d: int | None = None
+
+        hass_data = getattr(hass, "data", {})
+        restart_history = hass_data.get(DOMAIN, {}).get(
+            DATA_RESTART_HISTORY
+        )
+
+        if restart_history is not None:
+            restart_count_24h, restart_count_7d = (
+                restart_history.restart_counts()
+            )
+
         state = SystemState(
             home_assistant_version=HA_VERSION,
             python_version=platform.python_version(),
@@ -125,6 +139,8 @@ class SystemCollector(BaseCollector):
             memory_available_bytes=memory_metrics.available_bytes,
             memory_used_bytes=memory_metrics.used_bytes,
             memory_percent=memory_metrics.percent,
+            restart_count_24h=restart_count_24h,
+            restart_count_7d=restart_count_7d,
         )
 
         context.system = state

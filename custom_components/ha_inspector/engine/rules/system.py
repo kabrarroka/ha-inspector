@@ -184,3 +184,69 @@ class MemoryUsageRule(BaseRule):
             ]
 
         return []
+
+
+class RestartFrequencyRule(BaseRule):
+    """Check whether Home Assistant is restarting too frequently."""
+
+    rule_id = "RESTART_FREQUENCY"
+
+    warning_threshold_24h = 3
+    error_threshold_24h = 5
+
+    async def check(
+        self,
+        context: InspectionContext,
+    ) -> list[Finding]:
+        """Check recent Home Assistant restart frequency."""
+        system = context.system
+        restart_count_24h = system.restart_count_24h
+
+        if not isinstance(restart_count_24h, int):
+            return []
+
+        data = {
+            "restart_count_24h": restart_count_24h,
+            "restart_count_7d": system.restart_count_7d,
+            "warning_threshold_24h": self.warning_threshold_24h,
+            "error_threshold_24h": self.error_threshold_24h,
+        }
+
+        if restart_count_24h >= self.error_threshold_24h:
+            return [
+                Finding(
+                    finding_id="RESTART_FREQUENCY_CRITICAL",
+                    severity=Severity.ERROR,
+                    title="Home Assistant is restarting very frequently",
+                    description=(
+                        "Home Assistant has restarted "
+                        f"{restart_count_24h} times in the last 24 hours."
+                    ),
+                    recommendation=(
+                        "Review Home Assistant logs, recent updates, "
+                        "integration failures and host stability to identify "
+                        "the cause of repeated restarts."
+                    ),
+                    data=data,
+                )
+            ]
+
+        if restart_count_24h >= self.warning_threshold_24h:
+            return [
+                Finding(
+                    finding_id="RESTART_FREQUENCY_HIGH",
+                    severity=Severity.WARNING,
+                    title="Home Assistant is restarting frequently",
+                    description=(
+                        "Home Assistant has restarted "
+                        f"{restart_count_24h} times in the last 24 hours."
+                    ),
+                    recommendation=(
+                        "Monitor subsequent restarts and review logs for "
+                        "shutdowns, crashes or watchdog activity."
+                    ),
+                    data=data,
+                )
+            ]
+
+        return []

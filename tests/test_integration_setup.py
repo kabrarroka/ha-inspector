@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -11,7 +11,11 @@ from custom_components.ha_inspector import (
     async_setup_entry,
     async_unload_entry,
 )
-from custom_components.ha_inspector.const import PLATFORMS
+from custom_components.ha_inspector.const import (
+    DATA_RESTART_HISTORY,
+    DOMAIN,
+    PLATFORMS,
+)
 from custom_components.ha_inspector.engine.inspector import Inspector
 from custom_components.ha_inspector.engine.registry import EngineRegistry
 
@@ -26,15 +30,50 @@ def test_load_engine_returns_inspector_and_registry() -> None:
 @pytest.mark.asyncio
 async def test_setup_entry_forwards_platforms() -> None:
     hass = MagicMock()
+    hass.data = {}
     hass.config_entries.async_forward_entry_setups = AsyncMock()
     entry = MagicMock()
 
-    assert await async_setup_entry(hass, entry) is True
+    restart_history = MagicMock()
+    restart_history.async_load = AsyncMock()
+    restart_history.async_record_start = AsyncMock()
+
+    with patch(
+        "custom_components.ha_inspector.engine.restart_history.RestartHistory",
+        return_value=restart_history,
+    ):
+        assert await async_setup_entry(hass, entry) is True
+
+    restart_history.async_load.assert_awaited_once()
+    restart_history.async_record_start.assert_awaited_once()
+
+    assert hass.data[DOMAIN][DATA_RESTART_HISTORY] is restart_history
 
     hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(
         entry,
         PLATFORMS,
     )
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_does_not_record_restart_twice() -> None:
+    existing_history = MagicMock()
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_RESTART_HISTORY: existing_history,
+        }
+    }
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
+    entry = MagicMock()
+
+    with patch(
+        "custom_components.ha_inspector.engine.restart_history.RestartHistory",
+    ) as history_type:
+        assert await async_setup_entry(hass, entry) is True
+
+    history_type.assert_not_called()
 
 
 @pytest.mark.asyncio
