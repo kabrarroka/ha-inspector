@@ -119,3 +119,68 @@ class CpuLoadRule(BaseRule):
             ]
 
         return []
+
+
+class MemoryUsageRule(BaseRule):
+    """Check whether host memory usage is excessively high."""
+
+    rule_id = "MEMORY_USAGE"
+
+    warning_threshold = 85.0
+    error_threshold = 95.0
+
+    async def check(
+        self,
+        context: InspectionContext,
+    ) -> list[Finding]:
+        """Check host memory usage."""
+        system = context.system
+        memory_percent = system.memory_percent
+
+        if not isinstance(memory_percent, int | float):
+            return []
+
+        data = {
+            "memory_percent": memory_percent,
+            "warning_threshold": self.warning_threshold,
+            "error_threshold": self.error_threshold,
+            "memory_total_bytes": system.memory_total_bytes,
+            "memory_available_bytes": system.memory_available_bytes,
+            "memory_used_bytes": system.memory_used_bytes,
+        }
+
+        if memory_percent > self.error_threshold:
+            return [
+                Finding(
+                    finding_id="MEMORY_USAGE_CRITICAL",
+                    severity=Severity.ERROR,
+                    title="Memory usage is critically high",
+                    description=(
+                        f"Host memory usage is currently {memory_percent:.1f}%."
+                    ),
+                    recommendation=(
+                        "Review integrations, add-ons and other processes "
+                        "that may be consuming excessive memory."
+                    ),
+                    data=data,
+                )
+            ]
+
+        if memory_percent > self.warning_threshold:
+            return [
+                Finding(
+                    finding_id="MEMORY_USAGE_HIGH",
+                    severity=Severity.WARNING,
+                    title="Memory usage is high",
+                    description=(
+                        f"Host memory usage is currently {memory_percent:.1f}%."
+                    ),
+                    recommendation=(
+                        "Monitor memory usage and review resource-intensive "
+                        "integrations or add-ons if usage remains high."
+                    ),
+                    data=data,
+                )
+            ]
+
+        return []

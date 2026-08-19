@@ -6,6 +6,14 @@ from ..category import Category
 from ..descriptors import RuleDescriptor
 
 RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
+    "MEMORY_USAGE": RuleDescriptor(
+        rule_id="system.memory_usage",
+        category=Category.SYSTEM,
+        title="Memory usage",
+        description="Checks whether host memory usage is excessively high.",
+        weight=25,
+        tags=("system", "memory", "performance", "health"),
+    ),
     "CPU_LOAD": RuleDescriptor(
         rule_id="system.cpu_load",
         category=Category.SYSTEM,

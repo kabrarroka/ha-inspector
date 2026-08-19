@@ -3,6 +3,7 @@ import pytest
 from custom_components.ha_inspector.engine.context import InspectionContext
 from custom_components.ha_inspector.engine.rules.system import (
     CpuLoadRule,
+    MemoryUsageRule,
     SystemInformationRule,
 )
 from custom_components.ha_inspector.engine.severity import Severity
@@ -129,3 +130,71 @@ async def test_cpu_load_reports_error() -> None:
     assert finding.severity is Severity.ERROR
     assert finding.data["cpu_percent"] == 96.0
     assert finding.data["cpu_count_logical"] == 4
+
+
+@pytest.mark.asyncio
+async def test_memory_usage_returns_nothing_when_unknown() -> None:
+    context = InspectionContext(
+        system=SystemState(memory_percent=None)
+    )
+
+    assert await MemoryUsageRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_memory_usage_returns_nothing_when_acceptable() -> None:
+    context = InspectionContext(
+        system=SystemState(memory_percent=85.0)
+    )
+
+    assert await MemoryUsageRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_memory_usage_reports_warning() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            memory_percent=90.0,
+            memory_total_bytes=8_000,
+            memory_available_bytes=800,
+            memory_used_bytes=7_200,
+        )
+    )
+
+    findings = await MemoryUsageRule().check(context)
+
+    assert len(findings) == 1
+    finding = findings[0]
+
+    assert finding.finding_id == "MEMORY_USAGE_HIGH"
+    assert finding.severity is Severity.WARNING
+    assert finding.data == {
+        "memory_percent": 90.0,
+        "warning_threshold": 85.0,
+        "error_threshold": 95.0,
+        "memory_total_bytes": 8_000,
+        "memory_available_bytes": 800,
+        "memory_used_bytes": 7_200,
+    }
+
+
+@pytest.mark.asyncio
+async def test_memory_usage_reports_error() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            memory_percent=96.0,
+            memory_total_bytes=8_000,
+            memory_available_bytes=320,
+            memory_used_bytes=7_680,
+        )
+    )
+
+    findings = await MemoryUsageRule().check(context)
+
+    assert len(findings) == 1
+    finding = findings[0]
+
+    assert finding.finding_id == "MEMORY_USAGE_CRITICAL"
+    assert finding.severity is Severity.ERROR
+    assert finding.data["memory_percent"] == 96.0
+    assert finding.data["memory_total_bytes"] == 8_000

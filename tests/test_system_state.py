@@ -28,6 +28,10 @@ def test_system_state_defaults() -> None:
         "load_1m": None,
         "load_5m": None,
         "load_15m": None,
+        "memory_total_bytes": None,
+        "memory_available_bytes": None,
+        "memory_used_bytes": None,
+        "memory_percent": None,
     }
 
 
@@ -56,6 +60,10 @@ def test_system_state_values() -> None:
         load_1m=0.75,
         load_5m=0.50,
         load_15m=0.25,
+        memory_total_bytes=8_000,
+        memory_available_bytes=5_000,
+        memory_used_bytes=3_000,
+        memory_percent=37.5,
     )
 
     assert state.as_dict() == {
@@ -82,4 +90,8 @@ def test_system_state_values() -> None:
         "load_1m": 0.75,
         "load_5m": 0.50,
         "load_15m": 0.25,
+        "memory_total_bytes": 8_000,
+        "memory_available_bytes": 5_000,
+        "memory_used_bytes": 3_000,
+        "memory_percent": 37.5,
     }

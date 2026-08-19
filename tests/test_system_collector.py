@@ -10,6 +10,7 @@ from custom_components.ha_inspector.engine.collectors import system as system_mo
 from custom_components.ha_inspector.engine.collectors.system import (
     SystemCollector,
     _CpuMetrics,
+    _MemoryMetrics,
 )
 from custom_components.ha_inspector.engine.context import InspectionContext
 
@@ -45,6 +46,16 @@ async def test_collect_system_information(monkeypatch) -> None:
             load_1m=0.75,
             load_5m=0.50,
             load_15m=0.25,
+        ),
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_memory_metrics",
+        lambda: _MemoryMetrics(
+            total_bytes=8_000,
+            available_bytes=5_000,
+            used_bytes=3_000,
+            percent=37.5,
         ),
     )
     monkeypatch.setattr(
@@ -119,6 +130,11 @@ async def test_collect_system_information(monkeypatch) -> None:
     assert state.load_5m == 0.50
     assert state.load_15m == 0.25
 
+    assert state.memory_total_bytes == 8_000
+    assert state.memory_available_bytes == 5_000
+    assert state.memory_used_bytes == 3_000
+    assert state.memory_percent == 37.5
+
 
 @pytest.mark.asyncio
 async def test_collect_system_optional_urls(monkeypatch) -> None:
@@ -132,6 +148,16 @@ async def test_collect_system_optional_urls(monkeypatch) -> None:
             load_1m=None,
             load_5m=None,
             load_15m=None,
+        ),
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_memory_metrics",
+        lambda: _MemoryMetrics(
+            total_bytes=8_000,
+            available_bytes=5_000,
+            used_bytes=3_000,
+            percent=37.5,
         ),
     )
     hass = FakeHass()
@@ -222,3 +248,33 @@ def test_collect_cpu_metrics_without_loadavg(monkeypatch) -> None:
     assert metrics.load_1m is None
     assert metrics.load_5m is None
     assert metrics.load_15m is None
+
+
+def test_collect_memory_metrics(monkeypatch) -> None:
+    class FakeMemory:
+        total = 16_000
+        available = 6_000
+        used = 10_000
+        percent = 62.5
+
+    class FakePsutil:
+        @staticmethod
+        def virtual_memory():
+            return FakeMemory()
+
+    class FakeWrapper:
+        def __init__(self):
+            self.psutil = FakePsutil()
+
+    monkeypatch.setattr(
+        system_module.ha_psutil,
+        "PsutilWrapper",
+        FakeWrapper,
+    )
+
+    metrics = system_module._collect_memory_metrics()
+
+    assert metrics.total_bytes == 16_000
+    assert metrics.available_bytes == 6_000
+    assert metrics.used_bytes == 10_000
+    assert metrics.percent == 62.5

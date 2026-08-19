@@ -33,6 +33,16 @@ class _CpuMetrics:
     load_15m: float | None
 
 
+@dataclass(frozen=True, slots=True)
+class _MemoryMetrics:
+    """Represent collected host memory metrics."""
+
+    total_bytes: int
+    available_bytes: int
+    used_bytes: int
+    percent: float
+
+
 def _collect_cpu_metrics() -> _CpuMetrics:
     """Collect host CPU metrics."""
     load_1m: float | None = None
@@ -56,6 +66,21 @@ def _collect_cpu_metrics() -> _CpuMetrics:
     )
 
 
+def _collect_memory_metrics() -> _MemoryMetrics:
+    """Collect host memory metrics."""
+    # PsutilWrapper currently expects importlib.util to be loaded.
+    _ = importlib.util
+    psutil = ha_psutil.PsutilWrapper().psutil
+    memory = psutil.virtual_memory()
+
+    return _MemoryMetrics(
+        total_bytes=int(memory.total),
+        available_bytes=int(memory.available),
+        used_bytes=int(memory.used),
+        percent=float(memory.percent),
+    )
+
+
 class SystemCollector(BaseCollector):
     """Collect general information about Home Assistant and the host."""
 
@@ -68,6 +93,9 @@ class SystemCollector(BaseCollector):
     ) -> None:
         """Collect system information."""
         cpu_metrics = await hass.async_add_executor_job(_collect_cpu_metrics)
+        memory_metrics = await hass.async_add_executor_job(
+            _collect_memory_metrics
+        )
 
         state = SystemState(
             home_assistant_version=HA_VERSION,
@@ -93,6 +121,10 @@ class SystemCollector(BaseCollector):
             load_1m=cpu_metrics.load_1m,
             load_5m=cpu_metrics.load_5m,
             load_15m=cpu_metrics.load_15m,
+            memory_total_bytes=memory_metrics.total_bytes,
+            memory_available_bytes=memory_metrics.available_bytes,
+            memory_used_bytes=memory_metrics.used_bytes,
+            memory_percent=memory_metrics.percent,
         )
 
         context.system = state
