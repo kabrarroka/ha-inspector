@@ -127,6 +127,7 @@ class Inspector:
         return {
             "system": safe_system,
             "storage": context.storage.as_dict(),
+            "logs": context.logs.as_dict(),
             "backups": context.backups.as_dict(),
             "recorder": context.recorder.as_dict(),
             "integrations": context.integrations.as_dict(),

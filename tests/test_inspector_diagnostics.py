@@ -48,6 +48,7 @@ def test_diagnostic_context_serializes_typed_states() -> None:
         "free_percent": 60.0,
     }
 
+    assert isinstance(diagnostic["logs"], dict)
     assert isinstance(diagnostic["backups"], dict)
     assert isinstance(diagnostic["recorder"], dict)
     assert isinstance(diagnostic["integrations"], dict)
