@@ -39,6 +39,16 @@ class FakeHass:
 async def test_collect_system_information(monkeypatch) -> None:
     monkeypatch.setattr(
         system_module,
+        "_collect_dns_resolution",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_network_connectivity",
+        lambda hass: (True, True),
+    )
+    monkeypatch.setattr(
+        system_module,
         "_collect_time_synchronization",
         lambda hass: True,
     )
@@ -144,6 +154,16 @@ async def test_collect_system_information(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_collect_system_optional_urls(monkeypatch) -> None:
+    monkeypatch.setattr(
+        system_module,
+        "_collect_dns_resolution",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_network_connectivity",
+        lambda hass: (True, True),
+    )
     monkeypatch.setattr(
         system_module,
         "_collect_time_synchronization",
@@ -296,6 +316,16 @@ def test_collect_memory_metrics(monkeypatch) -> None:
 async def test_collect_system_restart_history(monkeypatch) -> None:
     monkeypatch.setattr(
         system_module,
+        "_collect_dns_resolution",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_network_connectivity",
+        lambda hass: (True, True),
+    )
+    monkeypatch.setattr(
+        system_module,
         "_collect_time_synchronization",
         lambda hass: True,
     )
@@ -368,6 +398,16 @@ async def test_collect_system_time_synchronization(monkeypatch) -> None:
     )
     monkeypatch.setattr(
         system_module,
+        "_collect_dns_resolution",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_network_connectivity",
+        lambda hass: (True, True),
+    )
+    monkeypatch.setattr(
+        system_module,
         "_collect_time_synchronization",
         lambda hass: False,
     )
@@ -378,3 +418,77 @@ async def test_collect_system_time_synchronization(monkeypatch) -> None:
     await SystemCollector().collect(hass, context)
 
     assert context.system.time_synchronized is False
+
+
+
+def test_collect_dns_resolution_success(monkeypatch) -> None:
+    monkeypatch.setattr(
+        system_module.socket,
+        "getaddrinfo",
+        lambda *args, **kwargs: [object()],
+    )
+
+    assert system_module._collect_dns_resolution() is True
+
+
+def test_collect_dns_resolution_failure(monkeypatch) -> None:
+    def fail(*args, **kwargs):
+        raise OSError("DNS unavailable")
+
+    monkeypatch.setattr(
+        system_module.socket,
+        "getaddrinfo",
+        fail,
+    )
+
+    assert system_module._collect_dns_resolution() is False
+
+
+@pytest.mark.asyncio
+async def test_collect_system_network_metrics(monkeypatch) -> None:
+    monkeypatch.setattr(
+        system_module,
+        "_collect_cpu_metrics",
+        lambda: _CpuMetrics(
+            cpu_percent=10.0,
+            cpu_count_logical=4,
+            cpu_count_physical=2,
+            load_1m=0.1,
+            load_5m=0.1,
+            load_15m=0.1,
+        ),
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_memory_metrics",
+        lambda: _MemoryMetrics(
+            total_bytes=8_000,
+            available_bytes=4_000,
+            used_bytes=4_000,
+            percent=50.0,
+        ),
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_time_synchronization",
+        lambda hass: True,
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_dns_resolution",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_network_connectivity",
+        lambda hass: (True, False),
+    )
+
+    hass = FakeHass()
+    context = InspectionContext()
+
+    await SystemCollector().collect(hass, context)
+
+    assert context.system.dns_resolution_ok is False
+    assert context.system.host_internet is True
+    assert context.system.supervisor_internet is False

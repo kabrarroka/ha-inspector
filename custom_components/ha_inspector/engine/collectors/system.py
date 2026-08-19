@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import os
 import platform
+import socket
 import sys
 from contextlib import suppress
 from dataclasses import dataclass
@@ -64,6 +65,60 @@ def _collect_cpu_metrics() -> _CpuMetrics:
         load_1m=load_1m,
         load_5m=load_5m,
         load_15m=load_15m,
+    )
+
+
+def _collect_dns_resolution() -> bool:
+    """Check whether public DNS resolution works."""
+    hosts = (
+        "home-assistant.io",
+        "github.com",
+    )
+
+    for host in hosts:
+        try:
+            socket.getaddrinfo(
+                host,
+                443,
+                type=socket.SOCK_STREAM,
+            )
+        except OSError:
+            continue
+
+        return True
+
+    return False
+
+
+def _collect_network_connectivity(
+    hass: HomeAssistant,
+) -> tuple[bool | None, bool | None]:
+    """Return host and Supervisor Internet connectivity."""
+    try:
+        from homeassistant.components.hassio.coordinator import (
+            get_network_info,
+        )
+        from homeassistant.components.hassio.exceptions import (
+            HassioNotReadyError,
+        )
+    except ImportError:
+        return None, None
+
+    try:
+        network_info = get_network_info(hass)
+    except HassioNotReadyError:
+        return None, None
+
+    host_internet = network_info.get("host_internet")
+    supervisor_internet = network_info.get("supervisor_internet")
+
+    return (
+        host_internet if isinstance(host_internet, bool) else None,
+        (
+            supervisor_internet
+            if isinstance(supervisor_internet, bool)
+            else None
+        ),
     )
 
 
@@ -128,6 +183,14 @@ class SystemCollector(BaseCollector):
 
         time_synchronized = _collect_time_synchronization(hass)
 
+        dns_resolution_ok = await hass.async_add_executor_job(
+            _collect_dns_resolution
+        )
+
+        host_internet, supervisor_internet = (
+            _collect_network_connectivity(hass)
+        )
+
         hass_data = getattr(hass, "data", {})
         restart_history = hass_data.get(DOMAIN, {}).get(
             DATA_RESTART_HISTORY
@@ -169,6 +232,9 @@ class SystemCollector(BaseCollector):
             restart_count_24h=restart_count_24h,
             restart_count_7d=restart_count_7d,
             time_synchronized=time_synchronized,
+            dns_resolution_ok=dns_resolution_ok,
+            host_internet=host_internet,
+            supervisor_internet=supervisor_internet,
         )
 
         context.system = state

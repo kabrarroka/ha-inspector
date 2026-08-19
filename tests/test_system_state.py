@@ -35,6 +35,9 @@ def test_system_state_defaults() -> None:
         "restart_count_24h": None,
         "restart_count_7d": None,
         "time_synchronized": None,
+        "dns_resolution_ok": None,
+        "host_internet": None,
+        "supervisor_internet": None,
     }
 
 
@@ -70,6 +73,9 @@ def test_system_state_values() -> None:
         restart_count_24h=1,
         restart_count_7d=3,
         time_synchronized=True,
+        dns_resolution_ok=True,
+        host_internet=True,
+        supervisor_internet=True,
     )
 
     assert state.as_dict() == {
@@ -103,4 +109,7 @@ def test_system_state_values() -> None:
         "restart_count_24h": 1,
         "restart_count_7d": 3,
         "time_synchronized": True,
+        "dns_resolution_ok": True,
+        "host_internet": True,
+        "supervisor_internet": True,
     }

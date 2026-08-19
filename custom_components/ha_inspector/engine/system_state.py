@@ -47,3 +47,7 @@ class SystemState(BaseState):
     restart_count_7d: int | None = None
 
     time_synchronized: bool | None = None
+
+    dns_resolution_ok: bool | None = None
+    host_internet: bool | None = None
+    supervisor_internet: bool | None = None
