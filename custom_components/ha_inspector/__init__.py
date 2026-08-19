@@ -18,6 +18,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     DATA_LAST_RESULT,
+    DATA_RESTART_HISTORY,
     DOMAIN,
     PLATFORMS,
     SIGNAL_INSPECTION_FINISHED,
@@ -324,6 +325,17 @@ async def async_setup_entry(
     entry: ConfigEntry,
 ) -> bool:
     """Set up HA Inspector from a config entry."""
+    domain_data = hass.data.setdefault(DOMAIN, {})
+
+    if DATA_RESTART_HISTORY not in domain_data:
+        from .engine.restart_history import RestartHistory
+
+        restart_history = RestartHistory(hass)
+        await restart_history.async_load()
+        await restart_history.async_record_start()
+
+        domain_data[DATA_RESTART_HISTORY] = restart_history
+
     await hass.config_entries.async_forward_entry_setups(
         entry,
         PLATFORMS,

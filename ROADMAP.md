@@ -26,8 +26,8 @@ Home Assistant evolves and new diagnostic needs are identified.
 ## Epic C — System health
 
 - [x] CPU-load inspection
-- [ ] Memory-usage inspection
-- [ ] Restart-frequency inspection
+- [x] Memory-usage inspection
+- [x] Restart-frequency inspection
 - [ ] Time-synchronization inspection
 - [ ] DNS and network-connectivity inspection
 

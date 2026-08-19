@@ -4,6 +4,7 @@ from custom_components.ha_inspector.engine.context import InspectionContext
 from custom_components.ha_inspector.engine.rules.system import (
     CpuLoadRule,
     MemoryUsageRule,
+    RestartFrequencyRule,
     SystemInformationRule,
 )
 from custom_components.ha_inspector.engine.severity import Severity
@@ -198,3 +199,63 @@ async def test_memory_usage_reports_error() -> None:
     assert finding.severity is Severity.ERROR
     assert finding.data["memory_percent"] == 96.0
     assert finding.data["memory_total_bytes"] == 8_000
+
+
+@pytest.mark.asyncio
+async def test_restart_frequency_returns_nothing_when_unknown() -> None:
+    context = InspectionContext(
+        system=SystemState(restart_count_24h=None)
+    )
+
+    assert await RestartFrequencyRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_restart_frequency_returns_nothing_when_acceptable() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            restart_count_24h=2,
+            restart_count_7d=4,
+        )
+    )
+
+    assert await RestartFrequencyRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_restart_frequency_reports_warning() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            restart_count_24h=3,
+            restart_count_7d=6,
+        )
+    )
+
+    findings = await RestartFrequencyRule().check(context)
+
+    assert len(findings) == 1
+    finding = findings[0]
+
+    assert finding.finding_id == "RESTART_FREQUENCY_HIGH"
+    assert finding.severity is Severity.WARNING
+    assert finding.data["restart_count_24h"] == 3
+    assert finding.data["restart_count_7d"] == 6
+
+
+@pytest.mark.asyncio
+async def test_restart_frequency_reports_error() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            restart_count_24h=5,
+            restart_count_7d=9,
+        )
+    )
+
+    findings = await RestartFrequencyRule().check(context)
+
+    assert len(findings) == 1
+    finding = findings[0]
+
+    assert finding.finding_id == "RESTART_FREQUENCY_CRITICAL"
+    assert finding.severity is Severity.ERROR
+    assert finding.data["restart_count_24h"] == 5

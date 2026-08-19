@@ -419,6 +419,29 @@ _FINDING_TRANSLATIONS: Final[
         },
 
         # System
+        "RESTART_FREQUENCY_HIGH": {
+            "title": "Home Assistant se reinicia con frecuencia",
+            "description": (
+                "Home Assistant se ha reiniciado {restart_count_24h} veces "
+                "durante las últimas 24 horas."
+            ),
+            "recommendation": (
+                "Supervisa los siguientes reinicios y revisa el registro "
+                "en busca de apagados, fallos o actividad del watchdog."
+            ),
+        },
+        "RESTART_FREQUENCY_CRITICAL": {
+            "title": "Home Assistant se reinicia con demasiada frecuencia",
+            "description": (
+                "Home Assistant se ha reiniciado {restart_count_24h} veces "
+                "durante las últimas 24 horas."
+            ),
+            "recommendation": (
+                "Revisa el registro de Home Assistant, actualizaciones "
+                "recientes, fallos de integraciones y la estabilidad del "
+                "sistema para localizar la causa."
+            ),
+        },
         "MEMORY_USAGE_HIGH": {
             "title": "El uso de memoria es alto",
             "description": (

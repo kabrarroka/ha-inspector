@@ -6,6 +6,16 @@ from ..category import Category
 from ..descriptors import RuleDescriptor
 
 RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
+    "RESTART_FREQUENCY": RuleDescriptor(
+        rule_id="system.restart_frequency",
+        category=Category.SYSTEM,
+        title="Restart frequency",
+        description=(
+            "Checks whether Home Assistant is restarting too frequently."
+        ),
+        weight=25,
+        tags=("system", "restart", "stability", "health"),
+    ),
     "MEMORY_USAGE": RuleDescriptor(
         rule_id="system.memory_usage",
         category=Category.SYSTEM,

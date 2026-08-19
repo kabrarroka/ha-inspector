@@ -32,6 +32,8 @@ def test_system_state_defaults() -> None:
         "memory_available_bytes": None,
         "memory_used_bytes": None,
         "memory_percent": None,
+        "restart_count_24h": None,
+        "restart_count_7d": None,
     }
 
 
@@ -64,6 +66,8 @@ def test_system_state_values() -> None:
         memory_available_bytes=5_000,
         memory_used_bytes=3_000,
         memory_percent=37.5,
+        restart_count_24h=1,
+        restart_count_7d=3,
     )
 
     assert state.as_dict() == {
@@ -94,4 +98,6 @@ def test_system_state_values() -> None:
         "memory_available_bytes": 5_000,
         "memory_used_bytes": 3_000,
         "memory_percent": 37.5,
+        "restart_count_24h": 1,
+        "restart_count_7d": 3,
     }

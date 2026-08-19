@@ -17,6 +17,7 @@ from custom_components.ha_inspector.engine.context import InspectionContext
 
 class FakeHass:
     def __init__(self) -> None:
+        self.data = {}
         self.config = SimpleNamespace(
             time_zone="Europe/Madrid",
             latitude=41.65,
@@ -278,3 +279,48 @@ def test_collect_memory_metrics(monkeypatch) -> None:
     assert metrics.available_bytes == 6_000
     assert metrics.used_bytes == 10_000
     assert metrics.percent == 62.5
+
+
+
+@pytest.mark.asyncio
+async def test_collect_system_restart_history(monkeypatch) -> None:
+    monkeypatch.setattr(
+        system_module,
+        "_collect_cpu_metrics",
+        lambda: _CpuMetrics(
+            cpu_percent=10.0,
+            cpu_count_logical=4,
+            cpu_count_physical=2,
+            load_1m=0.1,
+            load_5m=0.1,
+            load_15m=0.1,
+        ),
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_memory_metrics",
+        lambda: _MemoryMetrics(
+            total_bytes=8_000,
+            available_bytes=4_000,
+            used_bytes=4_000,
+            percent=50.0,
+        ),
+    )
+
+    restart_history = SimpleNamespace(
+        restart_counts=lambda: (3, 7)
+    )
+
+    hass = FakeHass()
+    hass.data = {
+        system_module.DOMAIN: {
+            system_module.DATA_RESTART_HISTORY: restart_history,
+        }
+    }
+
+    context = InspectionContext()
+
+    await SystemCollector().collect(hass, context)
+
+    assert context.system.restart_count_24h == 3
+    assert context.system.restart_count_7d == 7
