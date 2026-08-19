@@ -419,6 +419,28 @@ _FINDING_TRANSLATIONS: Final[
         },
 
         # System
+        "MEMORY_USAGE_HIGH": {
+            "title": "El uso de memoria es alto",
+            "description": (
+                "El uso actual de memoria del host es del "
+                "{memory_percent:.1f}%."
+            ),
+            "recommendation": (
+                "Supervisa el uso de memoria y revisa integraciones o "
+                "complementos exigentes si el consumo permanece alto."
+            ),
+        },
+        "MEMORY_USAGE_CRITICAL": {
+            "title": "El uso de memoria es críticamente alto",
+            "description": (
+                "El uso actual de memoria del host es del "
+                "{memory_percent:.1f}%."
+            ),
+            "recommendation": (
+                "Revisa integraciones, complementos y otros procesos que "
+                "puedan estar consumiendo demasiada memoria."
+            ),
+        },
         "CPU_LOAD_HIGH": {
             "title": "El uso de CPU es alto",
             "description": (

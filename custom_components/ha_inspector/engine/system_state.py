@@ -37,3 +37,8 @@ class SystemState(BaseState):
     load_1m: float | None = None
     load_5m: float | None = None
     load_15m: float | None = None
+
+    memory_total_bytes: int | None = None
+    memory_available_bytes: int | None = None
+    memory_used_bytes: int | None = None
+    memory_percent: float | None = None
