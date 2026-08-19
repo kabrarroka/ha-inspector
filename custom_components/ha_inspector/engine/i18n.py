@@ -455,6 +455,31 @@ _FINDING_TRANSLATIONS: Final[
             ),
         },
 
+        # Add-ons
+        "ADDON_STATE_ERROR": {
+            "title": "Hay complementos en estado de error",
+            "description": (
+                "{error} complemento(s) instalado(s) informan actualmente "
+                "de un estado de error."
+            ),
+            "recommendation": (
+                "Revisa los complementos afectados en Home Assistant, "
+                "consulta sus registros y comprueba su configuración antes "
+                "de reiniciarlos."
+            ),
+        },
+        "ADDON_STATE_UNKNOWN": {
+            "title": "Hay complementos con estado desconocido",
+            "description": (
+                "{unknown} complemento(s) instalado(s) tienen un estado "
+                "desconocido en Supervisor."
+            ),
+            "recommendation": (
+                "Comprueba el estado de Supervisor y revisa los complementos "
+                "afectados si el estado desconocido persiste."
+            ),
+        },
+
         # System log
         "SYSTEM_LOG_ERRORS": {
             "title": "Se encontraron errores recientes en el registro",

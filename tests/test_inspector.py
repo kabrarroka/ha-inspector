@@ -130,6 +130,7 @@ async def test_run_diagnostics_override_includes_diagnostics() -> None:
         "system",
         "storage",
         "logs",
+        "addons",
         "backups",
         "recorder",
         "integrations",

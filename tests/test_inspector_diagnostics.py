@@ -49,6 +49,7 @@ def test_diagnostic_context_serializes_typed_states() -> None:
     }
 
     assert isinstance(diagnostic["logs"], dict)
+    assert isinstance(diagnostic["addons"], dict)
     assert isinstance(diagnostic["backups"], dict)
     assert isinstance(diagnostic["recorder"], dict)
     assert isinstance(diagnostic["integrations"], dict)
