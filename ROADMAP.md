@@ -28,7 +28,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] CPU-load inspection
 - [x] Memory-usage inspection
 - [x] Restart-frequency inspection
-- [ ] Time-synchronization inspection
+- [x] Time-synchronization inspection
 - [ ] DNS and network-connectivity inspection
 
 ## Epic D — Home Assistant health

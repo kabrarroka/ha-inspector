@@ -39,6 +39,11 @@ class FakeHass:
 async def test_collect_system_information(monkeypatch) -> None:
     monkeypatch.setattr(
         system_module,
+        "_collect_time_synchronization",
+        lambda hass: True,
+    )
+    monkeypatch.setattr(
+        system_module,
         "_collect_cpu_metrics",
         lambda: _CpuMetrics(
             cpu_percent=12.5,
@@ -139,6 +144,11 @@ async def test_collect_system_information(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_collect_system_optional_urls(monkeypatch) -> None:
+    monkeypatch.setattr(
+        system_module,
+        "_collect_time_synchronization",
+        lambda hass: True,
+    )
     monkeypatch.setattr(
         system_module,
         "_collect_cpu_metrics",
@@ -286,6 +296,11 @@ def test_collect_memory_metrics(monkeypatch) -> None:
 async def test_collect_system_restart_history(monkeypatch) -> None:
     monkeypatch.setattr(
         system_module,
+        "_collect_time_synchronization",
+        lambda hass: True,
+    )
+    monkeypatch.setattr(
+        system_module,
         "_collect_cpu_metrics",
         lambda: _CpuMetrics(
             cpu_percent=10.0,
@@ -324,3 +339,42 @@ async def test_collect_system_restart_history(monkeypatch) -> None:
 
     assert context.system.restart_count_24h == 3
     assert context.system.restart_count_7d == 7
+
+
+
+@pytest.mark.asyncio
+async def test_collect_system_time_synchronization(monkeypatch) -> None:
+    monkeypatch.setattr(
+        system_module,
+        "_collect_cpu_metrics",
+        lambda: _CpuMetrics(
+            cpu_percent=10.0,
+            cpu_count_logical=4,
+            cpu_count_physical=2,
+            load_1m=0.1,
+            load_5m=0.1,
+            load_15m=0.1,
+        ),
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_memory_metrics",
+        lambda: _MemoryMetrics(
+            total_bytes=8_000,
+            available_bytes=4_000,
+            used_bytes=4_000,
+            percent=50.0,
+        ),
+    )
+    monkeypatch.setattr(
+        system_module,
+        "_collect_time_synchronization",
+        lambda hass: False,
+    )
+
+    hass = FakeHass()
+    context = InspectionContext()
+
+    await SystemCollector().collect(hass, context)
+
+    assert context.system.time_synchronized is False

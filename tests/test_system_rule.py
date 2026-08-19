@@ -6,6 +6,7 @@ from custom_components.ha_inspector.engine.rules.system import (
     MemoryUsageRule,
     RestartFrequencyRule,
     SystemInformationRule,
+    TimeSynchronizationRule,
 )
 from custom_components.ha_inspector.engine.severity import Severity
 from custom_components.ha_inspector.engine.system_state import SystemState
@@ -259,3 +260,41 @@ async def test_restart_frequency_reports_error() -> None:
     assert finding.finding_id == "RESTART_FREQUENCY_CRITICAL"
     assert finding.severity is Severity.ERROR
     assert finding.data["restart_count_24h"] == 5
+
+
+
+@pytest.mark.asyncio
+async def test_time_synchronization_unknown_returns_nothing() -> None:
+    context = InspectionContext(
+        system=SystemState(time_synchronized=None)
+    )
+
+    assert await TimeSynchronizationRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_time_synchronization_ok_returns_nothing() -> None:
+    context = InspectionContext(
+        system=SystemState(time_synchronized=True)
+    )
+
+    assert await TimeSynchronizationRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_time_synchronization_failure_reports_error() -> None:
+    context = InspectionContext(
+        system=SystemState(time_synchronized=False)
+    )
+
+    findings = await TimeSynchronizationRule().check(context)
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.finding_id == "TIME_SYNCHRONIZATION_FAILED"
+    assert finding.severity is Severity.ERROR
+    assert finding.data == {
+        "time_synchronized": False,
+    }

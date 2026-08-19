@@ -250,3 +250,39 @@ class RestartFrequencyRule(BaseRule):
             ]
 
         return []
+
+
+class TimeSynchronizationRule(BaseRule):
+    """Check whether the host clock is synchronized."""
+
+    rule_id = "TIME_SYNCHRONIZATION"
+
+    async def check(
+        self,
+        context: InspectionContext,
+    ) -> list[Finding]:
+        """Check host time synchronization."""
+        synchronized = context.system.time_synchronized
+
+        if synchronized is not False:
+            return []
+
+        return [
+            Finding(
+                finding_id="TIME_SYNCHRONIZATION_FAILED",
+                severity=Severity.ERROR,
+                title="Host time is not synchronized",
+                description=(
+                    "Home Assistant reports that the host clock is not "
+                    "currently synchronized."
+                ),
+                recommendation=(
+                    "Check network connectivity and NTP synchronization "
+                    "on the Home Assistant host, then verify that the "
+                    "system clock becomes synchronized."
+                ),
+                data={
+                    "time_synchronized": synchronized,
+                },
+            )
+        ]

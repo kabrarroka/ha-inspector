@@ -45,3 +45,5 @@ class SystemState(BaseState):
 
     restart_count_24h: int | None = None
     restart_count_7d: int | None = None
+
+    time_synchronized: bool | None = None

@@ -419,6 +419,18 @@ _FINDING_TRANSLATIONS: Final[
         },
 
         # System
+        "TIME_SYNCHRONIZATION_FAILED": {
+            "title": "La hora del sistema no está sincronizada",
+            "description": (
+                "Home Assistant informa de que el reloj del host no está "
+                "sincronizado actualmente."
+            ),
+            "recommendation": (
+                "Comprueba la conectividad de red y la sincronización NTP "
+                "del host de Home Assistant y verifica después que el reloj "
+                "del sistema quede sincronizado."
+            ),
+        },
         "RESTART_FREQUENCY_HIGH": {
             "title": "Home Assistant se reinicia con frecuencia",
             "description": (
