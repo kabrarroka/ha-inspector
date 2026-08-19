@@ -39,7 +39,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Unavailable and unknown entities
 - [x] Duplicate entity names
 - [x] Disabled automation inventory
-- [ ] Add-on health
+- [x] Add-on health
 - [ ] Repair issue inspection
 
 ## Epic E — User experience

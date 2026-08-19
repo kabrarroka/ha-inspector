@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from .addons_state import AddonsState
 from .backup_state import BackupState
 from .entities_state import EntitiesState
 from .i18n import DEFAULT_LANGUAGE
@@ -22,6 +23,7 @@ class InspectionContext:
     system: SystemState = field(default_factory=SystemState)
     storage: StorageState = field(default_factory=StorageState)
     logs: LogsState = field(default_factory=LogsState)
+    addons: AddonsState = field(default_factory=AddonsState)
     backups: BackupState = field(default_factory=BackupState)
     recorder: RecorderState = field(default_factory=RecorderState)
     integrations: IntegrationsState = field(default_factory=IntegrationsState)
