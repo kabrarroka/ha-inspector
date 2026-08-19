@@ -286,3 +286,85 @@ class TimeSynchronizationRule(BaseRule):
                 },
             )
         ]
+
+
+class NetworkConnectivityRule(BaseRule):
+    """Check DNS and network connectivity."""
+
+    rule_id = "NETWORK_CONNECTIVITY"
+
+    async def check(
+        self,
+        context: InspectionContext,
+    ) -> list[Finding]:
+        """Check DNS and Internet connectivity."""
+        system = context.system
+        findings: list[Finding] = []
+
+        if system.dns_resolution_ok is False:
+            findings.append(
+                Finding(
+                    finding_id="DNS_RESOLUTION_FAILED",
+                    severity=Severity.ERROR,
+                    title="DNS resolution is failing",
+                    description=(
+                        "The Home Assistant host could not resolve the "
+                        "public DNS names used by HA Inspector."
+                    ),
+                    recommendation=(
+                        "Check configured DNS servers, gateway settings "
+                        "and upstream network connectivity."
+                    ),
+                    data={
+                        "dns_resolution_ok": False,
+                    },
+                )
+            )
+
+        if system.host_internet is False:
+            findings.append(
+                Finding(
+                    finding_id="HOST_INTERNET_UNAVAILABLE",
+                    severity=Severity.ERROR,
+                    title="Host Internet connectivity is unavailable",
+                    description=(
+                        "Home Assistant Supervisor reports that the host "
+                        "does not currently have Internet connectivity."
+                    ),
+                    recommendation=(
+                        "Check the host network interface, gateway, DNS "
+                        "configuration and router Internet connection."
+                    ),
+                    data={
+                        "host_internet": False,
+                    },
+                )
+            )
+
+        if (
+            system.host_internet is True
+            and system.supervisor_internet is False
+        ):
+            findings.append(
+                Finding(
+                    finding_id="SUPERVISOR_INTERNET_UNAVAILABLE",
+                    severity=Severity.WARNING,
+                    title="Supervisor Internet connectivity is unavailable",
+                    description=(
+                        "The host has Internet connectivity, but Home "
+                        "Assistant Supervisor reports that it cannot "
+                        "reach the Internet."
+                    ),
+                    recommendation=(
+                        "Review Supervisor networking, DNS configuration "
+                        "and any firewall or proxy rules affecting Home "
+                        "Assistant."
+                    ),
+                    data={
+                        "host_internet": True,
+                        "supervisor_internet": False,
+                    },
+                )
+            )
+
+        return findings

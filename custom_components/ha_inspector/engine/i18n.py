@@ -418,6 +418,43 @@ _FINDING_TRANSLATIONS: Final[
             ),
         },
 
+        # Network
+        "DNS_RESOLUTION_FAILED": {
+            "title": "La resolución DNS está fallando",
+            "description": (
+                "El host de Home Assistant no pudo resolver los nombres "
+                "DNS públicos utilizados por HA Inspector."
+            ),
+            "recommendation": (
+                "Comprueba los servidores DNS configurados, la puerta de "
+                "enlace y la conectividad de red ascendente."
+            ),
+        },
+        "HOST_INTERNET_UNAVAILABLE": {
+            "title": "El host no tiene conectividad a Internet",
+            "description": (
+                "Home Assistant Supervisor informa de que el host no "
+                "dispone actualmente de conectividad a Internet."
+            ),
+            "recommendation": (
+                "Comprueba la interfaz de red del host, la puerta de "
+                "enlace, la configuración DNS y la conexión del router."
+            ),
+        },
+        "SUPERVISOR_INTERNET_UNAVAILABLE": {
+            "title": "Supervisor no tiene conectividad a Internet",
+            "description": (
+                "El host tiene conectividad a Internet, pero Home "
+                "Assistant Supervisor informa de que no puede acceder "
+                "a Internet."
+            ),
+            "recommendation": (
+                "Revisa la red de Supervisor, la configuración DNS y "
+                "las reglas de firewall o proxy que afecten a Home "
+                "Assistant."
+            ),
+        },
+
         # System
         "TIME_SYNCHRONIZATION_FAILED": {
             "title": "La hora del sistema no está sincronizada",

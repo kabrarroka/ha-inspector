@@ -6,6 +6,17 @@ from ..category import Category
 from ..descriptors import RuleDescriptor
 
 RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
+    "NETWORK_CONNECTIVITY": RuleDescriptor(
+        rule_id="network.connectivity",
+        category=Category.NETWORK,
+        title="DNS and network connectivity",
+        description=(
+            "Checks DNS resolution and Home Assistant Internet "
+            "connectivity."
+        ),
+        weight=30,
+        tags=("network", "dns", "internet", "connectivity", "health"),
+    ),
     "TIME_SYNCHRONIZATION": RuleDescriptor(
         rule_id="system.time_synchronization",
         category=Category.SYSTEM,

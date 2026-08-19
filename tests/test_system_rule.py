@@ -4,6 +4,7 @@ from custom_components.ha_inspector.engine.context import InspectionContext
 from custom_components.ha_inspector.engine.rules.system import (
     CpuLoadRule,
     MemoryUsageRule,
+    NetworkConnectivityRule,
     RestartFrequencyRule,
     SystemInformationRule,
     TimeSynchronizationRule,
@@ -297,4 +298,103 @@ async def test_time_synchronization_failure_reports_error() -> None:
     assert finding.severity is Severity.ERROR
     assert finding.data == {
         "time_synchronized": False,
+    }
+
+
+
+@pytest.mark.asyncio
+async def test_network_connectivity_unknown_returns_nothing() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            dns_resolution_ok=None,
+            host_internet=None,
+            supervisor_internet=None,
+        )
+    )
+
+    assert await NetworkConnectivityRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_network_connectivity_healthy_returns_nothing() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            dns_resolution_ok=True,
+            host_internet=True,
+            supervisor_internet=True,
+        )
+    )
+
+    assert await NetworkConnectivityRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_network_connectivity_reports_dns_failure() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            dns_resolution_ok=False,
+            host_internet=True,
+            supervisor_internet=True,
+        )
+    )
+
+    findings = await NetworkConnectivityRule().check(context)
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "DNS_RESOLUTION_FAILED"
+    assert findings[0].severity is Severity.ERROR
+
+
+@pytest.mark.asyncio
+async def test_network_connectivity_reports_host_failure() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            dns_resolution_ok=True,
+            host_internet=False,
+            supervisor_internet=False,
+        )
+    )
+
+    findings = await NetworkConnectivityRule().check(context)
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "HOST_INTERNET_UNAVAILABLE"
+    assert findings[0].severity is Severity.ERROR
+
+
+@pytest.mark.asyncio
+async def test_network_connectivity_reports_supervisor_failure() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            dns_resolution_ok=True,
+            host_internet=True,
+            supervisor_internet=False,
+        )
+    )
+
+    findings = await NetworkConnectivityRule().check(context)
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "SUPERVISOR_INTERNET_UNAVAILABLE"
+    assert findings[0].severity is Severity.WARNING
+
+
+@pytest.mark.asyncio
+async def test_network_connectivity_can_report_multiple_failures() -> None:
+    context = InspectionContext(
+        system=SystemState(
+            dns_resolution_ok=False,
+            host_internet=False,
+            supervisor_internet=False,
+        )
+    )
+
+    findings = await NetworkConnectivityRule().check(context)
+
+    assert {
+        finding.finding_id
+        for finding in findings
+    } == {
+        "DNS_RESOLUTION_FAILED",
+        "HOST_INTERNET_UNAVAILABLE",
     }
