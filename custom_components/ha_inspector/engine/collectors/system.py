@@ -67,6 +67,31 @@ def _collect_cpu_metrics() -> _CpuMetrics:
     )
 
 
+def _collect_time_synchronization(
+    hass: HomeAssistant,
+) -> bool | None:
+    """Return Supervisor host time synchronization status."""
+    try:
+        from homeassistant.components.hassio.coordinator import get_host_info
+        from homeassistant.components.hassio.exceptions import (
+            HassioNotReadyError,
+        )
+    except ImportError:
+        return None
+
+    try:
+        host_info = get_host_info(hass)
+    except HassioNotReadyError:
+        return None
+
+    synchronized = host_info.get("dt_synchronized")
+
+    if isinstance(synchronized, bool):
+        return synchronized
+
+    return None
+
+
 def _collect_memory_metrics() -> _MemoryMetrics:
     """Collect host memory metrics."""
     # PsutilWrapper currently expects importlib.util to be loaded.
@@ -100,6 +125,8 @@ class SystemCollector(BaseCollector):
 
         restart_count_24h: int | None = None
         restart_count_7d: int | None = None
+
+        time_synchronized = _collect_time_synchronization(hass)
 
         hass_data = getattr(hass, "data", {})
         restart_history = hass_data.get(DOMAIN, {}).get(
@@ -141,6 +168,7 @@ class SystemCollector(BaseCollector):
             memory_percent=memory_metrics.percent,
             restart_count_24h=restart_count_24h,
             restart_count_7d=restart_count_7d,
+            time_synchronized=time_synchronized,
         )
 
         context.system = state

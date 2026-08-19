@@ -34,6 +34,7 @@ def test_system_state_defaults() -> None:
         "memory_percent": None,
         "restart_count_24h": None,
         "restart_count_7d": None,
+        "time_synchronized": None,
     }
 
 
@@ -68,6 +69,7 @@ def test_system_state_values() -> None:
         memory_percent=37.5,
         restart_count_24h=1,
         restart_count_7d=3,
+        time_synchronized=True,
     )
 
     assert state.as_dict() == {
@@ -100,4 +102,5 @@ def test_system_state_values() -> None:
         "memory_percent": 37.5,
         "restart_count_24h": 1,
         "restart_count_7d": 3,
+        "time_synchronized": True,
     }

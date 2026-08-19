@@ -6,6 +6,16 @@ from ..category import Category
 from ..descriptors import RuleDescriptor
 
 RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
+    "TIME_SYNCHRONIZATION": RuleDescriptor(
+        rule_id="system.time_synchronization",
+        category=Category.SYSTEM,
+        title="Time synchronization",
+        description=(
+            "Checks whether the Home Assistant host clock is synchronized."
+        ),
+        weight=30,
+        tags=("system", "time", "ntp", "health"),
+    ),
     "RESTART_FREQUENCY": RuleDescriptor(
         rule_id="system.restart_frequency",
         category=Category.SYSTEM,
