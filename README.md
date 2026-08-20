@@ -118,7 +118,7 @@ response_variable: inspector_info
 
 ## Built-in profiles
 
-HA Inspector currently provides seven inspection profiles.
+HA Inspector currently provides nine inspection profiles.
 
 | Profile | Purpose |
 | --- | --- |
@@ -127,8 +127,39 @@ HA Inspector currently provides seven inspection profiles.
 | `system` | Inspect Home Assistant system and platform information |
 | `entities` | Inspect entity availability, state, and naming |
 | `integrations` | Inspect integration setup and lifecycle errors |
+| `post_restore` | Check service health after restoring a backup |
+| `pre_upgrade` | Check recovery readiness before upgrading |
 | `recorder` | Inspect recorder availability and retention settings |
 | `storage` | Inspect storage availability and free disk space |
+
+
+## Public API
+
+HA Inspector exposes public API version **1**.
+
+The stable public contract includes:
+
+- Home Assistant services: `run`, `list_profiles`, `describe_profile`, and `info`.
+- `InspectionRequest` for inspection request configuration.
+- `InspectionResult` and its serialized result document.
+- `Finding` and `Severity`.
+- `EngineCapabilities` and the capabilities document.
+- Built-in profile discovery through `get_profile()` and `list_profiles()`.
+
+Current schema versions:
+
+| Contract | Version |
+| --- | ---: |
+| Public API | 1 |
+| Capabilities document | 1 |
+| Inspection result | 2 |
+
+`ha_inspector.info` reports the public API version, schema versions, and
+supported service names.
+
+Within public API version 1, existing fields and service names are preserved.
+New optional fields may be added without changing the public API version.
+Breaking changes require a new public API version.
 
 ## Localization
 
