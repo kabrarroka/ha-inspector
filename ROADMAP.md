@@ -55,20 +55,14 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 ### 0.5 — Engine foundation
 
-Core discovery, selection, profiles, scoring and analytics.
+Initial engine foundation and Home Assistant integration services.
 
-### 0.6 — Storage and recovery
+### 0.6 — Consolidated health inspection release
 
-Disk, backup and Recorder health checks.
-
-### 0.7 — System performance
-
-CPU, memory, logs and restart diagnostics.
-
-### 0.8 — User-facing health summaries
-
-Health domains, presentation and targeted profiles.
+Storage and recovery, system performance, Home Assistant health,
+user-facing summaries, targeted profiles, and stable public API.
 
 ### 1.0 — Stable public release
 
-Stable API, complete documentation and supported upgrade path.
+Production release after upgrade-path validation, packaging review,
+documentation completion, and real Home Assistant deployment validation.
