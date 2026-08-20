@@ -44,7 +44,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 ## Epic E — User experience
 
-- [ ] Results grouped and ordered for presentation
+- [x] Results grouped and ordered for presentation
 - [ ] Storage, system, integration and entity health summaries
 - [ ] Pre-upgrade and post-restore profiles
 - [ ] Dashboard summary

@@ -31,6 +31,9 @@ class InspectionResult:
     metadata: dict[str, Any] = field(default_factory=dict)
     category_checks: dict[str, int] = field(default_factory=dict)
     category_findings: dict[str, int] = field(default_factory=dict)
+    category_findings_items: dict[str, list[Finding]] = field(
+        default_factory=dict
+    )
     category_penalties: dict[str, float] = field(default_factory=dict)
     scoring_entries: list[ScoringEntry] = field(default_factory=list)
 
@@ -54,6 +57,9 @@ class InspectionResult:
         )
         self.category_findings[category] = (
             self.category_findings.get(category, 0) + len(findings_list)
+        )
+        self.category_findings_items.setdefault(category, []).extend(
+            findings_list
         )
 
         penalty = sum(
@@ -132,6 +138,44 @@ class InspectionResult:
         """Return the number of categories grouped by health status."""
         return self.analytics.health_summary
 
+    @property
+    def presentation(self) -> list[dict[str, Any]]:
+        """Return findings grouped and ordered for presentation."""
+        severity_order = {
+            Severity.CRITICAL: 0,
+            Severity.ERROR: 1,
+            Severity.WARNING: 2,
+            Severity.INFO: 3,
+        }
+
+        groups: list[dict[str, Any]] = []
+
+        for category in sorted(self.category_checks):
+            findings = sorted(
+                self.category_findings_items.get(category, []),
+                key=lambda finding: (
+                    severity_order[finding.severity],
+                    finding.finding_id,
+                ),
+            )
+
+            category_health = self.categories[category]
+
+            groups.append(
+                {
+                    "category": category,
+                    "health": category_health["health"],
+                    "checks": category_health["checks"],
+                    "findings_count": category_health["findings"],
+                    "findings": [
+                        finding.as_dict()
+                        for finding in findings
+                    ],
+                }
+            )
+
+        return groups
+
     def as_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation of the result."""
         return {
@@ -149,6 +193,7 @@ class InspectionResult:
             "health": self.health.as_dict(),
             "categories": self.categories,
             "health_summary": self.health_summary,
+            "presentation": self.presentation,
             "summary": {
                 severity.label: self.count_by_severity(severity)
                 for severity in Severity
