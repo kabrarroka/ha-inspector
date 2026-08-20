@@ -281,3 +281,33 @@ def test_as_dict_includes_presentation() -> None:
     payload = result.as_dict()
 
     assert payload["presentation"] == result.presentation
+
+
+def test_result_exposes_domain_health() -> None:
+    """InspectionResult exposes primary domain health summaries."""
+    result = InspectionResult()
+
+    result.record_rule(
+        category="entities",
+        weight=20,
+        findings=[
+            _finding("entities.warning", Severity.WARNING),
+        ],
+    )
+
+    domain = result.domain_health["entities"]
+
+    assert domain["domain"] == "entities"
+    assert domain["status"] == "checked"
+    assert domain["checks"] == 1
+    assert domain["findings"] == 1
+    assert domain["health"]["score"] == 94
+
+
+def test_as_dict_includes_domain_health() -> None:
+    """Serialized results expose domain health summaries."""
+    result = InspectionResult()
+
+    payload = result.as_dict()
+
+    assert payload["domain_health"] == result.domain_health
