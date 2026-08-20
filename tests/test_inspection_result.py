@@ -311,3 +311,60 @@ def test_as_dict_includes_domain_health() -> None:
     payload = result.as_dict()
 
     assert payload["domain_health"] == result.domain_health
+
+
+def test_dashboard_summary_exposes_compact_health_state() -> None:
+    """Dashboard summary exposes compact inspection health data."""
+    result = InspectionResult()
+
+    result.record_rule(
+        category="system",
+        weight=20,
+        findings=[
+            _finding("system.error", Severity.ERROR),
+            _finding("system.warning", Severity.WARNING),
+        ],
+    )
+    result.record_rule(
+        category="entities",
+        weight=10,
+        findings=[
+            _finding("entities.info", Severity.INFO),
+        ],
+    )
+
+    summary = result.dashboard_summary
+
+    assert summary["status"] == result.health_status.value
+    assert summary["score"] == result.score
+    assert summary["total_findings"] == 3
+    assert summary["critical"] == 0
+    assert summary["errors"] == 1
+    assert summary["warnings"] == 1
+    assert summary["info"] == 1
+    assert summary["domains"] == result.domain_health
+
+
+def test_dashboard_summary_for_empty_result() -> None:
+    """Empty inspections expose a healthy empty dashboard summary."""
+    result = InspectionResult()
+
+    assert result.dashboard_summary == {
+        "status": "excellent",
+        "score": 100,
+        "total_findings": 0,
+        "critical": 0,
+        "errors": 0,
+        "warnings": 0,
+        "info": 0,
+        "domains": result.domain_health,
+    }
+
+
+def test_as_dict_includes_dashboard_summary() -> None:
+    """Serialized results expose the dashboard summary."""
+    result = InspectionResult()
+
+    payload = result.as_dict()
+
+    assert payload["dashboard_summary"] == result.dashboard_summary

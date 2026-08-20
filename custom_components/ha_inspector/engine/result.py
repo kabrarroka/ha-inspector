@@ -144,6 +144,20 @@ class InspectionResult:
         return self.analytics.domain_health
 
     @property
+    def dashboard_summary(self) -> dict[str, Any]:
+        """Return a compact summary suitable for dashboards."""
+        return {
+            "status": self.health_status.value,
+            "score": self.score,
+            "total_findings": self.total_findings,
+            "critical": self.count_by_severity(Severity.CRITICAL),
+            "errors": self.count_by_severity(Severity.ERROR),
+            "warnings": self.count_by_severity(Severity.WARNING),
+            "info": self.count_by_severity(Severity.INFO),
+            "domains": self.domain_health,
+        }
+
+    @property
     def presentation(self) -> list[dict[str, Any]]:
         """Return findings grouped and ordered for presentation."""
         severity_order = {
@@ -199,6 +213,7 @@ class InspectionResult:
             "categories": self.categories,
             "health_summary": self.health_summary,
             "domain_health": self.domain_health,
+            "dashboard_summary": self.dashboard_summary,
             "presentation": self.presentation,
             "summary": {
                 severity.label: self.count_by_severity(severity)

@@ -45,6 +45,11 @@ def test_sensor_with_result() -> None:
         "score": 87,
         "health": {"status": "good"},
         "health_summary": {"good": 3},
+        "dashboard_summary": {
+            "status": "good",
+            "score": 87,
+            "total_findings": 3,
+        },
         "total_findings": 3,
         "checks_executed": 10,
         "finished_at": "2026-08-16T08:00:00+00:00",
@@ -64,6 +69,11 @@ def test_sensor_with_result() -> None:
     assert sensor.extra_state_attributes["health_status"] == "good"
     assert sensor.extra_state_attributes["warnings"] == 2
     assert sensor.extra_state_attributes["health_summary"] == {"good": 3}
+    assert sensor.extra_state_attributes["dashboard_summary"] == {
+        "status": "good",
+        "score": 87,
+        "total_findings": 3,
+    }
 
 
 def test_sensor_handles_finished_inspection() -> None:
