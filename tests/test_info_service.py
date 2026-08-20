@@ -89,7 +89,7 @@ async def test_info_service_response(
 
     assert response["api_version"] == 1
     assert response["engine"] == {
-        "profiles": 7,
+        "profiles": 9,
         "rules": 3,
         "collectors": 2,
     }

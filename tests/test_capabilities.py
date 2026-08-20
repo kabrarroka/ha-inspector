@@ -90,6 +90,8 @@ def test_capabilities_include_builtin_profiles() -> None:
         "entities",
         "full",
         "integrations",
+        "post_restore",
+        "pre_upgrade",
         "quick",
         "recorder",
         "storage",
@@ -118,7 +120,7 @@ def test_capabilities_as_dict_returns_public_document() -> None:
         "rules": 1,
         "categories": 1,
         "tags": 2,
-        "profiles": 7,
+        "profiles": 9,
     }
 
     assert data["collectors"] == ["alpha"]
@@ -130,6 +132,8 @@ def test_capabilities_as_dict_returns_public_document() -> None:
         "entities",
         "full",
         "integrations",
+        "post_restore",
+        "pre_upgrade",
         "quick",
         "recorder",
         "storage",

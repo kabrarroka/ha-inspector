@@ -124,6 +124,8 @@ async def test_list_profiles_contains_builtin_profiles(
         "entities",
         "full",
         "integrations",
+        "post_restore",
+        "pre_upgrade",
         "quick",
         "recorder",
         "storage",

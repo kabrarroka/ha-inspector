@@ -26,6 +26,10 @@ run:
               value: recorder
             - label: Almacenamiento
               value: storage
+            - label: Previa a actualización
+              value: pre_upgrade
+            - label: Posterior a restauración
+              value: post_restore
     diagnostics:
       name: Incluir diagnóstico
       description: >
