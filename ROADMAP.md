@@ -47,7 +47,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Results grouped and ordered for presentation
 - [x] Storage, system, integration and entity health summaries
 - [x] Pre-upgrade and post-restore profiles
-- [ ] Dashboard summary
+- [x] Dashboard summary
 - [x] Localization
 - [ ] Stable public API
 

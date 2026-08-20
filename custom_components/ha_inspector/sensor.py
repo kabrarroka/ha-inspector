@@ -75,6 +75,7 @@ class HAInspectorStatusSensor(SensorEntity):  # type: ignore[misc]
                 "checks_executed": 0,
                 "finished_at": None,
                 "duration_seconds": None,
+                "dashboard_summary": None,
             }
             return
 
@@ -95,6 +96,7 @@ class HAInspectorStatusSensor(SensorEntity):  # type: ignore[misc]
             "critical": summary.get("critical", 0),
             "categories": result.get("categories", {}),
             "health_summary": result.get("health_summary", {}),
+            "dashboard_summary": result.get("dashboard_summary", {}),
         }
 
     async def async_added_to_hass(self) -> None:
