@@ -177,3 +177,107 @@ def test_health_status_returns_analytics_status() -> None:
     )
 
     assert result.health_status.value == "good"
+
+def test_presentation_groups_and_orders_findings() -> None:
+    """Presentation groups categories and orders findings by severity."""
+    result = InspectionResult()
+
+    result.record_rule(
+        category="system",
+        weight=20,
+        findings=[
+            _finding("system.warning", Severity.WARNING),
+            _finding("system.critical", Severity.CRITICAL),
+            _finding("system.error", Severity.ERROR),
+        ],
+    )
+    result.record_rule(
+        category="entities",
+        weight=10,
+        findings=[
+            _finding("entities.info", Severity.INFO),
+            _finding("entities.warning", Severity.WARNING),
+        ],
+    )
+
+    presentation = result.presentation
+
+    assert [
+        group["category"]
+        for group in presentation
+    ] == ["entities", "system"]
+
+    assert [
+        finding["id"]
+        for finding in presentation[0]["findings"]
+    ] == [
+        "entities.warning",
+        "entities.info",
+    ]
+
+    assert [
+        finding["id"]
+        for finding in presentation[1]["findings"]
+    ] == [
+        "system.critical",
+        "system.error",
+        "system.warning",
+    ]
+
+
+def test_presentation_includes_category_summary() -> None:
+    """Presentation includes category health and counters."""
+    result = InspectionResult()
+
+    result.record_rule(
+        category="storage",
+        weight=10,
+        findings=[
+            _finding("storage.warning", Severity.WARNING),
+        ],
+    )
+
+    group = result.presentation[0]
+
+    assert group["category"] == "storage"
+    assert group["checks"] == 1
+    assert group["findings_count"] == 1
+    assert group["health"] == result.categories["storage"]["health"]
+
+
+def test_presentation_includes_empty_checked_category() -> None:
+    """Checked categories without findings remain visible."""
+    result = InspectionResult()
+
+    result.record_rule(
+        category="system",
+        weight=20,
+        findings=[],
+    )
+
+    assert result.presentation == [
+        {
+            "category": "system",
+            "health": result.categories["system"]["health"],
+            "checks": 1,
+            "findings_count": 0,
+            "findings": [],
+        }
+    ]
+
+
+def test_as_dict_includes_presentation() -> None:
+    """Serialized results expose presentation groups."""
+    result = InspectionResult()
+
+    result.record_rule(
+        category="entities",
+        weight=10,
+        findings=[
+            _finding("entities.warning", Severity.WARNING),
+        ],
+    )
+
+    payload = result.as_dict()
+
+    assert payload["presentation"] == result.presentation
