@@ -128,6 +128,60 @@ _BUILT_IN_PROFILES: dict[str, InspectionProfile] = {
             ),
         ),
     ),
+    "pre_upgrade": InspectionProfile(
+        profile_id="pre_upgrade",
+        title="Pre-upgrade inspection",
+        description=(
+            "Check recovery readiness and Home Assistant health "
+            "before upgrading."
+        ),
+        request=InspectionRequest(
+            include_rule_ids=(
+                "SYSTEM_INFORMATION",
+                "DISK_FREE_SPACE",
+                "BACKUP_COUNT",
+                "BACKUP_AGE",
+                "BACKUP_AGENT_ERRORS",
+                "BACKUP_REDUNDANCY",
+                "BACKUP_INTEGRITY",
+                "RECORDER_AVAILABILITY",
+                "RECORDER_DATABASE_SIZE",
+                "INTEGRATION_SETUP_ERRORS",
+                "INTEGRATION_SETUP_RETRIES",
+                "INTEGRATION_LIFECYCLE_ERRORS",
+                "ADDON_HEALTH",
+                "REPAIR_ISSUES",
+                "LOG_HEALTH",
+                "NETWORK_CONNECTIVITY",
+                "TIME_SYNCHRONIZATION",
+            ),
+        ),
+    ),
+    "post_restore": InspectionProfile(
+        profile_id="post_restore",
+        title="Post-restore inspection",
+        description=(
+            "Check Home Assistant availability and service health "
+            "after restoring a backup."
+        ),
+        request=InspectionRequest(
+            include_rule_ids=(
+                "SYSTEM_INFORMATION",
+                "DISK_FREE_SPACE",
+                "RECORDER_AVAILABILITY",
+                "INTEGRATION_SETUP_ERRORS",
+                "INTEGRATION_SETUP_RETRIES",
+                "INTEGRATION_LIFECYCLE_ERRORS",
+                "UNAVAILABLE_ENTITIES",
+                "UNKNOWN_ENTITIES",
+                "ADDON_HEALTH",
+                "REPAIR_ISSUES",
+                "LOG_HEALTH",
+                "NETWORK_CONNECTIVITY",
+                "TIME_SYNCHRONIZATION",
+            ),
+        ),
+    ),
     "storage": InspectionProfile(
         profile_id="storage",
         title="Storage inspection",
@@ -177,6 +231,16 @@ _PROFILE_TRANSLATIONS: Mapping[
                     "Inspección del registrador",
                     "Inspecciona la disponibilidad del registrador y "
                     "la configuración de retención.",
+                ),
+                "pre_upgrade": (
+                    "Inspección previa a actualización",
+                    "Comprueba la preparación para recuperación y la salud "
+                    "de Home Assistant antes de actualizar.",
+                ),
+                "post_restore": (
+                    "Inspección posterior a restauración",
+                    "Comprueba la disponibilidad y la salud de los servicios "
+                    "de Home Assistant después de restaurar una copia.",
                 ),
                 "storage": (
                     "Inspección del almacenamiento",

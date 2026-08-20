@@ -17,6 +17,8 @@ def test_expected_profiles_are_registered():
         "entities",
         "full",
         "integrations",
+        "post_restore",
+        "pre_upgrade",
         "quick",
         "recorder",
         "storage",
@@ -159,3 +161,61 @@ def test_all_profile_rule_ids_exist_in_registry() -> None:
 
     for profile in PROFILES.values():
         assert set(profile.request.include_rule_ids) <= known_rule_ids
+
+
+def test_pre_upgrade_profile_selects_targeted_rules() -> None:
+    """Pre-upgrade profile checks recovery and upgrade readiness."""
+    request = create_profile_request("pre_upgrade")
+
+    assert request.include_rule_ids == (
+        "ADDON_HEALTH",
+        "BACKUP_AGE",
+        "BACKUP_AGENT_ERRORS",
+        "BACKUP_COUNT",
+        "BACKUP_INTEGRITY",
+        "BACKUP_REDUNDANCY",
+        "DISK_FREE_SPACE",
+        "INTEGRATION_LIFECYCLE_ERRORS",
+        "INTEGRATION_SETUP_ERRORS",
+        "INTEGRATION_SETUP_RETRIES",
+        "LOG_HEALTH",
+        "NETWORK_CONNECTIVITY",
+        "RECORDER_AVAILABILITY",
+        "RECORDER_DATABASE_SIZE",
+        "REPAIR_ISSUES",
+        "SYSTEM_INFORMATION",
+        "TIME_SYNCHRONIZATION",
+    )
+
+
+def test_post_restore_profile_selects_targeted_rules() -> None:
+    """Post-restore profile checks restored system availability."""
+    request = create_profile_request("post_restore")
+
+    assert request.include_rule_ids == (
+        "ADDON_HEALTH",
+        "DISK_FREE_SPACE",
+        "INTEGRATION_LIFECYCLE_ERRORS",
+        "INTEGRATION_SETUP_ERRORS",
+        "INTEGRATION_SETUP_RETRIES",
+        "LOG_HEALTH",
+        "NETWORK_CONNECTIVITY",
+        "RECORDER_AVAILABILITY",
+        "REPAIR_ISSUES",
+        "SYSTEM_INFORMATION",
+        "TIME_SYNCHRONIZATION",
+        "UNAVAILABLE_ENTITIES",
+        "UNKNOWN_ENTITIES",
+    )
+
+
+def test_targeted_profiles_are_localized() -> None:
+    """Upgrade and restore profiles provide Spanish summaries."""
+    pre_upgrade = get_profile("pre_upgrade").as_summary("es")
+    post_restore = get_profile("post_restore").as_summary("es")
+
+    assert pre_upgrade["title"] == "Inspección previa a actualización"
+    assert (
+        post_restore["title"]
+        == "Inspección posterior a restauración"
+    )
