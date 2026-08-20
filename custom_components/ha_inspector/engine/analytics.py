@@ -53,6 +53,39 @@ class InspectionAnalytics:
 
 
     @property
+    def domain_health(self) -> dict[str, dict[str, Any]]:
+        """Return user-facing health summaries for primary domains."""
+        domains = (
+            "storage",
+            "system",
+            "integrations",
+            "entities",
+        )
+
+        categories = self.categories
+
+        return {
+            domain: (
+                {
+                    "domain": domain,
+                    "status": "checked",
+                    "health": categories[domain]["health"],
+                    "checks": categories[domain]["checks"],
+                    "findings": categories[domain]["findings"],
+                }
+                if domain in categories
+                else {
+                    "domain": domain,
+                    "status": "not_checked",
+                    "health": None,
+                    "checks": 0,
+                    "findings": 0,
+                }
+            )
+            for domain in domains
+        }
+
+    @property
     def health_summary(self) -> dict[str, int]:
         """Return the number of categories grouped by health status."""
         summary = {

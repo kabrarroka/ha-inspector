@@ -154,3 +154,94 @@ def test_analytics_health_summary_counts_categories() -> None:
         "poor": 1,
         "critical": 1,
     }
+
+def test_domain_health_exposes_primary_domains() -> None:
+    """Primary user-facing health domains are always exposed."""
+    result = InspectionResult(
+        category_checks={
+            "storage": 2,
+            "system": 1,
+        },
+        category_findings={
+            "storage": 1,
+            "system": 0,
+        },
+        scoring_entries=[
+            ScoringEntry(
+                category="storage",
+                weight=20,
+                severity=Severity.WARNING,
+            ),
+        ],
+    )
+
+    domain_health = InspectionAnalytics(result).domain_health
+
+    assert list(domain_health) == [
+        "storage",
+        "system",
+        "integrations",
+        "entities",
+    ]
+
+    assert domain_health["storage"] == {
+        "domain": "storage",
+        "status": "checked",
+        "health": {
+            "score": 94,
+            "max_score": 100,
+            "status": "excellent",
+            "penalty": 6.0,
+        },
+        "checks": 2,
+        "findings": 1,
+    }
+
+    assert domain_health["system"] == {
+        "domain": "system",
+        "status": "checked",
+        "health": {
+            "score": 100,
+            "max_score": 100,
+            "status": "excellent",
+            "penalty": 0,
+        },
+        "checks": 1,
+        "findings": 0,
+    }
+
+
+def test_domain_health_marks_unchecked_domains() -> None:
+    """Domains not inspected are distinct from healthy domains."""
+    result = InspectionResult()
+
+    domain_health = InspectionAnalytics(result).domain_health
+
+    for domain in (
+        "storage",
+        "system",
+        "integrations",
+        "entities",
+    ):
+        assert domain_health[domain] == {
+            "domain": domain,
+            "status": "not_checked",
+            "health": None,
+            "checks": 0,
+            "findings": 0,
+        }
+
+
+def test_domain_health_ignores_non_primary_categories() -> None:
+    """Non-primary categories do not appear in domain summaries."""
+    result = InspectionResult(
+        category_checks={
+            "recorder": 1,
+            "database": 1,
+        },
+    )
+
+    domain_health = InspectionAnalytics(result).domain_health
+
+    assert "recorder" not in domain_health
+    assert "database" not in domain_health
