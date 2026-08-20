@@ -88,6 +88,19 @@ async def test_info_service_response(
     response = await registrations["info"](MagicMock())
 
     assert response["api_version"] == 1
+    assert response["public_api"] == {
+        "api_version": 1,
+        "schemas": {
+            "capabilities": 1,
+            "result": 2,
+        },
+        "services": [
+            "run",
+            "list_profiles",
+            "describe_profile",
+            "info",
+        ],
+    }
     assert response["engine"] == {
         "profiles": 9,
         "rules": 3,
@@ -130,6 +143,7 @@ async def test_info_service_engine_structure(
     assert set(response) == {
         "version",
         "api_version",
+        "public_api",
         "engine",
     }
 

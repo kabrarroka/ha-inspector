@@ -28,6 +28,10 @@ from .engine.profiles import (
     InspectionProfileError,
     create_profile_request,
 )
+from .engine.public_api import (
+    PUBLIC_API_VERSION,
+    describe_public_api,
+)
 from .engine.request import InspectionRequest
 
 if TYPE_CHECKING:
@@ -40,7 +44,7 @@ SERVICE_DESCRIBE_PROFILE = "describe_profile"
 
 SERVICE_INFO = "info"
 
-API_VERSION = 1
+API_VERSION = PUBLIC_API_VERSION
 
 _REQUEST_FIELDS = (
     "include_rule_ids",
@@ -203,6 +207,7 @@ async def async_setup(
         return {
             "version": VERSION,
             "api_version": API_VERSION,
+            "public_api": describe_public_api(),
             "engine": {
                 "profiles": len(list_profiles()),
                 "rules": len(registry.rule_ids),

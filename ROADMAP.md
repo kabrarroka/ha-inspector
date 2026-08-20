@@ -49,7 +49,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Pre-upgrade and post-restore profiles
 - [x] Dashboard summary
 - [x] Localization
-- [ ] Stable public API
+- [x] Stable public API
 
 ## Version direction
 
