@@ -25,52 +25,6 @@ _TRANSLATIONS: Final[dict[str, dict[str, str]]] = {
         ),
     },
     "es": {
-        # Repairs
-        "REPAIR_ISSUES_CRITICAL": {
-            "title": (
-                "Hay incidencias críticas de Reparaciones activas"
-            ),
-            "description": (
-                "{count} incidencias activas de Reparaciones de "
-                "Home Assistant tienen gravedad crítica."
-            ),
-            "recommendation": (
-                "Abre Ajustes > Sistema > Reparaciones en Home Assistant "
-                "y revisa las incidencias afectadas. Resuelve las que "
-                "puedan corregirse y sigue las indicaciones disponibles "
-                "antes de actualizar si alguna puede provocar problemas "
-                "en una versión futura."
-            ),
-        },
-        "REPAIR_ISSUES_ERROR": {
-            "title": (
-                "Hay errores de Reparaciones activos"
-            ),
-            "description": (
-                "{count} incidencias activas de Reparaciones de "
-                "Home Assistant tienen gravedad de error."
-            ),
-            "recommendation": (
-                "Abre Ajustes > Sistema > Reparaciones en Home Assistant "
-                "y revisa las incidencias afectadas. Resuelve las que "
-                "puedan corregirse y sigue las indicaciones disponibles."
-            ),
-        },
-        "REPAIR_ISSUES_WARNING": {
-            "title": (
-                "Hay avisos de Reparaciones activos"
-            ),
-            "description": (
-                "{count} incidencias activas de Reparaciones de "
-                "Home Assistant tienen gravedad de advertencia."
-            ),
-            "recommendation": (
-                "Abre Ajustes > Sistema > Reparaciones en Home Assistant "
-                "y revisa las incidencias afectadas. Resuelve las que "
-                "puedan corregirse y comprueba de nuevo el sistema."
-            ),
-        },
-
         "backup_age.too_old.title": (
             "La copia de seguridad más reciente es demasiado antigua"
         ),
@@ -127,6 +81,52 @@ _FINDING_TRANSLATIONS: Final[
     dict[str, dict[str, dict[str, str]]]
 ] = {
     "es": {
+        # Repairs
+        "REPAIR_ISSUES_CRITICAL": {
+            "title": (
+                "Hay incidencias críticas de Reparaciones activas"
+            ),
+            "description": (
+                "{count} incidencias activas de Reparaciones de "
+                "Home Assistant tienen gravedad crítica."
+            ),
+            "recommendation": (
+                "Abre Ajustes > Sistema > Reparaciones en Home Assistant "
+                "y revisa las incidencias afectadas. Resuelve las que "
+                "puedan corregirse y sigue las indicaciones disponibles "
+                "antes de actualizar si alguna puede provocar problemas "
+                "en una versión futura."
+            ),
+        },
+        "REPAIR_ISSUES_ERROR": {
+            "title": (
+                "Hay errores de Reparaciones activos"
+            ),
+            "description": (
+                "{count} incidencias activas de Reparaciones de "
+                "Home Assistant tienen gravedad de error."
+            ),
+            "recommendation": (
+                "Abre Ajustes > Sistema > Reparaciones en Home Assistant "
+                "y revisa las incidencias afectadas. Resuelve las que "
+                "puedan corregirse y sigue las indicaciones disponibles."
+            ),
+        },
+        "REPAIR_ISSUES_WARNING": {
+            "title": (
+                "Hay avisos de Reparaciones activos"
+            ),
+            "description": (
+                "{count} incidencias activas de Reparaciones de "
+                "Home Assistant tienen gravedad de advertencia."
+            ),
+            "recommendation": (
+                "Abre Ajustes > Sistema > Reparaciones en Home Assistant "
+                "y revisa las incidencias afectadas. Resuelve las que "
+                "puedan corregirse y comprueba de nuevo el sistema."
+            ),
+        },
+
         # Backups
         "BACKUP_COUNT_NONE": {
             "title": "No hay copias de seguridad disponibles",
