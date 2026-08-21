@@ -62,11 +62,13 @@ echo "== Validating archive =="
 
 python -c '
 import json
+import pathlib
 import sys
 import tarfile
 
-archive = sys.argv[1]
+archive = pathlib.Path(sys.argv[1])
 expected_version = sys.argv[2]
+source_root = pathlib.Path("custom_components/ha_inspector")
 
 required = {
     "ha_inspector/__init__.py",
@@ -78,8 +80,18 @@ required = {
     "ha_inspector/engine/public_api.py",
 }
 
+forbidden_parts = {
+    "__pycache__",
+    ".git",
+    ".venv",
+    "dist",
+    "test",
+    "tests",
+}
+
 with tarfile.open(archive, "r:gz") as tar:
-    names = set(tar.getnames())
+    members = tar.getmembers()
+    names = {member.name for member in members}
 
     missing = sorted(required - names)
     if missing:
@@ -87,16 +99,18 @@ with tarfile.open(archive, "r:gz") as tar:
             "Archive missing required files: " + ", ".join(missing)
         )
 
-    forbidden = [
-        name
-        for name in names
-        if "__pycache__" in name
-        or name.endswith((".pyc", ".pyo"))
-    ]
+    forbidden = sorted(
+        member.name
+        for member in members
+        if (
+            any(part in forbidden_parts for part in pathlib.PurePosixPath(member.name).parts)
+            or member.name.endswith((".pyc", ".pyo"))
+        )
+    )
 
     if forbidden:
         raise SystemExit(
-            "Archive contains cache files: " + ", ".join(forbidden)
+            "Archive contains forbidden files: " + ", ".join(forbidden)
         )
 
     manifest_file = tar.extractfile("ha_inspector/manifest.json")
@@ -113,7 +127,57 @@ with tarfile.open(archive, "r:gz") as tar:
             + expected_version
         )
 
+    source_files = {
+        path.relative_to(source_root).as_posix(): path
+        for path in source_root.rglob("*")
+        if path.is_file()
+    }
+
+    archive_files = {
+        pathlib.PurePosixPath(member.name).relative_to("ha_inspector").as_posix(): member
+        for member in members
+        if member.isfile()
+        and pathlib.PurePosixPath(member.name).parts
+        and pathlib.PurePosixPath(member.name).parts[0] == "ha_inspector"
+    }
+
+    source_names = set(source_files)
+    archive_names = set(archive_files)
+
+    missing_from_archive = sorted(source_names - archive_names)
+    extra_in_archive = sorted(archive_names - source_names)
+
+    if missing_from_archive:
+        raise SystemExit(
+            "Archive missing source files: "
+            + ", ".join(missing_from_archive)
+        )
+
+    if extra_in_archive:
+        raise SystemExit(
+            "Archive contains unexpected files: "
+            + ", ".join(extra_in_archive)
+        )
+
+    mismatched = []
+
+    for relative_name, source_path in source_files.items():
+        archived = tar.extractfile(archive_files[relative_name])
+        if archived is None:
+            mismatched.append(relative_name)
+            continue
+
+        if archived.read() != source_path.read_bytes():
+            mismatched.append(relative_name)
+
+    if mismatched:
+        raise SystemExit(
+            "Archive content differs from source: "
+            + ", ".join(sorted(mismatched))
+        )
+
 print("archive validation: OK")
+print(f"archive/source integrity: OK ({len(source_files)} files)")
 ' "$ARCHIVE" "$VERSION"
 
 echo
