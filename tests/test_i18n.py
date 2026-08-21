@@ -127,6 +127,16 @@ def test_all_findings_have_spanish_translation() -> None:
             ):
                 finding_ids.add(node.value.value)
 
+    # RepairIssuesRule generates these finding IDs from severity_config
+    # instead of declaring them directly in Finding(finding_id=...).
+    finding_ids.update(
+        {
+            "REPAIR_ISSUES_CRITICAL",
+            "REPAIR_ISSUES_ERROR",
+            "REPAIR_ISSUES_WARNING",
+        }
+    )
+
     spanish_translations = set(
         i18n._FINDING_TRANSLATIONS["es"]  # type: ignore[attr-defined]
     )
