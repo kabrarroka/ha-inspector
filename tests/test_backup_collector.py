@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -62,11 +61,11 @@ async def test_backup_collector_collects_unique_backups() -> None:
         return_value=(
             {
                 "backup-1": SimpleNamespace(
-                    date=datetime(2026, 7, 1, 8, 0, tzinfo=UTC),
+                    date="2026-07-01T08:00:00+00:00",
                     agents={"local": SimpleNamespace()},
                 ),
                 "backup-2": SimpleNamespace(
-                    date=datetime(2026, 8, 1, 9, 30, tzinfo=UTC),
+                    date="2026-08-01T09:30:00+00:00",
                     agents={
                         "cloud": SimpleNamespace(),
                         "local": SimpleNamespace(),
@@ -78,7 +77,7 @@ async def test_backup_collector_collects_unique_backups() -> None:
                     failed_agent_ids=[" unavailable_cloud "],
                 ),
                 "backup-3": SimpleNamespace(
-                    date=datetime(2026, 7, 15, 12, 0, tzinfo=UTC),
+                    date="2026-07-15T12:00:00+00:00",
                     agents={"nas": SimpleNamespace()},
                 ),
             },

@@ -55,19 +55,30 @@ class BackupCollector(BaseCollector):
             context.backups = state
             return
 
-        dates = [
-            backup.date
-            for backup in backups.values()
-            if isinstance(getattr(backup, "date", None), datetime)
-        ]
+        def _backup_date(backup: object) -> datetime | None:
+            raw_date = getattr(backup, "date", None)
+
+            if isinstance(raw_date, datetime):
+                return raw_date
+
+            if isinstance(raw_date, str):
+                try:
+                    return datetime.fromisoformat(raw_date)
+                except ValueError:
+                    return None
+
+            return None
 
         dated_backups = [
-            backup
+            (backup, parsed_date)
             for backup in backups.values()
-            if isinstance(getattr(backup, "date", None), datetime)
+            if (parsed_date := _backup_date(backup)) is not None
         ]
+
+        dates = [parsed_date for _, parsed_date in dated_backups]
+
         latest_backup = (
-            max(dated_backups, key=lambda backup: backup.date)
+            max(dated_backups, key=lambda item: item[1])[0]
             if dated_backups
             else None
         )
