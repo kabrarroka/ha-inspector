@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.0.0
+
+### Added
+
+- Automated end-to-end release-readiness validation.
+- Documented real Home Assistant OS deployment validation.
+
+### Changed
+
+- Enforced 100% Python coverage as a blocking CI requirement.
+- Enforced strict mypy validation across the complete integration package.
+- Hardened release archive integrity validation.
+- Finalized packaging, documentation, and deployment procedures for the
+  stable public release.
+
+### Fixed
+
+- Improved backup date compatibility across Home Assistant runtime values.
+- Added coverage for defensive collector and persistence branches.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- No configuration-entry migration is required from 0.6.0.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 61 source files.
+- 463 tests pass.
+- Python coverage is 100%.
+- Release archive/source integrity validation passes.
+- Real Home Assistant upgrade validation from 0.6.0 completed successfully.
+
 ## 0.6.0
 
 ### Added

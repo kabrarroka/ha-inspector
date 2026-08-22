@@ -2,7 +2,7 @@
 
 HA Inspector is a custom integration for Home Assistant that inspects a Home Assistant installation and reports configuration, availability, storage, recorder, integration, and entity-related findings.
 
-Current version: **0.6.0**
+Current version: **1.0.0**
 
 ## Features
 
@@ -172,19 +172,20 @@ When no explicit language is supplied, HA Inspector uses the Home Assistant lang
 
 ## Upgrading
 
-To upgrade from HA Inspector 0.5.1 to 0.6.0:
+To upgrade from HA Inspector 0.6.0 to 1.0.0:
 
 1. Replace the existing `custom_components/ha_inspector` directory with the
-   0.6.0 files.
+   1.0.0 files.
 2. Keep the existing Home Assistant configuration entry.
 3. Restart Home Assistant.
 4. Confirm that HA Inspector loads without errors.
 5. Run `ha_inspector.info` and verify:
-   - integration version `0.6.0`;
+   - integration version `1.0.0`;
    - public API version `1`;
    - capabilities schema version `1`;
    - result schema version `2`.
 6. Run the `quick` inspection profile and confirm the status sensor updates.
+7. Run the `pre_upgrade` and `post_restore` profiles as appropriate.
 
 No configuration-entry migration is required for this release.
 
@@ -217,7 +218,7 @@ GitHub Actions runs Ruff, mypy, and pytest for pushes and pull requests.
 
 HA Inspector is under active development.
 
-Current integration version: **0.6.0**
+Current integration version: **1.0.0**
 
 The project maintains 100% Python test coverage across `custom_components.ha_inspector`.
 
