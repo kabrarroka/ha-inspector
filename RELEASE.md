@@ -32,6 +32,38 @@ For final release validation, require a clean working tree:
 Home Assistant deployment validation remains a manual step because it must be
 performed against a real Home Assistant installation.
 
+## Real deployment validation
+
+HA Inspector 0.6.0 has been validated on a real Home Assistant OS
+installation using the release archive produced by `scripts/build_release.sh`.
+
+The validation covered:
+
+- release archive SHA-256 verification before deployment;
+- archive and installed-package integrity (65 source files);
+- replacement of an existing HA Inspector 0.6.0 installation without
+  requiring Home Assistant reconfiguration;
+- successful Home Assistant restart after deployment;
+- successful loading of HA Inspector 0.6.0;
+- public API version 1, capabilities schema version 1, and result schema
+  version 2;
+- availability of all four public services;
+- discovery of 9 profiles, 26 rules, and 9 collectors;
+- successful execution of the `quick`, `pre_upgrade`, and `post_restore`
+  profiles without engine execution errors;
+- propagation of the latest inspection result to the HA Inspector status
+  sensor, including score, health status, finding counts, dashboard summary,
+  and domain summaries;
+- absence of HA Inspector-specific errors in the Home Assistant log after
+  deployment and profile execution.
+
+The validation environment used Home Assistant Core 2026.8.2 on Home
+Assistant OS (`generic-x86-64`).
+
+This validates deployment of the 0.6.0 release artifact over an existing
+0.6.0 installation. A version-to-version migration must still be validated
+when a release introduces configuration-entry or persistent-data migrations.
+
 ## Build
 
 Build the release archive with:
