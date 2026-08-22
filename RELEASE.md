@@ -15,6 +15,23 @@ Before building a release:
 6. Confirm GitHub Actions passes.
 7. Confirm the public API and schema versions are intentional.
 
+## Automated release validation
+
+During development, run the complete automated release-readiness validation with:
+
+    scripts/validate_release.sh
+
+The validator checks version consistency, public API contract versions, Ruff,
+mypy, the complete pytest suite with 100% coverage, diff integrity, and the
+release archive.
+
+For final release validation, require a clean working tree:
+
+    REQUIRE_CLEAN_TREE=1 scripts/validate_release.sh
+
+Home Assistant deployment validation remains a manual step because it must be
+performed against a real Home Assistant installation.
+
 ## Build
 
 Build the release archive with:
