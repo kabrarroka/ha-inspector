@@ -101,6 +101,7 @@ jobs:
               [
                   "--cov=custom_components.ha_inspector",
                   "--cov-report=term-missing",
+                  "--cov-fail-under=100",
               ]
           )
 
