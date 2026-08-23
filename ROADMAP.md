@@ -51,6 +51,30 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Localization
 - [x] Stable public API
 
+## Epic F — Historical health and trends
+
+- [ ] Persist inspection history
+- [ ] Health-score trend analysis
+- [ ] Domain-health trend analysis
+- [ ] Regression and recovery detection
+- [ ] Historical inspection comparison
+
+## Epic G — Operational diagnostics
+
+- [ ] Configurable rule thresholds
+- [ ] Rule suppression and acknowledgement
+- [ ] Inspection duration and collector timing metrics
+- [ ] Collector failure isolation and reporting
+- [ ] Exportable diagnostic report
+
+## Epic H — Home Assistant integration UX
+
+- [ ] Richer status sensor attributes
+- [ ] Dedicated diagnostic entities
+- [ ] Dashboard-oriented entity model
+- [ ] Improved Repairs integration
+- [ ] Service response documentation and examples
+
 ## Version direction
 
 ### 0.5 — Engine foundation
@@ -66,3 +90,8 @@ user-facing summaries, targeted profiles, and stable public API.
 
 Production release after upgrade-path validation, packaging review,
 documentation completion, and real Home Assistant deployment validation.
+
+### 1.1 — Historical health and operational diagnostics
+
+Inspection history, trend and regression analysis, configurable thresholds,
+improved operational diagnostics, and richer Home Assistant presentation.
