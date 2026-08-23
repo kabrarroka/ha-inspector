@@ -17,6 +17,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    DATA_INSPECTION_HISTORY,
     DATA_LAST_RESULT,
     DATA_RESTART_HISTORY,
     DOMAIN,
@@ -244,7 +245,12 @@ async def async_setup(
 
         result_data = result.as_dict()
 
-        hass.data.setdefault(DOMAIN, {})[DATA_LAST_RESULT] = result_data
+        domain_data = hass.data.setdefault(DOMAIN, {})
+        domain_data[DATA_LAST_RESULT] = result_data
+
+        inspection_history = domain_data.get(DATA_INSPECTION_HISTORY)
+        if inspection_history is not None:
+            await inspection_history.async_add(result_data)
         async_dispatcher_send(
             hass,
             SIGNAL_INSPECTION_FINISHED,
@@ -340,6 +346,14 @@ async def async_setup_entry(
         await restart_history.async_record_start()
 
         domain_data[DATA_RESTART_HISTORY] = restart_history
+
+    if DATA_INSPECTION_HISTORY not in domain_data:
+        from .engine.inspection_history import InspectionHistory
+
+        inspection_history = InspectionHistory(hass)
+        await inspection_history.async_load()
+
+        domain_data[DATA_INSPECTION_HISTORY] = inspection_history
 
     await hass.config_entries.async_forward_entry_setups(
         entry,

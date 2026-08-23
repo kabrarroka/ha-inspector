@@ -7,7 +7,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.ha_inspector import SERVICE_RUN_SCHEMA, async_setup
-from custom_components.ha_inspector.const import DOMAIN
+from custom_components.ha_inspector.const import (
+    DATA_INSPECTION_HISTORY,
+    DOMAIN,
+)
 
 
 @pytest.mark.asyncio
@@ -33,6 +36,7 @@ async def test_run_service_executes_inspection_with_profile() -> None:
     registry.create_rules.return_value = ["rule"]
 
     hass = MagicMock()
+    hass.data = {}
     hass.async_add_executor_job = AsyncMock(
         return_value=(inspector_type, registry)
     )
@@ -80,3 +84,59 @@ def test_run_service_schema_rejects_unknown_fields() -> None:
 
     with pytest.raises(vol.MultipleInvalid):
         SERVICE_RUN_SCHEMA({"unexpected": True})
+
+@pytest.mark.asyncio
+async def test_run_service_persists_inspection_history() -> None:
+    """Run service stores a compact inspection history entry."""
+    inspector = MagicMock()
+    inspector.run = AsyncMock()
+
+    result = MagicMock()
+    result.metadata = {}
+    result_data = {
+        "findings": [],
+        "metadata": result.metadata,
+        "score": 100,
+        "dashboard_summary": {
+            "status": "excellent",
+        },
+    }
+    result.as_dict.return_value = result_data
+    inspector.run.return_value = result
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+
+    history = MagicMock()
+    history.async_add = AsyncMock()
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_INSPECTION_HISTORY: history,
+        }
+    }
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    registrations = {
+        call.args[1]: call.args[2]
+        for call in hass.services.async_register.call_args_list
+        if call.args[0] == DOMAIN
+    }
+
+    service_call = MagicMock()
+    service_call.data = {}
+
+    response = await registrations["run"](service_call)
+
+    history.async_add.assert_awaited_once_with(result_data)
+    assert response is result_data
