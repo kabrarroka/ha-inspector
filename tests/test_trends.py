@@ -280,3 +280,99 @@ def test_domain_trend_serializes() -> None:
         "last_score": 90,
         "delta": 20,
     }
+
+
+def test_latest_health_change_detects_recovery() -> None:
+    from custom_components.ha_inspector.engine.trends import (
+        latest_health_change,
+    )
+
+    change = latest_health_change(
+        [
+            {"score": 70},
+            {"score": 75},
+            {"score": 90},
+        ]
+    )
+
+    assert change.kind == "recovery"
+    assert change.previous_score == 75
+    assert change.current_score == 90
+    assert change.delta == 15
+
+
+def test_latest_health_change_detects_regression() -> None:
+    from custom_components.ha_inspector.engine.trends import (
+        latest_health_change,
+    )
+
+    change = latest_health_change(
+        [
+            {"score": 95},
+            {"score": 90},
+            {"score": 72},
+        ]
+    )
+
+    assert change.kind == "regression"
+    assert change.previous_score == 90
+    assert change.current_score == 72
+    assert change.delta == -18
+
+
+def test_latest_health_change_detects_stable() -> None:
+    from custom_components.ha_inspector.engine.trends import (
+        latest_health_change,
+    )
+
+    change = latest_health_change(
+        [
+            {"score": 88},
+            {"score": 88},
+        ]
+    )
+
+    assert change.kind == "stable"
+    assert change.delta == 0
+
+
+def test_latest_health_change_requires_two_valid_scores() -> None:
+    from custom_components.ha_inspector.engine.trends import (
+        latest_health_change,
+    )
+
+    empty = latest_health_change([])
+    assert empty.kind == "insufficient_data"
+    assert empty.previous_score is None
+    assert empty.current_score is None
+    assert empty.delta is None
+
+    single = latest_health_change(
+        [
+            {"score": None},
+            {"score": True},
+            {"score": 90},
+        ]
+    )
+    assert single.kind == "insufficient_data"
+    assert single.previous_score is None
+    assert single.current_score == 90
+    assert single.delta is None
+
+
+def test_health_change_serializes() -> None:
+    from custom_components.ha_inspector.engine.trends import HealthChange
+
+    change = HealthChange(
+        kind="regression",
+        previous_score=90,
+        current_score=80,
+        delta=-10,
+    )
+
+    assert change.as_dict() == {
+        "kind": "regression",
+        "previous_score": 90,
+        "current_score": 80,
+        "delta": -10,
+    }

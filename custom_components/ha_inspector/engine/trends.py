@@ -135,3 +135,69 @@ def domain_health_trends(
         )
         for domain in sorted(domains)
     }
+
+
+ChangeKind = Literal[
+    "regression",
+    "recovery",
+    "stable",
+    "insufficient_data",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class HealthChange:
+    """Describe the latest health-score change."""
+
+    kind: ChangeKind
+    previous_score: int | None
+    current_score: int | None
+    delta: int | None
+
+    def as_dict(self) -> dict[str, int | str | None]:
+        """Return a JSON-serializable representation."""
+        return {
+            "kind": self.kind,
+            "previous_score": self.previous_score,
+            "current_score": self.current_score,
+            "delta": self.delta,
+        }
+
+
+def latest_health_change(
+    entries: list[dict[str, Any]],
+) -> HealthChange:
+    """Return the latest valid health-score change."""
+    scores = [
+        score
+        for entry in entries
+        if isinstance((score := entry.get("score")), int)
+        and not isinstance(score, bool)
+    ]
+
+    if len(scores) < 2:
+        current_score = scores[-1] if scores else None
+        return HealthChange(
+            kind="insufficient_data",
+            previous_score=None,
+            current_score=current_score,
+            delta=None,
+        )
+
+    previous_score = scores[-2]
+    current_score = scores[-1]
+    delta = current_score - previous_score
+
+    if delta > 0:
+        kind: ChangeKind = "recovery"
+    elif delta < 0:
+        kind = "regression"
+    else:
+        kind = "stable"
+
+    return HealthChange(
+        kind=kind,
+        previous_score=previous_score,
+        current_score=current_score,
+        delta=delta,
+    )

@@ -344,3 +344,43 @@ async def test_domain_trends_handle_empty_history() -> None:
     await history.async_load()
 
     assert history.domain_trends() == {}
+
+
+@pytest.mark.asyncio
+async def test_latest_health_change_uses_persisted_entries() -> None:
+    """Inspection history exposes latest health change detection."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {"score": 90},
+                {"score": 85},
+                {"score": 70},
+            ]
+        }
+    )
+
+    await history.async_load()
+
+    change = history.latest_health_change()
+
+    assert change.kind == "regression"
+    assert change.previous_score == 85
+    assert change.current_score == 70
+    assert change.delta == -15
+
+
+@pytest.mark.asyncio
+async def test_latest_health_change_handles_empty_history() -> None:
+    """Empty persisted history produces insufficient change data."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(return_value=None)
+
+    await history.async_load()
+
+    change = history.latest_health_change()
+
+    assert change.kind == "insufficient_data"
+    assert change.previous_score is None
+    assert change.current_score is None
+    assert change.delta is None
