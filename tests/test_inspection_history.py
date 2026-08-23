@@ -384,3 +384,131 @@ async def test_latest_health_change_handles_empty_history() -> None:
     assert change.previous_score is None
     assert change.current_score is None
     assert change.delta is None
+
+
+@pytest.mark.asyncio
+async def test_latest_comparison_uses_two_most_recent_entries() -> None:
+    """Inspection history compares the two latest persisted snapshots."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {
+                    "score": 70,
+                    "status": "warning",
+                    "total_findings": 6,
+                },
+                {
+                    "score": 80,
+                    "status": "warning",
+                    "total_findings": 4,
+                },
+                {
+                    "score": 95,
+                    "status": "healthy",
+                    "total_findings": 1,
+                },
+            ]
+        }
+    )
+
+    await history.async_load()
+
+    comparison = history.latest_comparison()
+
+    assert comparison is not None
+    assert comparison.previous_score == 80
+    assert comparison.current_score == 95
+    assert comparison.score_delta == 15
+    assert comparison.previous_findings == 4
+    assert comparison.current_findings == 1
+    assert comparison.findings_delta == -3
+
+
+@pytest.mark.asyncio
+async def test_latest_comparison_requires_two_entries() -> None:
+    """Historical comparison requires at least two snapshots."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {
+                    "score": 90,
+                }
+            ]
+        }
+    )
+
+    await history.async_load()
+
+    assert history.latest_comparison() is None
+
+
+@pytest.mark.asyncio
+async def test_latest_domain_comparisons_use_two_most_recent_entries() -> None:
+    """Inspection history compares domains in the two latest snapshots."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {
+                    "domain_health": {
+                        "storage": {
+                            "health": {
+                                "score": 60,
+                                "status": "warning",
+                            }
+                        }
+                    }
+                },
+                {
+                    "domain_health": {
+                        "storage": {
+                            "health": {
+                                "score": 70,
+                                "status": "warning",
+                            }
+                        }
+                    }
+                },
+                {
+                    "domain_health": {
+                        "storage": {
+                            "health": {
+                                "score": 90,
+                                "status": "excellent",
+                            }
+                        }
+                    }
+                },
+            ]
+        }
+    )
+
+    await history.async_load()
+
+    comparisons = history.latest_domain_comparisons()
+
+    assert comparisons is not None
+    assert comparisons["storage"].previous_score == 70
+    assert comparisons["storage"].current_score == 90
+    assert comparisons["storage"].score_delta == 20
+
+
+@pytest.mark.asyncio
+async def test_latest_domain_comparisons_require_two_entries() -> None:
+    """Domain comparison requires at least two persisted snapshots."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {
+                    "domain_health": {},
+                }
+            ]
+        }
+    )
+
+    await history.async_load()
+
+    assert history.latest_domain_comparisons() is None
