@@ -73,3 +73,65 @@ def health_score_trend(
         last_score=last_score,
         delta=delta,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class DomainTrend:
+    """Describe the historical health-score trend for one domain."""
+
+    domain: str
+    trend: ScoreTrend
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return a JSON-serializable representation."""
+        return {
+            "domain": self.domain,
+            **self.trend.as_dict(),
+        }
+
+
+def domain_health_trends(
+    entries: list[dict[str, Any]],
+) -> dict[str, DomainTrend]:
+    """Return health-score trends for domains present in history."""
+    domains: set[str] = set()
+    domain_entries: dict[str, list[dict[str, Any]]] = {}
+
+    for entry in entries:
+        domain_health = entry.get("domain_health")
+
+        if not isinstance(domain_health, dict):
+            continue
+
+        for domain, domain_data in domain_health.items():
+            if not isinstance(domain, str) or not isinstance(
+                domain_data,
+                dict,
+            ):
+                continue
+
+            domains.add(domain)
+
+            health = domain_data.get("health")
+            if not isinstance(health, dict):
+                continue
+
+            score = health.get("score")
+            if not isinstance(score, int) or isinstance(score, bool):
+                continue
+
+            domain_entries.setdefault(domain, []).append(
+                {
+                    "score": score,
+                }
+            )
+
+    return {
+        domain: DomainTrend(
+            domain=domain,
+            trend=health_score_trend(
+                domain_entries.get(domain, [])
+            ),
+        )
+        for domain in sorted(domains)
+    }
