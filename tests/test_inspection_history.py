@@ -245,3 +245,42 @@ async def test_non_mapping_dashboard_and_domain_health_are_supported() -> None:
 
     assert entry["status"] is None
     assert entry["domain_health"] == {}
+
+
+@pytest.mark.asyncio
+async def test_score_trend_uses_persisted_entries() -> None:
+    """Inspection history exposes health-score trend analysis."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {"score": 70},
+                {"score": 80},
+                {"score": 95},
+            ]
+        }
+    )
+
+    await history.async_load()
+
+    trend = history.score_trend()
+
+    assert trend.direction == "improving"
+    assert trend.samples == 3
+    assert trend.first_score == 70
+    assert trend.last_score == 95
+    assert trend.delta == 25
+
+
+@pytest.mark.asyncio
+async def test_score_trend_handles_empty_history() -> None:
+    """Empty persisted history produces insufficient trend data."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(return_value=None)
+
+    await history.async_load()
+
+    trend = history.score_trend()
+
+    assert trend.direction == "insufficient_data"
+    assert trend.samples == 0
