@@ -195,3 +195,54 @@ def test_discover_package_ignores_module_without_package_path(
     registry._discover_package("tests.not_a_package", BaseCollector)
 
     assert registry.collector_ids == ()
+
+def test_registry_creates_disk_free_space_rule_with_defaults() -> None:
+    """Registry instantiates configurable rules using default thresholds."""
+    registry = EngineRegistry.discover()
+
+    disk_rule = next(
+        rule
+        for rule in registry.create_rules()
+        if rule.rule_id == "DISK_FREE_SPACE"
+    )
+
+    assert disk_rule.warning_threshold == 20.0
+    assert disk_rule.error_threshold == 10.0
+
+
+def test_registry_creates_rule_with_configuration() -> None:
+    """Registry passes rule-specific configuration to its constructor."""
+    registry = EngineRegistry.discover()
+
+    disk_rule = next(
+        rule
+        for rule in registry.create_rules(
+            {
+                "DISK_FREE_SPACE": {
+                    "warning_threshold": 30.0,
+                    "error_threshold": 15.0,
+                }
+            }
+        )
+        if rule.rule_id == "DISK_FREE_SPACE"
+    )
+
+    assert disk_rule.warning_threshold == 30.0
+    assert disk_rule.error_threshold == 15.0
+
+
+def test_registry_rejects_unknown_rule_configuration() -> None:
+    """Configuration cannot reference a rule that is not registered."""
+    registry = EngineRegistry.discover()
+
+    with pytest.raises(
+        RegistryError,
+        match="Configuration references unknown rules: UNKNOWN_RULE",
+    ):
+        registry.create_rules(
+            {
+                "UNKNOWN_RULE": {
+                    "threshold": 1,
+                }
+            }
+        )

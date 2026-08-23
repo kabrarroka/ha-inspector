@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from importlib import import_module
 from inspect import isabstract, isclass
 from pkgutil import walk_packages
@@ -44,12 +45,33 @@ class EngineRegistry:
             for _, collector_type in sorted(self._collector_types.items())
         ]
 
-    def create_rules(self) -> list[BaseRule]:
+    def create_rules(
+        self,
+        configuration: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> list[BaseRule]:
         """Return fresh rule instances in deterministic order."""
-        return [
-            rule_type()
-            for _, rule_type in sorted(self._rule_types.items())
-        ]
+        configuration = configuration or {}
+
+        unknown_rule_ids = set(configuration) - set(self._rule_types)
+        if unknown_rule_ids:
+            unknown = ", ".join(sorted(unknown_rule_ids))
+            raise RegistryError(
+                f"Configuration references unknown rules: {unknown}"
+            )
+
+        rules: list[BaseRule] = []
+
+        for rule_id, rule_type in sorted(self._rule_types.items()):
+            options = configuration.get(rule_id)
+
+            if options is None:
+                rules.append(rule_type())
+                continue
+
+            constructor = cast(Any, rule_type)
+            rules.append(constructor(**dict(options)))
+
+        return rules
 
     @property
     def collectors(self) -> list[BaseCollector]:
