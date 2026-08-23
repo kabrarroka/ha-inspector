@@ -53,11 +53,11 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 ## Epic F — Historical health and trends
 
-- [ ] Persist inspection history
-- [ ] Health-score trend analysis
-- [ ] Domain-health trend analysis
-- [ ] Regression and recovery detection
-- [ ] Historical inspection comparison
+- [x] Persist inspection history
+- [x] Health-score trend analysis
+- [x] Domain-health trend analysis
+- [x] Regression and recovery detection
+- [x] Historical inspection comparison
 
 ## Epic G — Operational diagnostics
 
