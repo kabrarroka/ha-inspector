@@ -10,6 +10,10 @@ from homeassistant.helpers.storage import Store
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
+    from .historical_comparison import (
+        HistoricalDomainComparison,
+        HistoricalInspectionComparison,
+    )
     from .trends import DomainTrend, HealthChange, ScoreTrend
 
 _STORAGE_VERSION: Final = 1
@@ -86,6 +90,34 @@ class InspectionHistory:
         from .trends import latest_health_change
 
         return latest_health_change(self._entries)
+
+    def latest_comparison(
+        self,
+    ) -> HistoricalInspectionComparison | None:
+        """Compare the two most recent persisted inspections."""
+        if len(self._entries) < 2:
+            return None
+
+        from .historical_comparison import compare_history_entries
+
+        return compare_history_entries(
+            self._entries[-2],
+            self._entries[-1],
+        )
+
+    def latest_domain_comparisons(
+        self,
+    ) -> dict[str, HistoricalDomainComparison] | None:
+        """Compare domains between the two latest persisted inspections."""
+        if len(self._entries) < 2:
+            return None
+
+        from .historical_comparison import compare_history_domains
+
+        return compare_history_domains(
+            self._entries[-2],
+            self._entries[-1],
+        )
 
     @staticmethod
     def _build_entry(
