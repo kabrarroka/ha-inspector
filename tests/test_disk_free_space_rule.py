@@ -82,3 +82,69 @@ async def test_invalid_storage_data_is_ignored(
     findings = await DiskFreeSpaceRule().check(_context(free_percent))
 
     assert findings == []
+
+def test_disk_free_space_default_thresholds() -> None:
+    """Default thresholds preserve existing rule behaviour."""
+    rule = DiskFreeSpaceRule()
+
+    assert rule.warning_threshold == 20.0
+    assert rule.error_threshold == 10.0
+
+
+@pytest.mark.asyncio
+async def test_disk_free_space_custom_thresholds() -> None:
+    """Configured thresholds control disk free-space severity."""
+    rule = DiskFreeSpaceRule(
+        warning_threshold=30.0,
+        error_threshold=15.0,
+    )
+
+    warning = await rule.check(_context(20.0))
+    error = await rule.check(_context(10.0))
+    healthy = await rule.check(_context(30.0))
+
+    assert len(warning) == 1
+    assert warning[0].severity is Severity.WARNING
+    assert warning[0].data["warning_threshold"] == 30.0
+    assert warning[0].data["error_threshold"] == 15.0
+
+    assert len(error) == 1
+    assert error[0].severity is Severity.ERROR
+
+    assert healthy == []
+
+
+def test_disk_free_space_accepts_boundary_thresholds() -> None:
+    """Threshold configuration accepts valid boundary values."""
+    rule = DiskFreeSpaceRule(
+        warning_threshold=100.0,
+        error_threshold=0.0,
+    )
+
+    assert rule.warning_threshold == 100.0
+    assert rule.error_threshold == 0.0
+
+
+@pytest.mark.parametrize(
+    ("warning_threshold", "error_threshold"),
+    [
+        (-1.0, 0.0),
+        (101.0, 10.0),
+        (20.0, -1.0),
+        (20.0, 101.0),
+        (10.0, 20.0),
+    ],
+)
+def test_disk_free_space_rejects_invalid_thresholds(
+    warning_threshold: float,
+    error_threshold: float,
+) -> None:
+    """Invalid threshold configurations are rejected."""
+    with pytest.raises(
+        ValueError,
+        match="Disk free-space thresholds",
+    ):
+        DiskFreeSpaceRule(
+            warning_threshold=warning_threshold,
+            error_threshold=error_threshold,
+        )

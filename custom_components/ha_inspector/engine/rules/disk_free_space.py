@@ -16,6 +16,25 @@ class DiskFreeSpaceRule(BaseRule):
     warning_threshold = 20.0
     error_threshold = 10.0
 
+    def __init__(
+        self,
+        *,
+        warning_threshold: float = 20.0,
+        error_threshold: float = 10.0,
+    ) -> None:
+        """Initialize configurable disk free-space thresholds."""
+        warning_threshold = float(warning_threshold)
+        error_threshold = float(error_threshold)
+
+        if not 0.0 <= error_threshold <= warning_threshold <= 100.0:
+            raise ValueError(
+                "Disk free-space thresholds must satisfy "
+                "0 <= error_threshold <= warning_threshold <= 100"
+            )
+
+        self.warning_threshold = warning_threshold
+        self.error_threshold = error_threshold
+
     async def check(
         self,
         context: InspectionContext,
