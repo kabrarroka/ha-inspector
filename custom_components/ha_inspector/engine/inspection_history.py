@@ -10,7 +10,7 @@ from homeassistant.helpers.storage import Store
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from .trends import ScoreTrend
+    from .trends import DomainTrend, ScoreTrend
 
 _STORAGE_VERSION: Final = 1
 _STORAGE_KEY: Final = "ha_inspector.inspection_history"
@@ -74,6 +74,12 @@ class InspectionHistory:
         from .trends import health_score_trend
 
         return health_score_trend(self._entries)
+
+    def domain_trends(self) -> dict[str, DomainTrend]:
+        """Return health-score trends for persisted inspection domains."""
+        from .trends import domain_health_trends
+
+        return domain_health_trends(self._entries)
 
     @staticmethod
     def _build_entry(

@@ -284,3 +284,63 @@ async def test_score_trend_handles_empty_history() -> None:
 
     assert trend.direction == "insufficient_data"
     assert trend.samples == 0
+
+
+@pytest.mark.asyncio
+async def test_domain_trends_use_persisted_entries() -> None:
+    """Inspection history exposes domain health trend analysis."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {
+                    "domain_health": {
+                        "storage": {
+                            "health": {
+                                "score": 70,
+                            }
+                        },
+                        "system": {
+                            "health": {
+                                "score": 95,
+                            }
+                        },
+                    }
+                },
+                {
+                    "domain_health": {
+                        "storage": {
+                            "health": {
+                                "score": 90,
+                            }
+                        },
+                        "system": {
+                            "health": {
+                                "score": 80,
+                            }
+                        },
+                    }
+                },
+            ]
+        }
+    )
+
+    await history.async_load()
+
+    trends = history.domain_trends()
+
+    assert trends["storage"].trend.direction == "improving"
+    assert trends["storage"].trend.delta == 20
+    assert trends["system"].trend.direction == "declining"
+    assert trends["system"].trend.delta == -15
+
+
+@pytest.mark.asyncio
+async def test_domain_trends_handle_empty_history() -> None:
+    """Empty persisted history produces no domain trends."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(return_value=None)
+
+    await history.async_load()
+
+    assert history.domain_trends() == {}
