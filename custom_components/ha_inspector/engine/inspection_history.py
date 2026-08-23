@@ -10,6 +10,8 @@ from homeassistant.helpers.storage import Store
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
+    from .trends import ScoreTrend
+
 _STORAGE_VERSION: Final = 1
 _STORAGE_KEY: Final = "ha_inspector.inspection_history"
 _MAX_ENTRIES: Final = 100
@@ -66,6 +68,12 @@ class InspectionHistory:
     def entries(self) -> list[dict[str, Any]]:
         """Return persisted inspection summaries."""
         return deepcopy(self._entries)
+
+    def score_trend(self) -> ScoreTrend:
+        """Return the health-score trend for persisted inspections."""
+        from .trends import health_score_trend
+
+        return health_score_trend(self._entries)
 
     @staticmethod
     def _build_entry(
