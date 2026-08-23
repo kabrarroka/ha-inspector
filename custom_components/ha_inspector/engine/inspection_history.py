@@ -10,7 +10,7 @@ from homeassistant.helpers.storage import Store
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from .trends import DomainTrend, ScoreTrend
+    from .trends import DomainTrend, HealthChange, ScoreTrend
 
 _STORAGE_VERSION: Final = 1
 _STORAGE_KEY: Final = "ha_inspector.inspection_history"
@@ -80,6 +80,12 @@ class InspectionHistory:
         from .trends import domain_health_trends
 
         return domain_health_trends(self._entries)
+
+    def latest_health_change(self) -> HealthChange:
+        """Return the latest global health-score change."""
+        from .trends import latest_health_change
+
+        return latest_health_change(self._entries)
 
     @staticmethod
     def _build_entry(
