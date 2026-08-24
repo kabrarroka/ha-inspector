@@ -75,3 +75,48 @@ info:
     Devuelve información sobre el motor de HA Inspector.
   response:
     optional: false
+
+list_acknowledgements:
+  name: Listar reconocimientos
+  description: >
+    Devuelve los identificadores de findings reconocidos y actualmente
+    suprimidos en las inspecciones de HA Inspector.
+  response:
+    optional: false
+
+acknowledge_finding:
+  name: Reconocer finding
+  description: >
+    Reconoce de forma persistente un finding para que deje de afectar al
+    resultado y a la puntuación de salud de futuras inspecciones.
+  fields:
+    finding_id:
+      name: ID del finding
+      description: Identificador exacto del finding que se desea reconocer.
+      required: true
+      selector:
+        text:
+  response:
+    optional: false
+
+clear_acknowledgement:
+  name: Quitar reconocimiento
+  description: >
+    Elimina el reconocimiento persistente de un finding para que vuelva a
+    aparecer como activo si una regla lo genera.
+  fields:
+    finding_id:
+      name: ID del finding
+      description: Identificador exacto del finding cuyo reconocimiento se elimina.
+      required: true
+      selector:
+        text:
+  response:
+    optional: false
+
+clear_acknowledgements:
+  name: Limpiar reconocimientos
+  description: >
+    Elimina todos los reconocimientos persistentes de findings de HA Inspector.
+  response:
+    optional: false

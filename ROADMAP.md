@@ -62,7 +62,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 ## Epic G — Operational diagnostics
 
 - [x] Configurable rule thresholds
-- [ ] Rule suppression and acknowledgement
+- [x] Rule suppression and acknowledgement
 - [ ] Inspection duration and collector timing metrics
 - [ ] Collector failure isolation and reporting
 - [ ] Exportable diagnostic report

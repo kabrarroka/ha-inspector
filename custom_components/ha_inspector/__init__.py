@@ -46,6 +46,11 @@ SERVICE_DESCRIBE_PROFILE = "describe_profile"
 
 SERVICE_INFO = "info"
 
+SERVICE_LIST_ACKNOWLEDGEMENTS = "list_acknowledgements"
+SERVICE_ACKNOWLEDGE_FINDING = "acknowledge_finding"
+SERVICE_CLEAR_ACKNOWLEDGEMENT = "clear_acknowledgement"
+SERVICE_CLEAR_ACKNOWLEDGEMENTS = "clear_acknowledgements"
+
 API_VERSION = PUBLIC_API_VERSION
 
 _REQUEST_FIELDS = (
@@ -82,6 +87,22 @@ SERVICE_DESCRIBE_PROFILE_SCHEMA = vol.Schema(
 )
 
 SERVICE_INFO_SCHEMA = vol.Schema({})
+
+SERVICE_LIST_ACKNOWLEDGEMENTS_SCHEMA = vol.Schema({})
+
+SERVICE_ACKNOWLEDGE_FINDING_SCHEMA = vol.Schema(
+    {
+        vol.Required("finding_id"): str,
+    }
+)
+
+SERVICE_CLEAR_ACKNOWLEDGEMENT_SCHEMA = vol.Schema(
+    {
+        vol.Required("finding_id"): str,
+    }
+)
+
+SERVICE_CLEAR_ACKNOWLEDGEMENTS_SCHEMA = vol.Schema({})
 
 
 def _load_engine() -> tuple[
@@ -337,6 +358,87 @@ async def async_setup(
         SERVICE_INFO,
         async_handle_info,
         schema=SERVICE_INFO_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    def acknowledgement_store() -> Any:
+        """Return the initialized acknowledgement store."""
+        store = hass.data.setdefault(DOMAIN, {}).get(
+            DATA_ACKNOWLEDGEMENTS
+        )
+        if store is None:
+            raise RuntimeError(
+                "HA Inspector acknowledgement store is not initialized"
+            )
+        return store
+
+    def acknowledgement_response() -> ServiceResponse:
+        """Return the current acknowledgement state."""
+        finding_ids = sorted(acknowledgement_store().finding_ids)
+        return {
+            "finding_ids": finding_ids,
+            "count": len(finding_ids),
+        }
+
+    async def async_handle_list_acknowledgements(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return acknowledged finding identifiers."""
+        return acknowledgement_response()
+
+    async def async_handle_acknowledge_finding(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Persist one acknowledged finding identifier."""
+        store = acknowledgement_store()
+        await store.async_acknowledge(call.data["finding_id"])
+        return acknowledgement_response()
+
+    async def async_handle_clear_acknowledgement(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Clear one acknowledged finding identifier."""
+        store = acknowledgement_store()
+        await store.async_clear(call.data["finding_id"])
+        return acknowledgement_response()
+
+    async def async_handle_clear_acknowledgements(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Clear every acknowledged finding identifier."""
+        store = acknowledgement_store()
+        await store.async_clear_all()
+        return acknowledgement_response()
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_LIST_ACKNOWLEDGEMENTS,
+        async_handle_list_acknowledgements,
+        schema=SERVICE_LIST_ACKNOWLEDGEMENTS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ACKNOWLEDGE_FINDING,
+        async_handle_acknowledge_finding,
+        schema=SERVICE_ACKNOWLEDGE_FINDING_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_ACKNOWLEDGEMENT,
+        async_handle_clear_acknowledgement,
+        schema=SERVICE_CLEAR_ACKNOWLEDGEMENT_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_ACKNOWLEDGEMENTS,
+        async_handle_clear_acknowledgements,
+        schema=SERVICE_CLEAR_ACKNOWLEDGEMENTS_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 

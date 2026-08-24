@@ -99,6 +99,10 @@ async def test_info_service_response(
             "list_profiles",
             "describe_profile",
             "info",
+            "list_acknowledgements",
+            "acknowledge_finding",
+            "clear_acknowledgement",
+            "clear_acknowledgements",
         ],
     }
     assert response["engine"] == {
