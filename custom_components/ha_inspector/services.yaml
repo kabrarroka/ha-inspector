@@ -120,3 +120,12 @@ clear_acknowledgements:
     Elimina todos los reconocimientos persistentes de findings de HA Inspector.
   response:
     optional: false
+
+export_diagnostic_report:
+  name: Exportar informe de diagnóstico
+  description: >
+    Devuelve un informe de diagnóstico exportable basado en el último
+    resultado de inspección disponible. El informe incluye estado de salud,
+    findings y métricas operativas, y excluye el contexto técnico sin filtrar.
+  response:
+    optional: false

@@ -50,6 +50,7 @@ SERVICE_LIST_ACKNOWLEDGEMENTS = "list_acknowledgements"
 SERVICE_ACKNOWLEDGE_FINDING = "acknowledge_finding"
 SERVICE_CLEAR_ACKNOWLEDGEMENT = "clear_acknowledgement"
 SERVICE_CLEAR_ACKNOWLEDGEMENTS = "clear_acknowledgements"
+SERVICE_EXPORT_DIAGNOSTIC_REPORT = "export_diagnostic_report"
 
 API_VERSION = PUBLIC_API_VERSION
 
@@ -103,6 +104,7 @@ SERVICE_CLEAR_ACKNOWLEDGEMENT_SCHEMA = vol.Schema(
 )
 
 SERVICE_CLEAR_ACKNOWLEDGEMENTS_SCHEMA = vol.Schema({})
+SERVICE_EXPORT_DIAGNOSTIC_REPORT_SCHEMA = vol.Schema({})
 
 
 def _load_engine() -> tuple[
@@ -439,6 +441,33 @@ async def async_setup(
         SERVICE_CLEAR_ACKNOWLEDGEMENTS,
         async_handle_clear_acknowledgements,
         schema=SERVICE_CLEAR_ACKNOWLEDGEMENTS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def async_handle_export_diagnostic_report(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return an exportable diagnostic report."""
+        del call
+
+        result = hass.data.setdefault(DOMAIN, {}).get(DATA_LAST_RESULT)
+        if result is None:
+            raise RuntimeError(
+                "No HA Inspector inspection result is available"
+            )
+
+        from .engine.diagnostic_report import build_diagnostic_report
+
+        return build_diagnostic_report(
+            version=VERSION,
+            result=result,
+        )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_EXPORT_DIAGNOSTIC_REPORT,
+        async_handle_export_diagnostic_report,
+        schema=SERVICE_EXPORT_DIAGNOSTIC_REPORT_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 

@@ -36,6 +36,7 @@ def test_public_api_services_are_stable() -> None:
         "acknowledge_finding",
         "clear_acknowledgement",
         "clear_acknowledgements",
+        "export_diagnostic_report",
     )
 
 
@@ -56,6 +57,7 @@ def test_describe_public_api() -> None:
             "acknowledge_finding",
             "clear_acknowledgement",
             "clear_acknowledgements",
+            "export_diagnostic_report",
         ],
     }
 

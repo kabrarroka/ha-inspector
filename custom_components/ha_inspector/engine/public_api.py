@@ -18,6 +18,7 @@ PUBLIC_SERVICES = (
     "acknowledge_finding",
     "clear_acknowledgement",
     "clear_acknowledgements",
+    "export_diagnostic_report",
 )
 
 

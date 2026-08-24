@@ -103,6 +103,7 @@ async def test_info_service_response(
             "acknowledge_finding",
             "clear_acknowledgement",
             "clear_acknowledgements",
+            "export_diagnostic_report",
         ],
     }
     assert response["engine"] == {
