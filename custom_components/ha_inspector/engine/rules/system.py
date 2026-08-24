@@ -63,6 +63,25 @@ class CpuLoadRule(BaseRule):
     warning_threshold = 85.0
     error_threshold = 95.0
 
+    def __init__(
+        self,
+        *,
+        warning_threshold: float = 85.0,
+        error_threshold: float = 95.0,
+    ) -> None:
+        """Initialize configurable CPU usage thresholds."""
+        warning_threshold = float(warning_threshold)
+        error_threshold = float(error_threshold)
+
+        if not 0.0 <= warning_threshold <= error_threshold <= 100.0:
+            raise ValueError(
+                "CPU load thresholds must satisfy "
+                "0 <= warning_threshold <= error_threshold <= 100"
+            )
+
+        self.warning_threshold = warning_threshold
+        self.error_threshold = error_threshold
+
     async def check(
         self,
         context: InspectionContext,
@@ -129,6 +148,25 @@ class MemoryUsageRule(BaseRule):
     warning_threshold = 85.0
     error_threshold = 95.0
 
+    def __init__(
+        self,
+        *,
+        warning_threshold: float = 85.0,
+        error_threshold: float = 95.0,
+    ) -> None:
+        """Initialize configurable memory usage thresholds."""
+        warning_threshold = float(warning_threshold)
+        error_threshold = float(error_threshold)
+
+        if not 0.0 <= warning_threshold <= error_threshold <= 100.0:
+            raise ValueError(
+                "Memory usage thresholds must satisfy "
+                "0 <= warning_threshold <= error_threshold <= 100"
+            )
+
+        self.warning_threshold = warning_threshold
+        self.error_threshold = error_threshold
+
     async def check(
         self,
         context: InspectionContext,
@@ -193,6 +231,25 @@ class RestartFrequencyRule(BaseRule):
 
     warning_threshold_24h = 3
     error_threshold_24h = 5
+
+    def __init__(
+        self,
+        *,
+        warning_threshold_24h: int = 3,
+        error_threshold_24h: int = 5,
+    ) -> None:
+        """Initialize configurable restart-frequency thresholds."""
+        warning_threshold_24h = int(warning_threshold_24h)
+        error_threshold_24h = int(error_threshold_24h)
+
+        if not 0 <= warning_threshold_24h <= error_threshold_24h:
+            raise ValueError(
+                "Restart-frequency thresholds must satisfy "
+                "0 <= warning_threshold_24h <= error_threshold_24h"
+            )
+
+        self.warning_threshold_24h = warning_threshold_24h
+        self.error_threshold_24h = error_threshold_24h
 
     async def check(
         self,

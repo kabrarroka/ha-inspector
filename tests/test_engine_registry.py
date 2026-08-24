@@ -291,3 +291,59 @@ def test_registry_creates_recorder_rules_with_configuration() -> None:
     assert keep_days_rule.error_threshold == 120
     assert database_size_rule.warning_threshold_bytes == 8 * 1024**3
     assert database_size_rule.error_threshold_bytes == 16 * 1024**3
+
+
+
+def test_registry_creates_system_rules_with_defaults() -> None:
+    """Registry preserves system rule default thresholds."""
+    registry = EngineRegistry.discover()
+    rules = {
+        rule.rule_id: rule
+        for rule in registry.create_rules()
+    }
+
+    cpu_rule = rules["CPU_LOAD"]
+    memory_rule = rules["MEMORY_USAGE"]
+    restart_rule = rules["RESTART_FREQUENCY"]
+
+    assert cpu_rule.warning_threshold == 85.0
+    assert cpu_rule.error_threshold == 95.0
+    assert memory_rule.warning_threshold == 85.0
+    assert memory_rule.error_threshold == 95.0
+    assert restart_rule.warning_threshold_24h == 3
+    assert restart_rule.error_threshold_24h == 5
+
+
+def test_registry_creates_system_rules_with_configuration() -> None:
+    """Registry passes system-specific threshold configuration."""
+    registry = EngineRegistry.discover()
+    rules = {
+        rule.rule_id: rule
+        for rule in registry.create_rules(
+            {
+                "CPU_LOAD": {
+                    "warning_threshold": 70.0,
+                    "error_threshold": 90.0,
+                },
+                "MEMORY_USAGE": {
+                    "warning_threshold": 75.0,
+                    "error_threshold": 92.0,
+                },
+                "RESTART_FREQUENCY": {
+                    "warning_threshold_24h": 4,
+                    "error_threshold_24h": 8,
+                },
+            }
+        )
+    }
+
+    cpu_rule = rules["CPU_LOAD"]
+    memory_rule = rules["MEMORY_USAGE"]
+    restart_rule = rules["RESTART_FREQUENCY"]
+
+    assert cpu_rule.warning_threshold == 70.0
+    assert cpu_rule.error_threshold == 90.0
+    assert memory_rule.warning_threshold == 75.0
+    assert memory_rule.error_threshold == 92.0
+    assert restart_rule.warning_threshold_24h == 4
+    assert restart_rule.error_threshold_24h == 8
