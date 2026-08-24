@@ -315,3 +315,118 @@ async def test_run_records_empty_collector_timings() -> None:
         "rules_seconds": pytest.approx(0.1),
         "collectors": {},
     }
+
+
+class FailingCollector(BaseCollector):
+    """Collector that always fails."""
+
+    collector_id = "failing"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def collect(self, hass, context: InspectionContext) -> None:
+        del hass, context
+        self.calls += 1
+        raise RuntimeError("collector exploded")
+
+
+@pytest.mark.asyncio
+async def test_run_isolates_collector_failure() -> None:
+    """A failing collector does not prevent later collectors from running."""
+    failing = FailingCollector()
+    recording = RecordingCollector()
+
+    inspector = Inspector(
+        collectors=[failing, recording],
+        rules=[AlphaRule()],
+    )
+
+    result = await inspector.run(object())
+
+    assert failing.calls == 1
+    assert recording.calls == 1
+    assert result.checks_executed == 1
+
+    assert result.metadata["collectors_executed"] == 2
+    assert result.metadata["collectors_failed"] == 1
+    assert result.metadata["collectors_succeeded"] == 1
+    assert result.metadata["collector_errors"] == [
+        {
+            "collector_id": "failing",
+            "error_type": "RuntimeError",
+            "message": "collector exploded",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_reports_no_collector_failures() -> None:
+    """Successful inspections expose an empty collector failure report."""
+    inspector = Inspector(
+        collectors=[RecordingCollector()],
+        rules=[AlphaRule()],
+    )
+
+    result = await inspector.run(object())
+
+    assert result.metadata["collectors_failed"] == 0
+    assert result.metadata["collectors_succeeded"] == 1
+    assert result.metadata["collector_errors"] == []
+
+
+@pytest.mark.asyncio
+async def test_failed_collector_records_timing_and_continues() -> None:
+    """Failed collectors retain timing information."""
+    failing = FailingCollector()
+    recording = RecordingCollector()
+
+    inspector = Inspector(
+        collectors=[failing, recording],
+        rules=[AlphaRule()],
+        clock=FakeClock(
+            10.0,  # inspection start
+            10.1,  # collectors start
+            10.2,  # failing collector start
+            10.5,  # failing collector end
+            10.6,  # recording collector start
+            10.9,  # recording collector end
+            11.0,  # collectors end
+            11.1,  # rules start
+            11.4,  # rules end
+            11.5,  # inspection end
+        ),
+    )
+
+    result = await inspector.run(object())
+
+    timings = result.metadata["timings"]
+
+    assert timings["collectors"]["failing"] == pytest.approx(0.3)
+    assert timings["collectors"]["recording"] == pytest.approx(0.3)
+    assert timings["collectors_seconds"] == pytest.approx(0.9)
+    assert timings["rules_seconds"] == pytest.approx(0.3)
+    assert timings["inspection_seconds"] == pytest.approx(1.5)
+
+
+@pytest.mark.asyncio
+async def test_collector_failure_is_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Collector failures are logged with their collector identifier."""
+    inspector = Inspector(
+        collectors=[FailingCollector()],
+    )
+
+    with caplog.at_level(
+        "ERROR",
+        logger="custom_components.ha_inspector.engine.inspector",
+    ):
+        result = await inspector.run(object())
+
+    assert result.metadata["collectors_failed"] == 1
+    assert (
+        "Collector failing failed during inspection"
+        in caplog.text
+    )
+    assert "collector exploded" in caplog.text

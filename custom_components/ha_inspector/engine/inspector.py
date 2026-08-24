@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Sequence
 from time import perf_counter
 from typing import TYPE_CHECKING
@@ -20,6 +21,9 @@ from .suppression import FindingSuppressionPolicy
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class Inspector:
@@ -79,14 +83,29 @@ class Inspector:
 
         inspection_started = self._clock()
         collector_timings: dict[str, float] = {}
+        collector_errors: list[dict[str, str]] = []
 
         collectors_started = self._clock()
         for collector in self._collectors:
             collector_started = self._clock()
-            await collector.collect(hass, context)
-            collector_timings[collector.collector_id] = (
-                self._clock() - collector_started
-            )
+            try:
+                await collector.collect(hass, context)
+            except Exception as err:
+                _LOGGER.exception(
+                    "Collector %s failed during inspection",
+                    collector.collector_id,
+                )
+                collector_errors.append(
+                    {
+                        "collector_id": collector.collector_id,
+                        "error_type": type(err).__name__,
+                        "message": str(err),
+                    }
+                )
+            finally:
+                collector_timings[collector.collector_id] = (
+                    self._clock() - collector_started
+                )
         collectors_seconds = self._clock() - collectors_started
 
         plan = self._rule_selector.select(
@@ -109,6 +128,11 @@ class Inspector:
             "collectors": collector_timings,
         }
         result.metadata["collectors_executed"] = len(self._collectors)
+        result.metadata["collectors_failed"] = len(collector_errors)
+        result.metadata["collectors_succeeded"] = (
+            len(self._collectors) - len(collector_errors)
+        )
+        result.metadata["collector_errors"] = collector_errors
         result.metadata["rules_discovered"] = len(self._rules)
         result.metadata["rules_selected"] = len(plan)
         result.metadata["execution_plan"] = plan.as_dict()
