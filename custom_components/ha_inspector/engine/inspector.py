@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from time import perf_counter
 from typing import TYPE_CHECKING
 
 from .collectors.base import BaseCollector
@@ -28,10 +29,12 @@ class Inspector:
         self,
         collectors: Sequence[BaseCollector] | None = None,
         rules: Sequence[BaseRule] | None = None,
+        clock: Callable[[], float] = perf_counter,
     ) -> None:
         """Initialize the inspector."""
         self._collectors = list(collectors or [])
         self._rules = list(rules or [])
+        self._clock = clock
 
         self._rule_registry = RuleRegistry(self._rules)
         self._rule_selector = RuleSelector(self._rule_registry)
@@ -74,19 +77,37 @@ class Inspector:
         language = normalize_language(requested_language)
         context = InspectionContext(language=language)
 
+        inspection_started = self._clock()
+        collector_timings: dict[str, float] = {}
+
+        collectors_started = self._clock()
         for collector in self._collectors:
+            collector_started = self._clock()
             await collector.collect(hass, context)
+            collector_timings[collector.collector_id] = (
+                self._clock() - collector_started
+            )
+        collectors_seconds = self._clock() - collectors_started
 
         plan = self._rule_selector.select(
             **request.selector_options(),
         )
 
+        rules_started = self._clock()
         result = await self._rule_engine.execute(
             context,
             plan,
             suppression=suppression,
         )
+        rules_seconds = self._clock() - rules_started
+        inspection_seconds = self._clock() - inspection_started
 
+        result.metadata["timings"] = {
+            "inspection_seconds": inspection_seconds,
+            "collectors_seconds": collectors_seconds,
+            "rules_seconds": rules_seconds,
+            "collectors": collector_timings,
+        }
         result.metadata["collectors_executed"] = len(self._collectors)
         result.metadata["rules_discovered"] = len(self._rules)
         result.metadata["rules_selected"] = len(plan)
