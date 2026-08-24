@@ -32,6 +32,10 @@ def test_public_api_services_are_stable() -> None:
         "list_profiles",
         "describe_profile",
         "info",
+        "list_acknowledgements",
+        "acknowledge_finding",
+        "clear_acknowledgement",
+        "clear_acknowledgements",
     )
 
 
@@ -48,6 +52,10 @@ def test_describe_public_api() -> None:
             "list_profiles",
             "describe_profile",
             "info",
+            "list_acknowledgements",
+            "acknowledge_finding",
+            "clear_acknowledgement",
+            "clear_acknowledgements",
         ],
     }
 
