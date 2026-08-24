@@ -180,3 +180,88 @@ async def test_engine_uses_rule_id_for_execution_plan() -> None:
     )
 
     assert result.checks_executed == 1
+
+
+@pytest.mark.asyncio
+async def test_suppressed_finding_does_not_affect_result() -> None:
+    """Suppressed findings remain outside active result scoring."""
+    from custom_components.ha_inspector.engine.suppression import (
+        FindingSuppressionPolicy,
+    )
+
+    rule = FakeRule(
+        descriptor("RULE1"),
+        [
+            finding("RULE1"),
+            Finding(
+                finding_id="RULE1.2",
+                severity=Severity.ERROR,
+                title="error",
+                description="error",
+            ),
+        ],
+    )
+    engine = RuleEngine([rule])
+
+    result = await engine.execute(
+        InspectionContext(),
+        RuleExecutionPlan(("RULE1",)),
+        suppression=FindingSuppressionPolicy(
+            finding_ids=frozenset({"RULE1.1"})
+        ),
+    )
+
+    assert result.checks_executed == 1
+    assert [item.finding_id for item in result.findings] == ["RULE1.2"]
+    assert result.total_findings == 1
+    assert result.metadata["suppressed_findings"] == ["RULE1.1"]
+    assert result.metadata["suppressed_findings_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_default_execution_suppresses_nothing() -> None:
+    """Default execution preserves existing finding behaviour."""
+    rule = FakeRule(
+        descriptor("RULE1"),
+        [finding("RULE1")],
+    )
+    engine = RuleEngine([rule])
+
+    result = await engine.execute(
+        InspectionContext(),
+        RuleExecutionPlan(("RULE1",)),
+    )
+
+    assert result.total_findings == 1
+    assert result.metadata["suppressed_findings"] == []
+    assert result.metadata["suppressed_findings_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_fully_suppressed_rule_still_counts_as_executed() -> None:
+    """A fully suppressed rule remains an executed healthy check."""
+    from custom_components.ha_inspector.engine.suppression import (
+        FindingSuppressionPolicy,
+    )
+
+    rule = FakeRule(
+        descriptor("RULE1"),
+        [finding("RULE1")],
+    )
+    engine = RuleEngine([rule])
+
+    result = await engine.execute(
+        InspectionContext(),
+        RuleExecutionPlan(("RULE1",)),
+        suppression=FindingSuppressionPolicy(
+            finding_ids=frozenset({"RULE1.1"})
+        ),
+    )
+
+    assert result.checks_executed == 1
+    assert result.total_findings == 0
+    assert result.score == 100
+    assert result.categories["system"]["checks"] == 1
+    assert result.categories["system"]["findings"] == 0
+    assert result.metadata["suppressed_findings"] == ["RULE1.1"]
+    assert result.metadata["suppressed_findings_count"] == 1
