@@ -12,6 +12,7 @@ from .result import InspectionResult
 from .rule_selector import RuleExecutionPlan
 from .rules.base import BaseRule
 from .severity import Severity
+from .suppression import FindingSuppressionPolicy
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,12 +55,18 @@ class RuleEngine:
         self,
         context: InspectionContext,
         plan: RuleExecutionPlan,
+        *,
+        suppression: FindingSuppressionPolicy | None = None,
     ) -> InspectionResult:
         """Execute every rule included in the execution plan."""
         self._validate_plan(plan)
 
+        if suppression is None:
+            suppression = FindingSuppressionPolicy()
+
         result = InspectionResult()
         execution_errors: list[str] = []
+        suppressed_finding_ids: list[str] = []
 
         for rule_id in plan:
             rule = self._rules[rule_id]
@@ -102,12 +109,24 @@ class RuleEngine:
                 for finding in findings
             ]
 
+            active_findings, suppressed_findings = suppression.partition(
+                localized_findings
+            )
+            suppressed_finding_ids.extend(
+                finding.finding_id
+                for finding in suppressed_findings
+            )
+
             result.record_rule(
                 category=descriptor.category,
                 weight=descriptor.weight,
-                findings=localized_findings,
+                findings=active_findings,
             )
 
+        result.metadata["suppressed_findings"] = suppressed_finding_ids
+        result.metadata["suppressed_findings_count"] = len(
+            suppressed_finding_ids
+        )
         result.metadata["rules_available"] = len(self._rules)
         result.metadata["rules_selected"] = len(plan)
         result.metadata["execution_errors"] = execution_errors
