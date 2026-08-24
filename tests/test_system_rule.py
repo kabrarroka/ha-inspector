@@ -398,3 +398,184 @@ async def test_network_connectivity_can_report_multiple_failures() -> None:
         "DNS_RESOLUTION_FAILED",
         "HOST_INTERNET_UNAVAILABLE",
     }
+
+
+
+def test_cpu_load_default_thresholds() -> None:
+    """CPU load preserves backward-compatible default thresholds."""
+    rule = CpuLoadRule()
+
+    assert rule.warning_threshold == 85.0
+    assert rule.error_threshold == 95.0
+
+
+@pytest.mark.asyncio
+async def test_cpu_load_custom_thresholds() -> None:
+    """Configured CPU thresholds control finding severity."""
+    context = InspectionContext(
+        system=SystemState(cpu_percent=71.0)
+    )
+    rule = CpuLoadRule(
+        warning_threshold=70.0,
+        error_threshold=80.0,
+    )
+
+    findings = await rule.check(context)
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "CPU_LOAD_HIGH"
+    assert findings[0].severity is Severity.WARNING
+    assert findings[0].data["warning_threshold"] == 70.0
+    assert findings[0].data["error_threshold"] == 80.0
+
+
+def test_cpu_load_accepts_boundary_thresholds() -> None:
+    """CPU thresholds may span the complete percentage range."""
+    rule = CpuLoadRule(
+        warning_threshold=0.0,
+        error_threshold=100.0,
+    )
+
+    assert rule.warning_threshold == 0.0
+    assert rule.error_threshold == 100.0
+
+
+@pytest.mark.parametrize(
+    ("warning_threshold", "error_threshold"),
+    [
+        (-1.0, 95.0),
+        (85.0, 101.0),
+        (96.0, 95.0),
+    ],
+)
+def test_cpu_load_rejects_invalid_thresholds(
+    warning_threshold: float,
+    error_threshold: float,
+) -> None:
+    """Invalid CPU threshold ranges are rejected."""
+    with pytest.raises(ValueError, match="CPU load thresholds"):
+        CpuLoadRule(
+            warning_threshold=warning_threshold,
+            error_threshold=error_threshold,
+        )
+
+
+def test_memory_usage_default_thresholds() -> None:
+    """Memory usage preserves backward-compatible default thresholds."""
+    rule = MemoryUsageRule()
+
+    assert rule.warning_threshold == 85.0
+    assert rule.error_threshold == 95.0
+
+
+@pytest.mark.asyncio
+async def test_memory_usage_custom_thresholds() -> None:
+    """Configured memory thresholds control finding severity."""
+    context = InspectionContext(
+        system=SystemState(memory_percent=76.0)
+    )
+    rule = MemoryUsageRule(
+        warning_threshold=75.0,
+        error_threshold=90.0,
+    )
+
+    findings = await rule.check(context)
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "MEMORY_USAGE_HIGH"
+    assert findings[0].severity is Severity.WARNING
+    assert findings[0].data["warning_threshold"] == 75.0
+    assert findings[0].data["error_threshold"] == 90.0
+
+
+def test_memory_usage_accepts_boundary_thresholds() -> None:
+    """Memory thresholds may span the complete percentage range."""
+    rule = MemoryUsageRule(
+        warning_threshold=0.0,
+        error_threshold=100.0,
+    )
+
+    assert rule.warning_threshold == 0.0
+    assert rule.error_threshold == 100.0
+
+
+@pytest.mark.parametrize(
+    ("warning_threshold", "error_threshold"),
+    [
+        (-1.0, 95.0),
+        (85.0, 101.0),
+        (96.0, 95.0),
+    ],
+)
+def test_memory_usage_rejects_invalid_thresholds(
+    warning_threshold: float,
+    error_threshold: float,
+) -> None:
+    """Invalid memory threshold ranges are rejected."""
+    with pytest.raises(ValueError, match="Memory usage thresholds"):
+        MemoryUsageRule(
+            warning_threshold=warning_threshold,
+            error_threshold=error_threshold,
+        )
+
+
+def test_restart_frequency_default_thresholds() -> None:
+    """Restart frequency preserves backward-compatible defaults."""
+    rule = RestartFrequencyRule()
+
+    assert rule.warning_threshold_24h == 3
+    assert rule.error_threshold_24h == 5
+
+
+@pytest.mark.asyncio
+async def test_restart_frequency_custom_thresholds() -> None:
+    """Configured restart thresholds control finding severity."""
+    context = InspectionContext(
+        system=SystemState(
+            restart_count_24h=4,
+            restart_count_7d=8,
+        )
+    )
+    rule = RestartFrequencyRule(
+        warning_threshold_24h=4,
+        error_threshold_24h=7,
+    )
+
+    findings = await rule.check(context)
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "RESTART_FREQUENCY_HIGH"
+    assert findings[0].severity is Severity.WARNING
+    assert findings[0].data["warning_threshold_24h"] == 4
+    assert findings[0].data["error_threshold_24h"] == 7
+
+
+def test_restart_frequency_accepts_boundary_thresholds() -> None:
+    """Zero and equal restart thresholds are valid."""
+    rule = RestartFrequencyRule(
+        warning_threshold_24h=0,
+        error_threshold_24h=0,
+    )
+
+    assert rule.warning_threshold_24h == 0
+    assert rule.error_threshold_24h == 0
+
+
+@pytest.mark.parametrize(
+    ("warning_threshold_24h", "error_threshold_24h"),
+    [
+        (-1, 5),
+        (3, -1),
+        (6, 5),
+    ],
+)
+def test_restart_frequency_rejects_invalid_thresholds(
+    warning_threshold_24h: int,
+    error_threshold_24h: int,
+) -> None:
+    """Invalid restart-frequency threshold ranges are rejected."""
+    with pytest.raises(ValueError, match="Restart-frequency thresholds"):
+        RestartFrequencyRule(
+            warning_threshold_24h=warning_threshold_24h,
+            error_threshold_24h=error_threshold_24h,
+        )
