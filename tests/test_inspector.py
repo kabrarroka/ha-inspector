@@ -200,3 +200,53 @@ async def test_run_request_language_overrides_home_assistant() -> None:
     )
 
     assert result.metadata["language"] == "es"
+
+
+@pytest.mark.asyncio
+async def test_run_applies_finding_suppression_policy() -> None:
+    """Inspector passes finding suppression through to the rule engine."""
+    from custom_components.ha_inspector.engine.severity import Severity
+    from custom_components.ha_inspector.engine.suppression import (
+        FindingSuppressionPolicy,
+    )
+
+    class FindingRule(BaseRule):
+        rule_id = "finding.rule"
+        title = "Finding rule"
+        category = "system"
+        tags = ("finding",)
+        weight = 20
+
+        async def check(
+            self,
+            context: InspectionContext,
+        ) -> list[Finding]:
+            del context
+            return [
+                Finding(
+                    finding_id="FINDING_SUPPRESSED",
+                    severity=Severity.ERROR,
+                    title="Suppressed finding",
+                    description="Suppressed finding",
+                )
+            ]
+
+    inspector = Inspector(rules=[FindingRule()])
+
+    result = await inspector.run(
+        object(),
+        request=InspectionRequest(
+            include_rule_ids=("finding.rule",),
+        ),
+        suppression=FindingSuppressionPolicy(
+            finding_ids=frozenset({"FINDING_SUPPRESSED"})
+        ),
+    )
+
+    assert result.checks_executed == 1
+    assert result.total_findings == 0
+    assert result.score == 100
+    assert result.metadata["suppressed_findings"] == [
+        "FINDING_SUPPRESSED"
+    ]
+    assert result.metadata["suppressed_findings_count"] == 1

@@ -8,6 +8,7 @@ import pytest
 
 from custom_components.ha_inspector import SERVICE_RUN_SCHEMA, async_setup
 from custom_components.ha_inspector.const import (
+    DATA_ACKNOWLEDGEMENTS,
     DATA_INSPECTION_HISTORY,
     DOMAIN,
 )
@@ -140,3 +141,117 @@ async def test_run_service_persists_inspection_history() -> None:
 
     history.async_add.assert_awaited_once_with(result_data)
     assert response is result_data
+
+
+
+@pytest.mark.asyncio
+async def test_run_service_applies_persisted_acknowledgements() -> None:
+    """Run service converts persisted acknowledgements into suppression."""
+    inspector = MagicMock()
+    inspector.run = AsyncMock()
+
+    result = MagicMock()
+    result.metadata = {}
+    result.as_dict.return_value = {
+        "findings": [],
+        "metadata": result.metadata,
+    }
+    inspector.run.return_value = result
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+
+    acknowledgements = MagicMock()
+    acknowledgements.finding_ids = frozenset(
+        {
+            "UNAVAILABLE_ENTITIES_EXCESSIVE",
+            "BACKUP_AGE_HIGH",
+        }
+    )
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_ACKNOWLEDGEMENTS: acknowledgements,
+        }
+    }
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    registrations = {
+        call.args[1]: call.args[2]
+        for call in hass.services.async_register.call_args_list
+        if call.args[0] == DOMAIN
+    }
+
+    service_call = MagicMock()
+    service_call.data = {}
+
+    await registrations["run"](service_call)
+
+    call = inspector.run.await_args
+
+    assert call.args == (hass,)
+    assert call.kwargs["request"] is not None
+
+    suppression = call.kwargs["suppression"]
+
+    assert suppression is not None
+    assert suppression.finding_ids == frozenset(
+        {
+            "UNAVAILABLE_ENTITIES_EXCESSIVE",
+            "BACKUP_AGE_HIGH",
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_service_without_acknowledgement_store_uses_no_suppression() -> None:
+    """Run service remains backward compatible without persisted state."""
+    inspector = MagicMock()
+    inspector.run = AsyncMock()
+
+    result = MagicMock()
+    result.metadata = {}
+    result.as_dict.return_value = {
+        "findings": [],
+        "metadata": result.metadata,
+    }
+    inspector.run.return_value = result
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    registrations = {
+        call.args[1]: call.args[2]
+        for call in hass.services.async_register.call_args_list
+        if call.args[0] == DOMAIN
+    }
+
+    service_call = MagicMock()
+    service_call.data = {}
+
+    await registrations["run"](service_call)
+
+    assert inspector.run.await_args.kwargs["suppression"] is None

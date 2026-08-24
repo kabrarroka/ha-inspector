@@ -17,6 +17,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    DATA_ACKNOWLEDGEMENTS,
     DATA_INSPECTION_HISTORY,
     DATA_LAST_RESULT,
     DATA_RESTART_HISTORY,
@@ -227,9 +228,21 @@ async def async_setup(
 
         request = _build_request(call.data)
 
+        domain_data = hass.data.setdefault(DOMAIN, {})
+        acknowledgements = domain_data.get(DATA_ACKNOWLEDGEMENTS)
+
+        suppression = None
+        if acknowledgements is not None:
+            from .engine.suppression import FindingSuppressionPolicy
+
+            suppression = FindingSuppressionPolicy(
+                finding_ids=acknowledgements.finding_ids
+            )
+
         result = await inspector.run(
             hass,
             request=request,
+            suppression=suppression,
         )
 
         result.metadata["registry"] = {
@@ -245,7 +258,6 @@ async def async_setup(
 
         result_data = result.as_dict()
 
-        domain_data = hass.data.setdefault(DOMAIN, {})
         domain_data[DATA_LAST_RESULT] = result_data
 
         inspection_history = domain_data.get(DATA_INSPECTION_HISTORY)
@@ -354,6 +366,14 @@ async def async_setup_entry(
         await inspection_history.async_load()
 
         domain_data[DATA_INSPECTION_HISTORY] = inspection_history
+
+    if DATA_ACKNOWLEDGEMENTS not in domain_data:
+        from .engine.acknowledgements import AcknowledgementStore
+
+        acknowledgements = AcknowledgementStore(hass)
+        await acknowledgements.async_load()
+
+        domain_data[DATA_ACKNOWLEDGEMENTS] = acknowledgements
 
     await hass.config_entries.async_forward_entry_setups(
         entry,
