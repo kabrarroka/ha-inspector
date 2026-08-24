@@ -63,7 +63,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 - [x] Configurable rule thresholds
 - [x] Rule suppression and acknowledgement
-- [ ] Inspection duration and collector timing metrics
+- [x] Inspection duration and collector timing metrics
 - [ ] Collector failure isolation and reporting
 - [ ] Exportable diagnostic report
 

@@ -250,3 +250,68 @@ async def test_run_applies_finding_suppression_policy() -> None:
         "FINDING_SUPPRESSED"
     ]
     assert result.metadata["suppressed_findings_count"] == 1
+
+
+class FakeClock:
+    """Return deterministic monotonic timestamps."""
+
+    def __init__(self, *values: float) -> None:
+        self._values = iter(values)
+
+    def __call__(self) -> float:
+        return next(self._values)
+
+
+@pytest.mark.asyncio
+async def test_run_records_inspection_and_collector_timings() -> None:
+    """Inspector exposes deterministic operational timing metrics."""
+    collector = RecordingCollector()
+    inspector = Inspector(
+        collectors=[collector],
+        rules=[AlphaRule()],
+        clock=FakeClock(
+            10.0,  # inspection start
+            10.1,  # collectors start
+            10.2,  # collector start
+            10.5,  # collector end
+            10.6,  # collectors end
+            10.7,  # rules start
+            11.1,  # rules end
+            11.2,  # inspection end
+        ),
+    )
+
+    result = await inspector.run(object())
+
+    assert result.metadata["timings"] == {
+        "inspection_seconds": pytest.approx(1.2),
+        "collectors_seconds": pytest.approx(0.5),
+        "rules_seconds": pytest.approx(0.4),
+        "collectors": {
+            "recording": pytest.approx(0.3),
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_run_records_empty_collector_timings() -> None:
+    """Inspector exposes timing metrics when no collectors are registered."""
+    inspector = Inspector(
+        clock=FakeClock(
+            20.0,  # inspection start
+            20.1,  # collectors start
+            20.2,  # collectors end
+            20.3,  # rules start
+            20.4,  # rules end
+            20.5,  # inspection end
+        ),
+    )
+
+    result = await inspector.run(object())
+
+    assert result.metadata["timings"] == {
+        "inspection_seconds": pytest.approx(0.5),
+        "collectors_seconds": pytest.approx(0.1),
+        "rules_seconds": pytest.approx(0.1),
+        "collectors": {},
+    }
