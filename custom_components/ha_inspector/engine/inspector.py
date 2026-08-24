@@ -15,6 +15,7 @@ from .rule_engine import RuleEngine
 from .rule_registry import RuleRegistry
 from .rule_selector import RuleSelector
 from .rules.base import BaseRule
+from .suppression import FindingSuppressionPolicy
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -50,6 +51,7 @@ class Inspector:
         *,
         request: InspectionRequest | None = None,
         diagnostics: bool | None = None,
+        suppression: FindingSuppressionPolicy | None = None,
     ) -> InspectionResult:
         """Run collectors and the rules selected by the request."""
         if request is None:
@@ -82,6 +84,7 @@ class Inspector:
         result = await self._rule_engine.execute(
             context,
             plan,
+            suppression=suppression,
         )
 
         result.metadata["collectors_executed"] = len(self._collectors)
