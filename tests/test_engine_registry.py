@@ -246,3 +246,48 @@ def test_registry_rejects_unknown_rule_configuration() -> None:
                 }
             }
         )
+
+
+def test_registry_creates_recorder_rules_with_defaults() -> None:
+    """Registry preserves Recorder rule default thresholds."""
+    registry = EngineRegistry.discover()
+    rules = {
+        rule.rule_id: rule
+        for rule in registry.create_rules()
+    }
+
+    keep_days_rule = rules["RECORDER_KEEP_DAYS"]
+    database_size_rule = rules["RECORDER_DATABASE_SIZE"]
+
+    assert keep_days_rule.warning_threshold == 30
+    assert keep_days_rule.error_threshold == 90
+    assert database_size_rule.warning_threshold_bytes == 5 * 1024**3
+    assert database_size_rule.error_threshold_bytes == 10 * 1024**3
+
+
+def test_registry_creates_recorder_rules_with_configuration() -> None:
+    """Registry passes Recorder-specific threshold configuration."""
+    registry = EngineRegistry.discover()
+    rules = {
+        rule.rule_id: rule
+        for rule in registry.create_rules(
+            {
+                "RECORDER_KEEP_DAYS": {
+                    "warning_threshold": 45,
+                    "error_threshold": 120,
+                },
+                "RECORDER_DATABASE_SIZE": {
+                    "warning_threshold_bytes": 8 * 1024**3,
+                    "error_threshold_bytes": 16 * 1024**3,
+                },
+            }
+        )
+    }
+
+    keep_days_rule = rules["RECORDER_KEEP_DAYS"]
+    database_size_rule = rules["RECORDER_DATABASE_SIZE"]
+
+    assert keep_days_rule.warning_threshold == 45
+    assert keep_days_rule.error_threshold == 120
+    assert database_size_rule.warning_threshold_bytes == 8 * 1024**3
+    assert database_size_rule.error_threshold_bytes == 16 * 1024**3

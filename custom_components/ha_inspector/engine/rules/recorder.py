@@ -88,6 +88,25 @@ class RecorderKeepDaysRule(BaseRule):
     warning_threshold = 30
     error_threshold = 90
 
+    def __init__(
+        self,
+        *,
+        warning_threshold: int = 30,
+        error_threshold: int = 90,
+    ) -> None:
+        """Initialize configurable Recorder retention thresholds."""
+        warning_threshold = int(warning_threshold)
+        error_threshold = int(error_threshold)
+
+        if not 0 <= warning_threshold <= error_threshold:
+            raise ValueError(
+                "Recorder keep-days thresholds must satisfy "
+                "0 <= warning_threshold <= error_threshold"
+            )
+
+        self.warning_threshold = warning_threshold
+        self.error_threshold = error_threshold
+
     async def check(
         self,
         context: InspectionContext,
@@ -168,6 +187,25 @@ class RecorderDatabaseSizeRule(BaseRule):
 
     warning_threshold_bytes = 5 * 1024**3
     error_threshold_bytes = 10 * 1024**3
+
+    def __init__(
+        self,
+        *,
+        warning_threshold_bytes: int = 5 * 1024**3,
+        error_threshold_bytes: int = 10 * 1024**3,
+    ) -> None:
+        """Initialize configurable Recorder database-size thresholds."""
+        warning_threshold_bytes = int(warning_threshold_bytes)
+        error_threshold_bytes = int(error_threshold_bytes)
+
+        if not 0 <= warning_threshold_bytes <= error_threshold_bytes:
+            raise ValueError(
+                "Recorder database-size thresholds must satisfy "
+                "0 <= warning_threshold_bytes <= error_threshold_bytes"
+            )
+
+        self.warning_threshold_bytes = warning_threshold_bytes
+        self.error_threshold_bytes = error_threshold_bytes
 
     async def check(
         self,
