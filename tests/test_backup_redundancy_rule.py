@@ -187,3 +187,48 @@ async def test_invalid_agent_ids_are_ignored(
             agent_ids=agent_ids,
         )
     ) == []
+
+
+def test_backup_redundancy_default_threshold() -> None:
+    """Backup redundancy preserves its backward-compatible default."""
+    rule = BackupRedundancyRule()
+
+    assert rule.minimum_recommended_agents == 2
+
+
+@pytest.mark.asyncio
+async def test_backup_redundancy_custom_threshold() -> None:
+    """Configured redundancy threshold controls findings."""
+    rule = BackupRedundancyRule(minimum_recommended_agents=3)
+
+    findings = await rule.check(
+        _context(
+            agent_count=2,
+            agent_ids=["local", "cloud"],
+        )
+    )
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "BACKUP_REDUNDANCY_LOW"
+    assert findings[0].severity is Severity.WARNING
+    assert findings[0].data["minimum_recommended_agents"] == 3
+
+    assert await rule.check(
+        _context(
+            agent_count=3,
+            agent_ids=["local", "cloud", "nas"],
+        )
+    ) == []
+
+
+def test_backup_redundancy_accepts_zero_threshold() -> None:
+    """Zero is a valid redundancy threshold."""
+    rule = BackupRedundancyRule(minimum_recommended_agents=0)
+
+    assert rule.minimum_recommended_agents == 0
+
+
+def test_backup_redundancy_rejects_negative_threshold() -> None:
+    """Negative redundancy thresholds are rejected."""
+    with pytest.raises(ValueError, match="Backup redundancy threshold"):
+        BackupRedundancyRule(minimum_recommended_agents=-1)

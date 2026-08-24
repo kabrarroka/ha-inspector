@@ -18,6 +18,25 @@ class BackupAgeRule(BaseRule):
     warning_age_days = 7
     error_age_days = 30
 
+    def __init__(
+        self,
+        *,
+        warning_age_days: int = 7,
+        error_age_days: int = 30,
+    ) -> None:
+        """Initialize configurable backup-age thresholds."""
+        warning_age_days = int(warning_age_days)
+        error_age_days = int(error_age_days)
+
+        if not 0 <= warning_age_days <= error_age_days:
+            raise ValueError(
+                "Backup age thresholds must satisfy "
+                "0 <= warning_age_days <= error_age_days"
+            )
+
+        self.warning_age_days = warning_age_days
+        self.error_age_days = error_age_days
+
     def _now(self) -> datetime:
         """Return the current UTC time."""
         return datetime.now(UTC)

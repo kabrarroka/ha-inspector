@@ -15,6 +15,21 @@ class BackupCountRule(BaseRule):
 
     minimum_recommended = 3
 
+    def __init__(
+        self,
+        *,
+        minimum_recommended: int = 3,
+    ) -> None:
+        """Initialize configurable backup-count threshold."""
+        minimum_recommended = int(minimum_recommended)
+
+        if minimum_recommended < 0:
+            raise ValueError(
+                "Backup count threshold must satisfy minimum_recommended >= 0"
+            )
+
+        self.minimum_recommended = minimum_recommended
+
     async def check(
         self,
         context: InspectionContext,
@@ -137,6 +152,22 @@ class BackupRedundancyRule(BaseRule):
     rule_id = "BACKUP_REDUNDANCY"
 
     minimum_recommended_agents = 2
+
+    def __init__(
+        self,
+        *,
+        minimum_recommended_agents: int = 2,
+    ) -> None:
+        """Initialize configurable backup-redundancy threshold."""
+        minimum_recommended_agents = int(minimum_recommended_agents)
+
+        if minimum_recommended_agents < 0:
+            raise ValueError(
+                "Backup redundancy threshold must satisfy "
+                "minimum_recommended_agents >= 0"
+            )
+
+        self.minimum_recommended_agents = minimum_recommended_agents
 
     async def check(
         self,
