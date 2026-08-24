@@ -65,7 +65,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Rule suppression and acknowledgement
 - [x] Inspection duration and collector timing metrics
 - [x] Collector failure isolation and reporting
-- [ ] Exportable diagnostic report
+- [x] Exportable diagnostic report
 
 ## Epic H — Home Assistant integration UX
 
