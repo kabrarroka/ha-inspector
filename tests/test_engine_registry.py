@@ -347,3 +347,49 @@ def test_registry_creates_system_rules_with_configuration() -> None:
     assert memory_rule.error_threshold == 92.0
     assert restart_rule.warning_threshold_24h == 4
     assert restart_rule.error_threshold_24h == 8
+
+
+
+def test_registry_creates_entity_rules_with_defaults() -> None:
+    """Registry preserves entity rule default thresholds."""
+    registry = EngineRegistry.discover()
+    rules = {
+        rule.rule_id: rule
+        for rule in registry.create_rules()
+    }
+
+    unavailable_rule = rules["UNAVAILABLE_ENTITIES"]
+    unknown_rule = rules["UNKNOWN_ENTITIES"]
+
+    assert unavailable_rule.warning_percentage == 5.0
+    assert unavailable_rule.error_percentage == 15.0
+    assert unknown_rule.warning_percentage == 5.0
+    assert unknown_rule.error_percentage == 15.0
+
+
+def test_registry_creates_entity_rules_with_configuration() -> None:
+    """Registry passes entity-specific threshold configuration."""
+    registry = EngineRegistry.discover()
+    rules = {
+        rule.rule_id: rule
+        for rule in registry.create_rules(
+            {
+                "UNAVAILABLE_ENTITIES": {
+                    "warning_percentage": 8.0,
+                    "error_percentage": 18.0,
+                },
+                "UNKNOWN_ENTITIES": {
+                    "warning_percentage": 7.0,
+                    "error_percentage": 20.0,
+                },
+            }
+        )
+    }
+
+    unavailable_rule = rules["UNAVAILABLE_ENTITIES"]
+    unknown_rule = rules["UNKNOWN_ENTITIES"]
+
+    assert unavailable_rule.warning_percentage == 8.0
+    assert unavailable_rule.error_percentage == 18.0
+    assert unknown_rule.warning_percentage == 7.0
+    assert unknown_rule.error_percentage == 20.0
