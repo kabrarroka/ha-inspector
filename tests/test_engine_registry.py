@@ -393,3 +393,53 @@ def test_registry_creates_entity_rules_with_configuration() -> None:
     assert unavailable_rule.error_percentage == 18.0
     assert unknown_rule.warning_percentage == 7.0
     assert unknown_rule.error_percentage == 20.0
+
+
+
+def test_registry_creates_backup_rules_with_defaults() -> None:
+    """Registry preserves backup rule default thresholds."""
+    registry = EngineRegistry.discover()
+    rules = {
+        rule.rule_id: rule
+        for rule in registry.create_rules()
+    }
+
+    count_rule = rules["BACKUP_COUNT"]
+    redundancy_rule = rules["BACKUP_REDUNDANCY"]
+    age_rule = rules["BACKUP_AGE"]
+
+    assert count_rule.minimum_recommended == 3
+    assert redundancy_rule.minimum_recommended_agents == 2
+    assert age_rule.warning_age_days == 7
+    assert age_rule.error_age_days == 30
+
+
+def test_registry_creates_backup_rules_with_configuration() -> None:
+    """Registry passes backup-specific threshold configuration."""
+    registry = EngineRegistry.discover()
+    rules = {
+        rule.rule_id: rule
+        for rule in registry.create_rules(
+            {
+                "BACKUP_COUNT": {
+                    "minimum_recommended": 5,
+                },
+                "BACKUP_REDUNDANCY": {
+                    "minimum_recommended_agents": 3,
+                },
+                "BACKUP_AGE": {
+                    "warning_age_days": 5,
+                    "error_age_days": 14,
+                },
+            }
+        )
+    }
+
+    count_rule = rules["BACKUP_COUNT"]
+    redundancy_rule = rules["BACKUP_REDUNDANCY"]
+    age_rule = rules["BACKUP_AGE"]
+
+    assert count_rule.minimum_recommended == 5
+    assert redundancy_rule.minimum_recommended_agents == 3
+    assert age_rule.warning_age_days == 5
+    assert age_rule.error_age_days == 14

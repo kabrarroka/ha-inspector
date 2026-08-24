@@ -70,3 +70,39 @@ async def test_unavailable_inventory_is_ignored() -> None:
 @pytest.mark.parametrize("count", [None, "2", -1, True])
 async def test_invalid_count_is_ignored(count: object) -> None:
     assert await BackupCountRule().check(_context(count)) == []
+
+
+
+def test_backup_count_default_threshold() -> None:
+    """Backup count preserves its backward-compatible default."""
+    rule = BackupCountRule()
+
+    assert rule.minimum_recommended == 3
+
+
+@pytest.mark.asyncio
+async def test_backup_count_custom_threshold() -> None:
+    """Configured backup-count threshold controls findings."""
+    rule = BackupCountRule(minimum_recommended=5)
+
+    findings = await rule.check(_context(4))
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "BACKUP_COUNT_LOW"
+    assert findings[0].severity is Severity.WARNING
+    assert findings[0].data["minimum_recommended"] == 5
+
+    assert await rule.check(_context(5)) == []
+
+
+def test_backup_count_accepts_zero_threshold() -> None:
+    """Zero is a valid backup-count threshold."""
+    rule = BackupCountRule(minimum_recommended=0)
+
+    assert rule.minimum_recommended == 0
+
+
+def test_backup_count_rejects_negative_threshold() -> None:
+    """Negative backup-count thresholds are rejected."""
+    with pytest.raises(ValueError, match="Backup count threshold"):
+        BackupCountRule(minimum_recommended=-1)

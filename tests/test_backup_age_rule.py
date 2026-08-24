@@ -187,3 +187,62 @@ async def test_backup_age_rule_returns_spanish_messages() -> None:
         "Crea una nueva copia de seguridad y comprueba que las "
         "copias programadas se ejecutan correctamente."
     )
+
+
+
+def test_backup_age_default_thresholds() -> None:
+    """Backup age preserves backward-compatible defaults."""
+    rule = BackupAgeRule()
+
+    assert rule.warning_age_days == 7
+    assert rule.error_age_days == 30
+
+
+@pytest.mark.asyncio
+async def test_backup_age_custom_thresholds() -> None:
+    """Configured backup-age thresholds control finding severity."""
+    rule = FixedTimeBackupAgeRule(
+        warning_age_days=3,
+        error_age_days=10,
+    )
+
+    findings = await rule.check(
+        _context("2026-07-30T08:00:00+00:00")
+    )
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "BACKUP_AGE_HIGH"
+    assert findings[0].severity is Severity.WARNING
+    assert findings[0].data["warning_age_days"] == 3
+    assert findings[0].data["error_age_days"] == 10
+
+
+def test_backup_age_accepts_boundary_thresholds() -> None:
+    """Zero and equal backup-age thresholds are valid."""
+    rule = BackupAgeRule(
+        warning_age_days=0,
+        error_age_days=0,
+    )
+
+    assert rule.warning_age_days == 0
+    assert rule.error_age_days == 0
+
+
+@pytest.mark.parametrize(
+    ("warning_age_days", "error_age_days"),
+    [
+        (-1, 30),
+        (7, -1),
+        (31, 30),
+    ],
+)
+def test_backup_age_rejects_invalid_thresholds(
+    warning_age_days: int,
+    error_age_days: int,
+) -> None:
+    """Invalid backup-age threshold ranges are rejected."""
+    with pytest.raises(ValueError, match="Backup age thresholds"):
+        BackupAgeRule(
+            warning_age_days=warning_age_days,
+            error_age_days=error_age_days,
+        )
