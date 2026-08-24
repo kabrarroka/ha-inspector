@@ -15,6 +15,25 @@ class UnavailableEntitiesRule(BaseRule):
     warning_percentage = 5.0
     error_percentage = 15.0
 
+    def __init__(
+        self,
+        *,
+        warning_percentage: float = 5.0,
+        error_percentage: float = 15.0,
+    ) -> None:
+        """Initialize configurable unavailable-entity thresholds."""
+        warning_percentage = float(warning_percentage)
+        error_percentage = float(error_percentage)
+
+        if not 0.0 <= warning_percentage <= error_percentage <= 100.0:
+            raise ValueError(
+                "Unavailable entity thresholds must satisfy "
+                "0 <= warning_percentage <= error_percentage <= 100"
+            )
+
+        self.warning_percentage = warning_percentage
+        self.error_percentage = error_percentage
+
     async def check(self, context: InspectionContext) -> list[Finding]:
         """Check the percentage of unavailable entities."""
         entities = context.entities
@@ -68,6 +87,25 @@ class UnknownEntitiesRule(BaseRule):
     rule_id = "UNKNOWN_ENTITIES"
     warning_percentage = 5.0
     error_percentage = 15.0
+
+    def __init__(
+        self,
+        *,
+        warning_percentage: float = 5.0,
+        error_percentage: float = 15.0,
+    ) -> None:
+        """Initialize configurable unknown-entity thresholds."""
+        warning_percentage = float(warning_percentage)
+        error_percentage = float(error_percentage)
+
+        if not 0.0 <= warning_percentage <= error_percentage <= 100.0:
+            raise ValueError(
+                "Unknown entity thresholds must satisfy "
+                "0 <= warning_percentage <= error_percentage <= 100"
+            )
+
+        self.warning_percentage = warning_percentage
+        self.error_percentage = error_percentage
 
     async def check(self, context: InspectionContext) -> list[Finding]:
         """Check the percentage of entities with unknown state."""

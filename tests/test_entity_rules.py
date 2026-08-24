@@ -294,3 +294,123 @@ async def test_unknown_entities_rule_ignores_invalid_total() -> None:
     )
 
     assert await UnknownEntitiesRule().check(context) == []
+
+
+def test_unavailable_entities_default_thresholds() -> None:
+    """Unavailable entities preserve backward-compatible defaults."""
+    rule = UnavailableEntitiesRule()
+
+    assert rule.warning_percentage == 5.0
+    assert rule.error_percentage == 15.0
+
+
+@pytest.mark.asyncio
+async def test_unavailable_entities_custom_thresholds() -> None:
+    """Configured unavailable thresholds control finding severity."""
+    context = InspectionContext(
+        entities=EntitiesState(
+            total_entities=100,
+            unavailable_count=11,
+        )
+    )
+    rule = UnavailableEntitiesRule(
+        warning_percentage=10.0,
+        error_percentage=20.0,
+    )
+
+    findings = await rule.check(context)
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "UNAVAILABLE_ENTITIES_HIGH"
+    assert findings[0].severity is Severity.WARNING
+
+
+def test_unavailable_entities_accepts_boundary_thresholds() -> None:
+    """Unavailable thresholds may span the full percentage range."""
+    rule = UnavailableEntitiesRule(
+        warning_percentage=0.0,
+        error_percentage=100.0,
+    )
+
+    assert rule.warning_percentage == 0.0
+    assert rule.error_percentage == 100.0
+
+
+@pytest.mark.parametrize(
+    ("warning_percentage", "error_percentage"),
+    [
+        (-1.0, 15.0),
+        (5.0, 101.0),
+        (16.0, 15.0),
+    ],
+)
+def test_unavailable_entities_rejects_invalid_thresholds(
+    warning_percentage: float,
+    error_percentage: float,
+) -> None:
+    """Invalid unavailable-entity threshold ranges are rejected."""
+    with pytest.raises(ValueError, match="Unavailable entity thresholds"):
+        UnavailableEntitiesRule(
+            warning_percentage=warning_percentage,
+            error_percentage=error_percentage,
+        )
+
+
+def test_unknown_entities_default_thresholds() -> None:
+    """Unknown entities preserve backward-compatible defaults."""
+    rule = UnknownEntitiesRule()
+
+    assert rule.warning_percentage == 5.0
+    assert rule.error_percentage == 15.0
+
+
+@pytest.mark.asyncio
+async def test_unknown_entities_custom_thresholds() -> None:
+    """Configured unknown thresholds control finding severity."""
+    context = InspectionContext(
+        entities=EntitiesState(
+            total_entities=100,
+            unknown_count=12,
+        )
+    )
+    rule = UnknownEntitiesRule(
+        warning_percentage=10.0,
+        error_percentage=25.0,
+    )
+
+    findings = await rule.check(context)
+
+    assert len(findings) == 1
+    assert findings[0].finding_id == "UNKNOWN_ENTITIES_HIGH"
+    assert findings[0].severity is Severity.WARNING
+
+
+def test_unknown_entities_accepts_boundary_thresholds() -> None:
+    """Unknown thresholds may span the full percentage range."""
+    rule = UnknownEntitiesRule(
+        warning_percentage=0.0,
+        error_percentage=100.0,
+    )
+
+    assert rule.warning_percentage == 0.0
+    assert rule.error_percentage == 100.0
+
+
+@pytest.mark.parametrize(
+    ("warning_percentage", "error_percentage"),
+    [
+        (-1.0, 15.0),
+        (5.0, 101.0),
+        (16.0, 15.0),
+    ],
+)
+def test_unknown_entities_rejects_invalid_thresholds(
+    warning_percentage: float,
+    error_percentage: float,
+) -> None:
+    """Invalid unknown-entity threshold ranges are rejected."""
+    with pytest.raises(ValueError, match="Unknown entity thresholds"):
+        UnknownEntitiesRule(
+            warning_percentage=warning_percentage,
+            error_percentage=error_percentage,
+        )
