@@ -43,6 +43,8 @@ def _collect_repairs_state(hass: HomeAssistant) -> RepairsState:
     }
 
     fixable = 0
+    breaking = 0
+    learn_more = 0
 
     for issue in registry.issues.values():
         if not issue.active:
@@ -56,13 +58,22 @@ def _collect_repairs_state(hass: HomeAssistant) -> RepairsState:
         if issue.is_fixable:
             fixable += 1
 
+        if issue.breaks_in_ha_version:
+            breaking += 1
+
+        if issue.learn_more_url:
+            learn_more += 1
+
         issues.append(
             {
                 "domain": issue.domain,
+                "issue_domain": issue.issue_domain,
                 "issue_id": issue.issue_id,
                 "severity": severity,
                 "is_fixable": issue.is_fixable,
                 "breaks_in_ha_version": issue.breaks_in_ha_version,
+                "learn_more_url": issue.learn_more_url,
+                "translation_key": issue.translation_key,
             }
         )
 
@@ -81,6 +92,8 @@ def _collect_repairs_state(hass: HomeAssistant) -> RepairsState:
         error=counts["error"],
         warning=counts["warning"],
         fixable=fixable,
+        breaking=breaking,
+        learn_more=learn_more,
         issues=issues,
     )
 

@@ -62,6 +62,37 @@ class RepairIssuesRule(BaseRule):
                 continue
 
             count = len(issues)
+            fixable_count = sum(
+                bool(issue.get("is_fixable"))
+                for issue in issues
+            )
+            breaking_count = sum(
+                bool(issue.get("breaks_in_ha_version"))
+                for issue in issues
+            )
+
+            recommendation_parts = [
+                "Open Settings > System > Repairs in Home Assistant "
+                "and review the affected issues."
+            ]
+
+            if fixable_count:
+                recommendation_parts.append(
+                    f"{fixable_count} issue(s) in this group are fixable "
+                    "directly from Repairs."
+                )
+
+            if breaking_count:
+                recommendation_parts.append(
+                    f"{breaking_count} issue(s) can break in a future "
+                    "Home Assistant version; review them before upgrading."
+                )
+
+            if not fixable_count and not breaking_count:
+                recommendation_parts.append(
+                    "Follow the guidance provided by Home Assistant for "
+                    "each issue."
+                )
 
             findings.append(
                 Finding(
@@ -72,16 +103,15 @@ class RepairIssuesRule(BaseRule):
                         f"{count} active Home Assistant Repairs issue(s) "
                         f"have {issue_severity} severity."
                     ),
-                    recommendation=(
-                        "Open Settings > System > Repairs in Home Assistant "
-                        "and review the affected issues. Resolve fixable "
-                        "issues and follow the provided guidance before "
-                        "upgrading if an issue can break in a future version."
-                    ),
+                    recommendation=" ".join(recommendation_parts),
                     data={
                         "count": count,
                         "total": repairs.total,
                         "fixable": repairs.fixable,
+                        "fixable_count": fixable_count,
+                        "breaking": repairs.breaking,
+                        "breaking_count": breaking_count,
+                        "learn_more": repairs.learn_more,
                         "issues": issues,
                     },
                 )
