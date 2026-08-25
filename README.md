@@ -50,9 +50,13 @@ Possible states are:
 
 ## Services
 
+All HA Inspector services return a response and can be used with
+`response_variable` in Home Assistant scripts and automations.
+
 ### `ha_inspector.run`
 
-Runs the active collectors and inspection rules and returns the complete inspection result.
+Runs the active collectors and inspection rules and returns the complete
+serialized inspection result.
 
 Optional fields:
 
@@ -68,7 +72,8 @@ Optional fields:
 
 Explicit service fields override the values provided by a profile.
 
-If `language` is omitted, the configured Home Assistant language is used when available.
+If `language` is omitted, the configured Home Assistant language is used
+when available.
 
 Example:
 
@@ -81,18 +86,48 @@ data:
 response_variable: inspection
 ```
 
+Typical response fields include:
+
+```yaml
+schema_version: 2
+score: 100
+total_findings: 0
+findings: []
+health: {}
+summary: {}
+health_summary: {}
+domain_health: {}
+dashboard_summary: {}
+metadata:
+  profile: quick
+  language: es
+```
+
+The exact result structure is defined by Inspection Result schema version 2.
+
 ### `ha_inspector.list_profiles`
 
 Returns the available built-in inspection profiles.
 
 ```yaml
 action: ha_inspector.list_profiles
-response_variable: profiles
+response_variable: profiles_response
 ```
+
+Response shape:
+
+```yaml
+profiles:
+  - profile_id: quick
+    title: Quick inspection
+    description: ...
+```
+
+Each entry contains `profile_id`, `title`, and `description`.
 
 ### `ha_inspector.describe_profile`
 
-Returns the complete definition of an inspection profile.
+Returns the complete definition of one inspection profile.
 
 Required field:
 
@@ -104,17 +139,190 @@ Example:
 action: ha_inspector.describe_profile
 data:
   profile_id: quick
-response_variable: profile
+response_variable: profile_response
 ```
+
+Response shape:
+
+```yaml
+profile:
+  profile_id: quick
+  title: Quick inspection
+  description: ...
+  request:
+    include_rule_ids: []
+    include_categories: []
+    include_tags: []
+    exclude_rule_ids: []
+    exclude_categories: []
+    exclude_tags: []
+    diagnostics: false
+```
+
+The exact `request` values depend on the selected profile.
 
 ### `ha_inspector.info`
 
-Returns information about the HA Inspector engine.
+Returns integration version, public API information, schema versions, supported
+services, and engine information.
 
 ```yaml
 action: ha_inspector.info
 response_variable: inspector_info
 ```
+
+Response shape:
+
+```yaml
+version: 1.0.0
+api_version: 1
+public_api:
+  api_version: 1
+  schemas:
+    capabilities: 1
+    result: 2
+  services:
+    - run
+    - list_profiles
+    - describe_profile
+    - info
+    - list_acknowledgements
+    - acknowledge_finding
+    - clear_acknowledgement
+    - clear_acknowledgements
+    - export_diagnostic_report
+engine: {}
+```
+
+The `engine` section reports the current engine capabilities and discovered
+components.
+
+### `ha_inspector.list_acknowledgements`
+
+Returns the finding IDs that are persistently acknowledged and suppressed from
+future inspection results and health scoring.
+
+```yaml
+action: ha_inspector.list_acknowledgements
+response_variable: acknowledgements
+```
+
+Response shape:
+
+```yaml
+finding_ids:
+  - BACKUP_AGE_HIGH
+  - UNAVAILABLE_ENTITIES_EXCESSIVE
+count: 2
+```
+
+### `ha_inspector.acknowledge_finding`
+
+Persistently acknowledges one finding.
+
+Required field:
+
+- `finding_id`: exact finding identifier.
+
+```yaml
+action: ha_inspector.acknowledge_finding
+data:
+  finding_id: UNAVAILABLE_ENTITIES_EXCESSIVE
+response_variable: acknowledgements
+```
+
+Response shape:
+
+```yaml
+finding_ids:
+  - UNAVAILABLE_ENTITIES_EXCESSIVE
+count: 1
+```
+
+The response always contains the complete updated acknowledgement state.
+
+### `ha_inspector.clear_acknowledgement`
+
+Removes one persisted acknowledgement.
+
+Required field:
+
+- `finding_id`: exact finding identifier.
+
+```yaml
+action: ha_inspector.clear_acknowledgement
+data:
+  finding_id: UNAVAILABLE_ENTITIES_EXCESSIVE
+response_variable: acknowledgements
+```
+
+The response contains the complete updated acknowledgement state.
+
+### `ha_inspector.clear_acknowledgements`
+
+Removes every persisted acknowledgement.
+
+```yaml
+action: ha_inspector.clear_acknowledgements
+response_variable: acknowledgements
+```
+
+Response after all acknowledgements have been cleared:
+
+```yaml
+finding_ids: []
+count: 0
+```
+
+### `ha_inspector.export_diagnostic_report`
+
+Returns an exportable diagnostic report built from the most recent inspection.
+
+Run `ha_inspector.run` at least once before calling this service.
+
+```yaml
+action: ha_inspector.export_diagnostic_report
+response_variable: diagnostic_report
+```
+
+Top-level response shape:
+
+```yaml
+schema_version: 1
+generator:
+  name: HA Inspector
+  version: 1.0.0
+inspection:
+  schema_version: 2
+  started_at: ...
+  finished_at: ...
+  duration_seconds: ...
+  checks_executed: ...
+  total_findings: ...
+  score: ...
+  health: ...
+  summary: ...
+  health_summary: ...
+  domain_health: ...
+  dashboard_summary: ...
+findings: []
+operational:
+  profile: quick
+  language: en
+  diagnostics_included: false
+  collectors_executed: ...
+  collectors_succeeded: ...
+  collectors_failed: ...
+  collector_errors: ...
+  rules_discovered: ...
+  rules_selected: ...
+  timings: ...
+  suppressed_findings_count: ...
+```
+
+The report contains a controlled operational subset rather than the unfiltered
+diagnostic context.
+
 
 ## Built-in profiles
 
@@ -139,7 +347,7 @@ HA Inspector exposes public API version **1**.
 
 The stable public contract includes:
 
-- Home Assistant services: `run`, `list_profiles`, `describe_profile`, and `info`.
+- Home Assistant services: `run`, `list_profiles`, `describe_profile`, `info`, `list_acknowledgements`, `acknowledge_finding`, `clear_acknowledgement`, `clear_acknowledgements`, and `export_diagnostic_report`.
 - `InspectionRequest` for inspection request configuration.
 - `InspectionResult` and its serialized result document.
 - `Finding` and `Severity`.
