@@ -32,6 +32,16 @@ def test_sensor_without_result() -> None:
     assert sensor.native_value == "not_run"
     assert sensor.extra_state_attributes["total_findings"] == 0
     assert sensor.extra_state_attributes["score"] is None
+    assert sensor.extra_state_attributes["domain_health"] == {}
+    assert sensor.extra_state_attributes["suppressed_findings_count"] == 0
+    assert sensor.extra_state_attributes["collectors_executed"] == 0
+    assert sensor.extra_state_attributes["collectors_succeeded"] == 0
+    assert sensor.extra_state_attributes["collectors_failed"] == 0
+    assert sensor.extra_state_attributes["inspection_seconds"] is None
+    assert sensor.extra_state_attributes["collectors_seconds"] is None
+    assert sensor.extra_state_attributes["rules_seconds"] is None
+    assert sensor.extra_state_attributes["diagnostics_included"] is False
+    assert sensor.extra_state_attributes["language"] is None
 
 
 def test_sensor_with_result() -> None:
@@ -49,6 +59,25 @@ def test_sensor_with_result() -> None:
             "status": "good",
             "score": 87,
             "total_findings": 3,
+        },
+        "domain_health": {
+            "system": {
+                "score": 100,
+                "status": "excellent",
+            },
+        },
+        "metadata": {
+            "suppressed_findings_count": 2,
+            "collectors_executed": 9,
+            "collectors_succeeded": 8,
+            "collectors_failed": 1,
+            "diagnostics_included": True,
+            "language": "es",
+            "timings": {
+                "inspection_seconds": 1.2,
+                "collectors_seconds": 0.8,
+                "rules_seconds": 0.4,
+            },
         },
         "total_findings": 3,
         "checks_executed": 10,
@@ -74,6 +103,21 @@ def test_sensor_with_result() -> None:
         "score": 87,
         "total_findings": 3,
     }
+    assert sensor.extra_state_attributes["domain_health"] == {
+        "system": {
+            "score": 100,
+            "status": "excellent",
+        },
+    }
+    assert sensor.extra_state_attributes["suppressed_findings_count"] == 2
+    assert sensor.extra_state_attributes["collectors_executed"] == 9
+    assert sensor.extra_state_attributes["collectors_succeeded"] == 8
+    assert sensor.extra_state_attributes["collectors_failed"] == 1
+    assert sensor.extra_state_attributes["inspection_seconds"] == 1.2
+    assert sensor.extra_state_attributes["collectors_seconds"] == 0.8
+    assert sensor.extra_state_attributes["rules_seconds"] == 0.4
+    assert sensor.extra_state_attributes["diagnostics_included"] is True
+    assert sensor.extra_state_attributes["language"] == "es"
 
 
 def test_sensor_handles_finished_inspection() -> None:

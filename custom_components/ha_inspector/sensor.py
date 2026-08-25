@@ -46,6 +46,7 @@ class HAInspectorStatusSensor(SensorEntity):  # type: ignore[misc]
     _attr_has_entity_name = True
     _attr_name = "Status"
     _attr_icon = "mdi:home-search"
+    _attr_extra_state_attributes: dict[str, Any]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the status sensor."""
@@ -75,12 +76,30 @@ class HAInspectorStatusSensor(SensorEntity):  # type: ignore[misc]
                 "checks_executed": 0,
                 "finished_at": None,
                 "duration_seconds": None,
+                "info": 0,
+                "warnings": 0,
+                "errors": 0,
+                "critical": 0,
+                "categories": {},
+                "health_summary": {},
+                "domain_health": {},
                 "dashboard_summary": None,
+                "suppressed_findings_count": 0,
+                "collectors_executed": 0,
+                "collectors_succeeded": 0,
+                "collectors_failed": 0,
+                "inspection_seconds": None,
+                "collectors_seconds": None,
+                "rules_seconds": None,
+                "diagnostics_included": False,
+                "language": None,
             }
             return
 
         summary = result.get("summary", {})
         health = result.get("health", {})
+        metadata = result.get("metadata", {})
+        timings = metadata.get("timings", {})
 
         self._attr_native_value = status_from_summary(summary)
         self._attr_extra_state_attributes = {
@@ -96,7 +115,21 @@ class HAInspectorStatusSensor(SensorEntity):  # type: ignore[misc]
             "critical": summary.get("critical", 0),
             "categories": result.get("categories", {}),
             "health_summary": result.get("health_summary", {}),
+            "domain_health": result.get("domain_health", {}),
             "dashboard_summary": result.get("dashboard_summary", {}),
+            "suppressed_findings_count": metadata.get(
+                "suppressed_findings_count", 0
+            ),
+            "collectors_executed": metadata.get("collectors_executed", 0),
+            "collectors_succeeded": metadata.get("collectors_succeeded", 0),
+            "collectors_failed": metadata.get("collectors_failed", 0),
+            "inspection_seconds": timings.get("inspection_seconds"),
+            "collectors_seconds": timings.get("collectors_seconds"),
+            "rules_seconds": timings.get("rules_seconds"),
+            "diagnostics_included": metadata.get(
+                "diagnostics_included", False
+            ),
+            "language": metadata.get("language"),
         }
 
     async def async_added_to_hass(self) -> None:
