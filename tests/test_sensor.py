@@ -292,3 +292,66 @@ def test_diagnostic_sensors_with_result() -> None:
             "message": "boom",
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_diagnostic_sensor_subscription_and_update(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorHealthScoreSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+    sensor.hass = hass  # type: ignore[assignment]
+
+    unsubscribe = MagicMock()
+    connect = MagicMock(return_value=unsubscribe)
+    on_remove = MagicMock()
+    write_state = MagicMock()
+
+    monkeypatch.setattr(
+        "custom_components.ha_inspector.sensor.async_dispatcher_connect",
+        connect,
+    )
+    sensor.async_on_remove = on_remove  # type: ignore[method-assign]
+    sensor.async_write_ha_state = write_state  # type: ignore[method-assign]
+
+    await sensor.async_added_to_hass()
+
+    connect.assert_called_once_with(
+        hass,
+        "ha_inspector_inspection_finished",
+        sensor._handle_inspection_finished,
+    )
+    on_remove.assert_called_once_with(unsubscribe)
+
+    sensor._handle_inspection_finished(
+        {
+            "score": 91,
+            "health": {"status": "excellent"},
+            "finished_at": "2026-08-25T08:00:00+00:00",
+        }
+    )
+
+    assert sensor.native_value == 91
+    assert sensor.extra_state_attributes["health_status"] == "excellent"
+    write_state.assert_called_once()
+
+
+def test_diagnostic_sensor_base_requires_update_implementation() -> None:
+    from custom_components.ha_inspector.sensor import (
+        HAInspectorDiagnosticSensor,
+    )
+
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    with pytest.raises(NotImplementedError):
+        HAInspectorDiagnosticSensor(  # type: ignore[arg-type]
+            hass,
+            entry,
+            key="test",
+        )
