@@ -70,7 +70,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 ## Epic H — Home Assistant integration UX
 
 - [x] Richer status sensor attributes
-- [ ] Dedicated diagnostic entities
+- [x] Dedicated diagnostic entities
 - [ ] Dashboard-oriented entity model
 - [ ] Improved Repairs integration
 - [ ] Service response documentation and examples

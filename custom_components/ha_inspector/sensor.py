@@ -8,6 +8,7 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -37,7 +38,14 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up HA Inspector diagnostic sensors."""
-    async_add_entities([HAInspectorStatusSensor(hass, entry)])
+    async_add_entities(
+        [
+            HAInspectorStatusSensor(hass, entry),
+            HAInspectorHealthScoreSensor(hass, entry),
+            HAInspectorFindingsSensor(hass, entry),
+            HAInspectorCollectorFailuresSensor(hass, entry),
+        ]
+    )
 
 
 class HAInspectorStatusSensor(SensorEntity):  # type: ignore[misc]
@@ -150,3 +158,153 @@ class HAInspectorStatusSensor(SensorEntity):  # type: ignore[misc]
         """Handle a newly completed inspection."""
         self._update_from_result(result)
         self.async_write_ha_state()
+
+class HAInspectorDiagnosticSensor(SensorEntity):  # type: ignore[misc]
+    """Base class for HA Inspector diagnostic sensors."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        *,
+        key: str,
+    ) -> None:
+        """Initialize a diagnostic sensor."""
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, entry.entry_id)},
+            "name": NAME,
+            "manufacturer": "HA Inspector",
+            "model": "Diagnostic engine",
+        }
+
+        result = hass.data.get(DOMAIN, {}).get(DATA_LAST_RESULT)
+        self._update_from_result(result)
+
+    def _update_from_result(
+        self,
+        result: dict[str, Any] | None,
+    ) -> None:
+        """Update entity from an inspection result."""
+        raise NotImplementedError
+
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to completed inspections."""
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                SIGNAL_INSPECTION_FINISHED,
+                self._handle_inspection_finished,
+            )
+        )
+
+    @callback  # type: ignore[untyped-decorator]
+    def _handle_inspection_finished(
+        self,
+        result: dict[str, Any],
+    ) -> None:
+        """Handle a newly completed inspection."""
+        self._update_from_result(result)
+        self.async_write_ha_state()
+
+
+class HAInspectorHealthScoreSensor(HAInspectorDiagnosticSensor):
+    """Expose the latest HA Inspector health score."""
+
+    _attr_name = "Health score"
+    _attr_icon = "mdi:heart-pulse"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the health score sensor."""
+        super().__init__(hass, entry, key="health_score")
+
+    def _update_from_result(
+        self,
+        result: dict[str, Any] | None,
+    ) -> None:
+        """Update health score from the latest inspection."""
+        if not result:
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = {
+                "health_status": None,
+                "finished_at": None,
+            }
+            return
+
+        health = result.get("health", {})
+        self._attr_native_value = result.get("score")
+        self._attr_extra_state_attributes = {
+            "health_status": health.get("status"),
+            "finished_at": result.get("finished_at"),
+        }
+
+
+class HAInspectorFindingsSensor(HAInspectorDiagnosticSensor):
+    """Expose the latest HA Inspector finding count."""
+
+    _attr_name = "Findings"
+    _attr_icon = "mdi:alert-circle-outline"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the findings sensor."""
+        super().__init__(hass, entry, key="findings")
+
+    def _update_from_result(
+        self,
+        result: dict[str, Any] | None,
+    ) -> None:
+        """Update finding count from the latest inspection."""
+        if not result:
+            self._attr_native_value = 0
+            self._attr_extra_state_attributes = {
+                "info": 0,
+                "warnings": 0,
+                "errors": 0,
+                "critical": 0,
+            }
+            return
+
+        summary = result.get("summary", {})
+        self._attr_native_value = result.get("total_findings", 0)
+        self._attr_extra_state_attributes = {
+            "info": summary.get("info", 0),
+            "warnings": summary.get("warning", 0),
+            "errors": summary.get("error", 0),
+            "critical": summary.get("critical", 0),
+        }
+
+
+class HAInspectorCollectorFailuresSensor(HAInspectorDiagnosticSensor):
+    """Expose collector failure diagnostics."""
+
+    _attr_name = "Collector failures"
+    _attr_icon = "mdi:database-alert-outline"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the collector failures sensor."""
+        super().__init__(hass, entry, key="collector_failures")
+
+    def _update_from_result(
+        self,
+        result: dict[str, Any] | None,
+    ) -> None:
+        """Update collector failure diagnostics."""
+        if not result:
+            self._attr_native_value = 0
+            self._attr_extra_state_attributes = {
+                "collectors_executed": 0,
+                "collectors_succeeded": 0,
+                "collector_errors": [],
+            }
+            return
+
+        metadata = result.get("metadata", {})
+        self._attr_native_value = metadata.get("collectors_failed", 0)
+        self._attr_extra_state_attributes = {
+            "collectors_executed": metadata.get("collectors_executed", 0),
+            "collectors_succeeded": metadata.get("collectors_succeeded", 0),
+            "collector_errors": metadata.get("collector_errors", []),
+        }

@@ -9,6 +9,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.ha_inspector.sensor import (
+    HAInspectorCollectorFailuresSensor,
+    HAInspectorFindingsSensor,
+    HAInspectorHealthScoreSensor,
     HAInspectorStatusSensor,
     async_setup_entry,
     status_from_summary,
@@ -159,9 +162,19 @@ async def test_setup_entry_adds_status_sensor() -> None:
     async_add_entities.assert_called_once()
 
     entities = async_add_entities.call_args.args[0]
-    assert len(entities) == 1
+    assert len(entities) == 4
+
     assert isinstance(entities[0], HAInspectorStatusSensor)
     assert entities[0].unique_id == "entry-1_status"
+
+    assert isinstance(entities[1], HAInspectorHealthScoreSensor)
+    assert entities[1].unique_id == "entry-1_health_score"
+
+    assert isinstance(entities[2], HAInspectorFindingsSensor)
+    assert entities[2].unique_id == "entry-1_findings"
+
+    assert isinstance(entities[3], HAInspectorCollectorFailuresSensor)
+    assert entities[3].unique_id == "entry-1_collector_failures"
 
 
 @pytest.mark.asyncio
@@ -192,3 +205,90 @@ async def test_sensor_subscribes_when_added_to_hass(
         sensor._handle_inspection_finished,
     )
     on_remove.assert_called_once_with(unsubscribe)
+
+def test_diagnostic_sensors_without_result() -> None:
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    health = HAInspectorHealthScoreSensor(hass, entry)  # type: ignore[arg-type]
+    findings = HAInspectorFindingsSensor(hass, entry)  # type: ignore[arg-type]
+    collectors = HAInspectorCollectorFailuresSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert health.native_value is None
+    assert health.extra_state_attributes["health_status"] is None
+
+    assert findings.native_value == 0
+    assert findings.extra_state_attributes["critical"] == 0
+    assert findings.extra_state_attributes["errors"] == 0
+    assert findings.extra_state_attributes["warnings"] == 0
+    assert findings.extra_state_attributes["info"] == 0
+
+    assert collectors.native_value == 0
+    assert collectors.extra_state_attributes["collectors_executed"] == 0
+    assert collectors.extra_state_attributes["collectors_succeeded"] == 0
+    assert collectors.extra_state_attributes["collector_errors"] == []
+
+
+def test_diagnostic_sensors_with_result() -> None:
+    result: dict[str, Any] = {
+        "score": 72,
+        "health": {"status": "fair"},
+        "finished_at": "2026-08-25T08:00:00+00:00",
+        "total_findings": 4,
+        "summary": {
+            "info": 1,
+            "warning": 1,
+            "error": 1,
+            "critical": 1,
+        },
+        "metadata": {
+            "collectors_executed": 9,
+            "collectors_succeeded": 8,
+            "collectors_failed": 1,
+            "collector_errors": [
+                {
+                    "collector_id": "storage",
+                    "error_type": "RuntimeError",
+                    "message": "boom",
+                }
+            ],
+        },
+    }
+
+    hass = SimpleNamespace(
+        data={"ha_inspector": {"last_result": result}}
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    health = HAInspectorHealthScoreSensor(hass, entry)  # type: ignore[arg-type]
+    findings = HAInspectorFindingsSensor(hass, entry)  # type: ignore[arg-type]
+    collectors = HAInspectorCollectorFailuresSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert health.native_value == 72
+    assert health.extra_state_attributes["health_status"] == "fair"
+    assert health.extra_state_attributes["finished_at"] == (
+        "2026-08-25T08:00:00+00:00"
+    )
+
+    assert findings.native_value == 4
+    assert findings.extra_state_attributes["critical"] == 1
+    assert findings.extra_state_attributes["errors"] == 1
+    assert findings.extra_state_attributes["warnings"] == 1
+    assert findings.extra_state_attributes["info"] == 1
+
+    assert collectors.native_value == 1
+    assert collectors.extra_state_attributes["collectors_executed"] == 9
+    assert collectors.extra_state_attributes["collectors_succeeded"] == 8
+    assert collectors.extra_state_attributes["collector_errors"] == [
+        {
+            "collector_id": "storage",
+            "error_type": "RuntimeError",
+            "message": "boom",
+        }
+    ]
