@@ -44,6 +44,14 @@ async def async_setup_entry(
             HAInspectorHealthScoreSensor(hass, entry),
             HAInspectorFindingsSensor(hass, entry),
             HAInspectorCollectorFailuresSensor(hass, entry),
+            HAInspectorDomainHealthSensor(hass, entry, domain="storage"),
+            HAInspectorDomainHealthSensor(hass, entry, domain="system"),
+            HAInspectorDomainHealthSensor(
+                hass,
+                entry,
+                domain="integrations",
+            ),
+            HAInspectorDomainHealthSensor(hass, entry, domain="entities"),
         ]
     )
 
@@ -307,4 +315,91 @@ class HAInspectorCollectorFailuresSensor(HAInspectorDiagnosticSensor):
             "collectors_executed": metadata.get("collectors_executed", 0),
             "collectors_succeeded": metadata.get("collectors_succeeded", 0),
             "collector_errors": metadata.get("collector_errors", []),
+        }
+
+class HAInspectorDomainHealthSensor(HAInspectorDiagnosticSensor):
+    """Expose health information for a primary HA Inspector domain."""
+
+    _attr_icon = "mdi:chart-donut"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        *,
+        domain: str,
+    ) -> None:
+        """Initialize a domain health sensor."""
+        self._domain = domain
+        self._attr_name = f"{domain.capitalize()} health"
+        super().__init__(
+            hass,
+            entry,
+            key=f"{domain}_health",
+        )
+
+    def _update_from_result(
+        self,
+        result: dict[str, Any] | None,
+    ) -> None:
+        """Update domain health from the latest inspection."""
+        if not result:
+            self._set_not_checked()
+            return
+
+        domain_health = result.get("domain_health", {})
+        domain_data = domain_health.get(self._domain)
+
+        if (
+            not isinstance(domain_data, dict)
+            or domain_data.get("status") != "checked"
+        ):
+            self._set_not_checked(
+                checks=(
+                    domain_data.get("checks", 0)
+                    if isinstance(domain_data, dict)
+                    else 0
+                ),
+                findings=(
+                    domain_data.get("findings", 0)
+                    if isinstance(domain_data, dict)
+                    else 0
+                ),
+            )
+            return
+
+        health = domain_data.get("health")
+
+        if not isinstance(health, dict):
+            self._set_not_checked(
+                checks=domain_data.get("checks", 0),
+                findings=domain_data.get("findings", 0),
+            )
+            return
+
+        self._attr_native_value = health.get("score")
+        self._attr_extra_state_attributes = {
+            "status": "checked",
+            "health_status": health.get("status"),
+            "max_score": health.get("max_score"),
+            "penalty": health.get("penalty"),
+            "checks": domain_data.get("checks", 0),
+            "findings": domain_data.get("findings", 0),
+        }
+
+    def _set_not_checked(
+        self,
+        *,
+        checks: int = 0,
+        findings: int = 0,
+    ) -> None:
+        """Set a stable not-checked state."""
+        self._attr_native_value = None
+        self._attr_extra_state_attributes = {
+            "status": "not_checked",
+            "health_status": None,
+            "max_score": None,
+            "penalty": None,
+            "checks": checks,
+            "findings": findings,
         }

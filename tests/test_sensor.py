@@ -10,6 +10,7 @@ import pytest
 
 from custom_components.ha_inspector.sensor import (
     HAInspectorCollectorFailuresSensor,
+    HAInspectorDomainHealthSensor,
     HAInspectorFindingsSensor,
     HAInspectorHealthScoreSensor,
     HAInspectorStatusSensor,
@@ -162,7 +163,7 @@ async def test_setup_entry_adds_status_sensor() -> None:
     async_add_entities.assert_called_once()
 
     entities = async_add_entities.call_args.args[0]
-    assert len(entities) == 4
+    assert len(entities) == 8
 
     assert isinstance(entities[0], HAInspectorStatusSensor)
     assert entities[0].unique_id == "entry-1_status"
@@ -175,6 +176,17 @@ async def test_setup_entry_adds_status_sensor() -> None:
 
     assert isinstance(entities[3], HAInspectorCollectorFailuresSensor)
     assert entities[3].unique_id == "entry-1_collector_failures"
+
+    expected_domains = (
+        "storage",
+        "system",
+        "integrations",
+        "entities",
+    )
+
+    for entity, domain in zip(entities[4:], expected_domains, strict=True):
+        assert isinstance(entity, HAInspectorDomainHealthSensor)
+        assert entity.unique_id == f"entry-1_{domain}_health"
 
 
 @pytest.mark.asyncio
@@ -355,3 +367,147 @@ def test_diagnostic_sensor_base_requires_update_implementation() -> None:
             entry,
             key="test",
         )
+
+def test_domain_health_sensor_without_result() -> None:
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDomainHealthSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+        domain="storage",
+    )
+
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes == {
+        "status": "not_checked",
+        "health_status": None,
+        "max_score": None,
+        "penalty": None,
+        "checks": 0,
+        "findings": 0,
+    }
+
+
+def test_domain_health_sensor_with_checked_result() -> None:
+    result: dict[str, Any] = {
+        "domain_health": {
+            "storage": {
+                "domain": "storage",
+                "status": "checked",
+                "health": {
+                    "score": 94,
+                    "max_score": 100,
+                    "status": "excellent",
+                    "penalty": 6.0,
+                },
+                "checks": 2,
+                "findings": 1,
+            },
+        },
+    }
+
+    hass = SimpleNamespace(
+        data={"ha_inspector": {"last_result": result}}
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDomainHealthSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+        domain="storage",
+    )
+
+    assert sensor.native_value == 94
+    assert sensor.extra_state_attributes == {
+        "status": "checked",
+        "health_status": "excellent",
+        "max_score": 100,
+        "penalty": 6.0,
+        "checks": 2,
+        "findings": 1,
+    }
+
+
+def test_domain_health_sensor_with_not_checked_result() -> None:
+    result: dict[str, Any] = {
+        "domain_health": {
+            "system": {
+                "domain": "system",
+                "status": "not_checked",
+                "health": None,
+                "checks": 0,
+                "findings": 0,
+            },
+        },
+    }
+
+    hass = SimpleNamespace(
+        data={"ha_inspector": {"last_result": result}}
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDomainHealthSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+        domain="system",
+    )
+
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes["status"] == "not_checked"
+    assert sensor.extra_state_attributes["checks"] == 0
+    assert sensor.extra_state_attributes["findings"] == 0
+
+
+def test_domain_health_sensor_handles_invalid_domain_data() -> None:
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    hass = SimpleNamespace(
+        data={
+            "ha_inspector": {
+                "last_result": {
+                    "domain_health": {
+                        "entities": "invalid",
+                    },
+                }
+            }
+        }
+    )
+
+    sensor = HAInspectorDomainHealthSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+        domain="entities",
+    )
+
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes["status"] == "not_checked"
+
+    hass = SimpleNamespace(
+        data={
+            "ha_inspector": {
+                "last_result": {
+                    "domain_health": {
+                        "integrations": {
+                            "domain": "integrations",
+                            "status": "checked",
+                            "health": None,
+                            "checks": 3,
+                            "findings": 2,
+                        },
+                    },
+                }
+            }
+        }
+    )
+
+    sensor = HAInspectorDomainHealthSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+        domain="integrations",
+    )
+
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes["status"] == "not_checked"
+    assert sensor.extra_state_attributes["checks"] == 3
+    assert sensor.extra_state_attributes["findings"] == 2
