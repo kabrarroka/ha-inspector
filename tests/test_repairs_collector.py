@@ -21,15 +21,21 @@ def _issue(
     active: bool = True,
     is_fixable: bool = False,
     breaks_in_ha_version: str | None = None,
+    issue_domain: str | None = None,
+    learn_more_url: str | None = None,
+    translation_key: str | None = None,
 ) -> SimpleNamespace:
     """Create a fake Home Assistant issue registry entry."""
     return SimpleNamespace(
         domain=domain,
+        issue_domain=issue_domain,
         issue_id=issue_id,
         severity=SimpleNamespace(value=severity),
         active=active,
         is_fixable=is_fixable,
         breaks_in_ha_version=breaks_in_ha_version,
+        learn_more_url=learn_more_url,
+        translation_key=translation_key,
     )
 
 
@@ -66,6 +72,9 @@ def test_collect_repairs_state(
                 severity="critical",
                 is_fixable=True,
                 breaks_in_ha_version="2026.9.0",
+                issue_domain="demo",
+                learn_more_url="https://example.com/repair",
+                translation_key="critical_issue",
             ),
             ("other", "error"): _issue(
                 domain="other",
@@ -93,28 +102,39 @@ def test_collect_repairs_state(
     assert state.error == 1
     assert state.warning == 1
     assert state.fixable == 2
+    assert state.breaking == 1
+    assert state.learn_more == 1
 
     assert state.issues == [
         {
             "domain": "demo",
+            "issue_domain": "demo",
             "issue_id": "critical",
             "severity": "critical",
             "is_fixable": True,
             "breaks_in_ha_version": "2026.9.0",
+            "learn_more_url": "https://example.com/repair",
+            "translation_key": "critical_issue",
         },
         {
             "domain": "other",
+            "issue_domain": None,
             "issue_id": "error",
             "severity": "error",
             "is_fixable": True,
             "breaks_in_ha_version": None,
+            "learn_more_url": None,
+            "translation_key": None,
         },
         {
             "domain": "demo",
+            "issue_domain": None,
             "issue_id": "warning",
             "severity": "warning",
             "is_fixable": False,
             "breaks_in_ha_version": None,
+            "learn_more_url": None,
+            "translation_key": None,
         },
     ]
 

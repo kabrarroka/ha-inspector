@@ -45,6 +45,8 @@ async def test_repairs_are_grouped_by_severity() -> None:
             error=1,
             warning=1,
             fixable=2,
+            breaking=1,
+            learn_more=1,
             issues=[
                 {
                     "domain": "demo",
@@ -89,6 +91,12 @@ async def test_repairs_are_grouped_by_severity() -> None:
     assert findings[0].data["count"] == 1
     assert findings[0].data["total"] == 3
     assert findings[0].data["fixable"] == 2
+    assert findings[0].data["fixable_count"] == 1
+    assert findings[0].data["breaking"] == 1
+    assert findings[0].data["breaking_count"] == 1
+    assert findings[0].data["learn_more"] == 1
+    assert "fixable directly from Repairs" in findings[0].recommendation
+    assert "before upgrading" in findings[0].recommendation
 
 
 @pytest.mark.asyncio
@@ -117,3 +125,33 @@ async def test_only_present_severity_is_reported() -> None:
     assert len(findings) == 1
     assert findings[0].finding_id == "REPAIR_ISSUES_WARNING"
     assert findings[0].severity is Severity.WARNING
+
+@pytest.mark.asyncio
+async def test_repairs_recommendation_for_non_fixable_non_breaking_issue() -> None:
+    """Plain Repairs issues retain generic guidance."""
+    context = InspectionContext(
+        repairs=RepairsState(
+            available=True,
+            total=1,
+            warning=1,
+            issues=[
+                {
+                    "domain": "demo",
+                    "issue_id": "warning",
+                    "severity": "warning",
+                    "is_fixable": False,
+                    "breaks_in_ha_version": None,
+                }
+            ],
+        )
+    )
+    rule = RepairIssuesRule()
+
+    findings = await rule.check(context)
+
+    assert len(findings) == 1
+    assert findings[0].data["fixable_count"] == 0
+    assert findings[0].data["breaking_count"] == 0
+    assert "Follow the guidance provided by Home Assistant" in (
+        findings[0].recommendation
+    )

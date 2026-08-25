@@ -19,4 +19,6 @@ class RepairsState(BaseState):
     warning: int = 0
 
     fixable: int = 0
+    breaking: int = 0
+    learn_more: int = 0
     issues: list[dict[str, object]] = field(default_factory=list)

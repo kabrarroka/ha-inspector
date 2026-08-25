@@ -72,7 +72,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Richer status sensor attributes
 - [x] Dedicated diagnostic entities
 - [x] Dashboard-oriented entity model
-- [ ] Improved Repairs integration
+- [x] Improved Repairs integration
 - [ ] Service response documentation and examples
 
 ## Version direction
