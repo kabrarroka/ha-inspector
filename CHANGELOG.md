@@ -1,5 +1,51 @@
 # Changelog
 
+## 1.1.0
+
+### Added
+
+- Persistent inspection history with compact stored inspection snapshots.
+- Health-score and domain-health trend analysis.
+- Regression and recovery detection between inspections.
+- Historical inspection comparison.
+- Configurable rule thresholds.
+- Rule acknowledgement and suppression support.
+- Inspection, collector, and rule timing metrics.
+- Collector failure isolation and reporting.
+- Exportable diagnostic reports.
+- Richer HA Inspector status sensor attributes.
+- Dedicated health-score, findings, and collector-failure diagnostic sensors.
+- Dashboard-oriented domain health sensors.
+- Improved Home Assistant Repairs integration.
+- Complete service response documentation and examples.
+
+### Changed
+
+- Expanded Home Assistant-facing diagnostics for dashboards and operational
+  monitoring.
+- Improved inspection result presentation with historical and operational
+  context.
+- Improved Repairs collection and finding reporting.
+- Expanded public service documentation for all supported HA Inspector
+  services.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.0.0.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 67 source files.
+- 638 tests pass.
+- Python coverage is 100% across 2741 statements.
+- Release archive/source integrity validation passes across 71 files.
+- Release-readiness validation passes.
+
 ## 1.0.0
 
 ### Added
