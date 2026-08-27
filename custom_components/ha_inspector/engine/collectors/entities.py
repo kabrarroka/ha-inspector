@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from typing import TYPE_CHECKING
 
 from homeassistant.components.automation import entities_in_automation
+from homeassistant.components.script import entities_in_script
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -18,7 +19,9 @@ from ..entities_state import (
     DuplicateEntityName,
     EntitiesState,
     EntitySummary,
+    ScriptDependencySummary,
 )
+from ..script_dependencies import script_dependency_from_entities
 from .base import BaseCollector
 
 if TYPE_CHECKING:
@@ -141,7 +144,7 @@ class EntitiesCollector(BaseCollector):
 
             name = entry.name or entry.original_name or entry.entity_id
 
-            dependency = automation_dependency_from_entities(
+            automation_dependency = automation_dependency_from_entities(
                 entry.entity_id,
                 name,
                 entities_in_automation(hass, entry.entity_id),
@@ -149,18 +152,49 @@ class EntitiesCollector(BaseCollector):
 
             automation_dependencies.append(
                 AutomationDependencySummary(
-                    entity_id=dependency.automation_entity_id,
-                    name=dependency.name,
+                    entity_id=automation_dependency.automation_entity_id,
+                    name=automation_dependency.name,
                     referenced_entities=list(
-                        dependency.referenced_entities
+                        automation_dependency.referenced_entities
                     ),
                     referenced_entity_count=(
-                        dependency.referenced_entity_count
+                        automation_dependency.referenced_entity_count
                     ),
                 )
             )
 
         automation_dependencies.sort(
+            key=lambda item: item.entity_id
+        )
+
+        script_dependencies: list[ScriptDependencySummary] = []
+
+        for entry in registry.entities.values():
+            if entry.domain != "script":
+                continue
+
+            name = entry.name or entry.original_name or entry.entity_id
+
+            script_dependency = script_dependency_from_entities(
+                entry.entity_id,
+                name,
+                entities_in_script(hass, entry.entity_id),
+            )
+
+            script_dependencies.append(
+                ScriptDependencySummary(
+                    entity_id=script_dependency.script_entity_id,
+                    name=script_dependency.name,
+                    referenced_entities=list(
+                        script_dependency.referenced_entities
+                    ),
+                    referenced_entity_count=(
+                        script_dependency.referenced_entity_count
+                    ),
+                )
+            )
+
+        script_dependencies.sort(
             key=lambda item: item.entity_id
         )
 
@@ -179,6 +213,8 @@ class EntitiesCollector(BaseCollector):
             disabled_automations=disabled_automations,
             automation_dependency_count=len(automation_dependencies),
             automation_dependencies=automation_dependencies,
+            script_dependency_count=len(script_dependencies),
+            script_dependencies=script_dependencies,
             unassigned_area_count=len(unassigned_area_entities),
             unassigned_area_entities=unassigned_area_entities,
         )

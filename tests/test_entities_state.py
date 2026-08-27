@@ -4,6 +4,7 @@ from custom_components.ha_inspector.engine.entities_state import (
     DuplicateEntityName,
     EntitiesState,
     EntitySummary,
+    ScriptDependencySummary,
 )
 
 
@@ -25,6 +26,8 @@ def test_entities_state_defaults() -> None:
         "disabled_automations": [],
         "automation_dependency_count": 0,
         "automation_dependencies": [],
+        "script_dependency_count": 0,
+        "script_dependencies": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
     }
@@ -70,6 +73,18 @@ def test_entities_state_nested_values() -> None:
                 referenced_entities=[
                     "binary_sensor.motion",
                     "light.kitchen",
+                ],
+                referenced_entity_count=2,
+            )
+        ],
+        script_dependency_count=1,
+        script_dependencies=[
+            ScriptDependencySummary(
+                entity_id="script.evening",
+                name="Evening",
+                referenced_entities=[
+                    "light.living_room",
+                    "media_player.tv",
                 ],
                 referenced_entity_count=2,
             )
@@ -123,6 +138,18 @@ def test_entities_state_nested_values() -> None:
                 "referenced_entities": [
                     "binary_sensor.motion",
                     "light.kitchen",
+                ],
+                "referenced_entity_count": 2,
+            }
+        ],
+        "script_dependency_count": 1,
+        "script_dependencies": [
+            {
+                "entity_id": "script.evening",
+                "name": "Evening",
+                "referenced_entities": [
+                    "light.living_room",
+                    "media_player.tv",
                 ],
                 "referenced_entity_count": 2,
             }

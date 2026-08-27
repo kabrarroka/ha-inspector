@@ -65,6 +65,11 @@ def mock_entities_in_automation(
         "entities_in_automation",
         lambda hass, entity_id: [],
     )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_script",
+        lambda hass, entity_id: [],
+    )
 
 
 @pytest.mark.asyncio
@@ -105,6 +110,8 @@ async def test_collect_empty_entities(monkeypatch) -> None:
         "disabled_automations": [],
         "automation_dependency_count": 0,
         "automation_dependencies": [],
+        "script_dependency_count": 0,
+        "script_dependencies": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
     }
@@ -470,6 +477,103 @@ async def test_collect_automation_dependencies(monkeypatch) -> None:
     assert first.referenced_entity_count == 2
 
     second = context.entities.automation_dependencies[1]
+
+    assert second.name == "Z rule"
+    assert second.referenced_entities == []
+    assert second.referenced_entity_count == 0
+
+
+
+@pytest.mark.asyncio
+async def test_collect_script_dependencies(monkeypatch) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "z": SimpleNamespace(
+                entity_id="script.z_rule",
+                domain="script",
+                name=None,
+                original_name="Z rule",
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "a": SimpleNamespace(
+                entity_id="script.a_rule",
+                domain="script",
+                name="A rule",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "sensor": SimpleNamespace(
+                entity_id="sensor.temperature",
+                domain="sensor",
+                name="Temperature",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
+    )
+
+    referenced_entities = {
+        "script.a_rule": [
+            "light.kitchen",
+            "binary_sensor.motion",
+            "light.kitchen",
+        ],
+        "script.z_rule": [],
+    }
+
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_script",
+        lambda hass, entity_id: referenced_entities[entity_id],
+    )
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass([]),
+        context,
+    )
+
+    assert context.entities.script_dependency_count == 2
+
+    assert [
+        dependency.entity_id
+        for dependency in context.entities.script_dependencies
+    ] == [
+        "script.a_rule",
+        "script.z_rule",
+    ]
+
+    first = context.entities.script_dependencies[0]
+
+    assert first.name == "A rule"
+    assert first.referenced_entities == [
+        "binary_sensor.motion",
+        "light.kitchen",
+    ]
+    assert first.referenced_entity_count == 2
+
+    second = context.entities.script_dependencies[1]
 
     assert second.name == "Z rule"
     assert second.referenced_entities == []
