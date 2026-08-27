@@ -75,6 +75,17 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Improved Repairs integration
 - [x] Service response documentation and examples
 
+## Epic I — Configuration dependencies
+
+- [ ] Entity reference discovery
+- [ ] Automation dependency inspection
+- [ ] Script dependency inspection
+- [ ] Scene dependency inspection
+- [ ] Template and configuration reference inspection
+- [ ] Unused entity detection
+- [ ] Missing entity reference detection
+- [ ] Entity dependency summaries
+
 ## Version direction
 
 ### 0.5 — Engine foundation
@@ -95,3 +106,8 @@ documentation completion, and real Home Assistant deployment validation.
 
 Inspection history, trend and regression analysis, configurable thresholds,
 improved operational diagnostics, and richer Home Assistant presentation.
+
+### 1.2 — Configuration dependencies
+
+Entity-reference discovery, configuration dependency analysis, unused entity
+detection, missing-reference detection, and dependency-oriented diagnostics.
