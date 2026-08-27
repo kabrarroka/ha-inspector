@@ -33,6 +33,14 @@ class DisabledAutomation:
     name: str
     disabled_by: str
 
+@dataclass(slots=True)
+class AutomationDependencySummary:
+    """Represent resolved entity dependencies for one automation."""
+
+    entity_id: str
+    name: str
+    referenced_entities: list[str] = field(default_factory=list)
+    referenced_entity_count: int = 0
 
 @dataclass(slots=True)
 class EntitiesState(BaseState):
@@ -55,6 +63,11 @@ class EntitiesState(BaseState):
 
     disabled_automation_count: int = 0
     disabled_automations: list[DisabledAutomation] = field(default_factory=list)
+
+    automation_dependency_count: int = 0
+    automation_dependencies: list[AutomationDependencySummary] = field(
+        default_factory=list
+    )
 
     unassigned_area_count: int = 0
     unassigned_area_entities: list[EntitySummary] = field(default_factory=list)
