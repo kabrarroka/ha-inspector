@@ -1,4 +1,5 @@
 from custom_components.ha_inspector.engine.entities_state import (
+    AutomationDependencySummary,
     DisabledAutomation,
     DuplicateEntityName,
     EntitiesState,
@@ -22,6 +23,8 @@ def test_entities_state_defaults() -> None:
         "duplicate_names": [],
         "disabled_automation_count": 0,
         "disabled_automations": [],
+        "automation_dependency_count": 0,
+        "automation_dependencies": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
     }
@@ -57,6 +60,18 @@ def test_entities_state_nested_values() -> None:
                 entity_id="automation.old_rule",
                 name="Old rule",
                 disabled_by="user",
+            )
+        ],
+        automation_dependency_count=1,
+        automation_dependencies=[
+            AutomationDependencySummary(
+                entity_id="automation.kitchen",
+                name="Kitchen",
+                referenced_entities=[
+                    "binary_sensor.motion",
+                    "light.kitchen",
+                ],
+                referenced_entity_count=2,
             )
         ],
     )
@@ -98,6 +113,18 @@ def test_entities_state_nested_values() -> None:
                 "entity_id": "automation.old_rule",
                 "name": "Old rule",
                 "disabled_by": "user",
+            }
+        ],
+        "automation_dependency_count": 1,
+        "automation_dependencies": [
+            {
+                "entity_id": "automation.kitchen",
+                "name": "Kitchen",
+                "referenced_entities": [
+                    "binary_sensor.motion",
+                    "light.kitchen",
+                ],
+                "referenced_entity_count": 2,
             }
         ],
         "unassigned_area_count": 0,

@@ -55,6 +55,18 @@ class FakeHass:
         self.states = FakeStates(states)
 
 
+@pytest.fixture(autouse=True)
+def mock_entities_in_automation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Isolate collector tests from Home Assistant automation internals."""
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_automation",
+        lambda hass, entity_id: [],
+    )
+
+
 @pytest.mark.asyncio
 async def test_collect_empty_entities(monkeypatch) -> None:
     registry = SimpleNamespace(entities={})
@@ -91,6 +103,8 @@ async def test_collect_empty_entities(monkeypatch) -> None:
         "duplicate_names": [],
         "disabled_automation_count": 0,
         "disabled_automations": [],
+        "automation_dependency_count": 0,
+        "automation_dependencies": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
     }
@@ -364,3 +378,99 @@ async def test_collect_unassigned_area_entities(monkeypatch) -> None:
 
     assert entity.name == "No area"
     assert entity.domain == "sensor"
+
+
+@pytest.mark.asyncio
+async def test_collect_automation_dependencies(monkeypatch) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "z": SimpleNamespace(
+                entity_id="automation.z_rule",
+                domain="automation",
+                name=None,
+                original_name="Z rule",
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "a": SimpleNamespace(
+                entity_id="automation.a_rule",
+                domain="automation",
+                name="A rule",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "sensor": SimpleNamespace(
+                entity_id="sensor.temperature",
+                domain="sensor",
+                name="Temperature",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
+    )
+
+    referenced_entities = {
+        "automation.a_rule": [
+            "light.kitchen",
+            "binary_sensor.motion",
+            "light.kitchen",
+        ],
+        "automation.z_rule": [],
+    }
+
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_automation",
+        lambda hass, entity_id: referenced_entities[entity_id],
+    )
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass([]),
+        context,
+    )
+
+    assert context.entities.automation_dependency_count == 2
+
+    assert [
+        dependency.entity_id
+        for dependency in context.entities.automation_dependencies
+    ] == [
+        "automation.a_rule",
+        "automation.z_rule",
+    ]
+
+    first = context.entities.automation_dependencies[0]
+
+    assert first.name == "A rule"
+    assert first.referenced_entities == [
+        "binary_sensor.motion",
+        "light.kitchen",
+    ]
+    assert first.referenced_entity_count == 2
+
+    second = context.entities.automation_dependencies[1]
+
+    assert second.name == "Z rule"
+    assert second.referenced_entities == []
+    assert second.referenced_entity_count == 0

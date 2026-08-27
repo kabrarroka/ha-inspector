@@ -5,12 +5,15 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import TYPE_CHECKING
 
+from homeassistant.components.automation import entities_in_automation
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
+from ..automation_dependencies import automation_dependency_from_entities
 from ..context import InspectionContext
 from ..entities_state import (
+    AutomationDependencySummary,
     DisabledAutomation,
     DuplicateEntityName,
     EntitiesState,
@@ -130,6 +133,37 @@ class EntitiesCollector(BaseCollector):
         ]
         disabled_automations.sort(key=lambda item: item.entity_id)
 
+        automation_dependencies: list[AutomationDependencySummary] = []
+
+        for entry in registry.entities.values():
+            if entry.domain != "automation":
+                continue
+
+            name = entry.name or entry.original_name or entry.entity_id
+
+            dependency = automation_dependency_from_entities(
+                entry.entity_id,
+                name,
+                entities_in_automation(hass, entry.entity_id),
+            )
+
+            automation_dependencies.append(
+                AutomationDependencySummary(
+                    entity_id=dependency.automation_entity_id,
+                    name=dependency.name,
+                    referenced_entities=list(
+                        dependency.referenced_entities
+                    ),
+                    referenced_entity_count=(
+                        dependency.referenced_entity_count
+                    ),
+                )
+            )
+
+        automation_dependencies.sort(
+            key=lambda item: item.entity_id
+        )
+
         state = EntitiesState(
             total_entities=len(states),
             domain_counts=dict(sorted(domain_counts.items())),
@@ -143,6 +177,8 @@ class EntitiesCollector(BaseCollector):
             duplicate_names=duplicate_names,
             disabled_automation_count=len(disabled_automations),
             disabled_automations=disabled_automations,
+            automation_dependency_count=len(automation_dependencies),
+            automation_dependencies=automation_dependencies,
             unassigned_area_count=len(unassigned_area_entities),
             unassigned_area_entities=unassigned_area_entities,
         )

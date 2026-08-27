@@ -78,7 +78,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 ## Epic I — Configuration dependencies
 
 - [x] Entity reference discovery
-- [ ] Automation dependency inspection
+- [x] Automation dependency inspection
 - [ ] Script dependency inspection
 - [ ] Scene dependency inspection
 - [ ] Template and configuration reference inspection
