@@ -43,6 +43,16 @@ class AutomationDependencySummary:
     referenced_entity_count: int = 0
 
 @dataclass(slots=True)
+class ScriptDependencySummary:
+    """Represent resolved entity dependencies for one script."""
+
+    entity_id: str
+    name: str
+    referenced_entities: list[str] = field(default_factory=list)
+    referenced_entity_count: int = 0
+
+
+@dataclass(slots=True)
 class EntitiesState(BaseState):
     """Represent the stable entity inspection contract."""
 
@@ -66,6 +76,11 @@ class EntitiesState(BaseState):
 
     automation_dependency_count: int = 0
     automation_dependencies: list[AutomationDependencySummary] = field(
+        default_factory=list
+    )
+
+    script_dependency_count: int = 0
+    script_dependencies: list[ScriptDependencySummary] = field(
         default_factory=list
     )
 
