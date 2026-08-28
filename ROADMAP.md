@@ -84,7 +84,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Template and configuration reference inspection
 - [x] Unused entity detection
 - [x] Missing entity reference detection
-- [ ] Entity dependency summaries
+- [x] Entity dependency summaries
 
 ## Version direction
 

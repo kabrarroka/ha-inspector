@@ -19,10 +19,12 @@ from ..entities_state import (
     DisabledAutomation,
     DuplicateEntityName,
     EntitiesState,
+    EntityDependencySummary,
     EntitySummary,
     SceneDependencySummary,
     ScriptDependencySummary,
 )
+from ..entity_dependency_summary import build_entity_dependency_summaries
 from ..entity_usage import (
     missing_entity_ids,
     referenced_entity_ids,
@@ -237,6 +239,41 @@ class EntitiesCollector(BaseCollector):
             key=lambda item: item.entity_id
         )
 
+        dependency_summaries = build_entity_dependency_summaries(
+            (
+                (
+                    dependency.entity_id,
+                    dependency.referenced_entities,
+                )
+                for dependency in automation_dependencies
+            ),
+            (
+                (
+                    dependency.entity_id,
+                    dependency.referenced_entities,
+                )
+                for dependency in script_dependencies
+            ),
+            (
+                (
+                    dependency.entity_id,
+                    dependency.referenced_entities,
+                )
+                for dependency in scene_dependencies
+            ),
+        )
+
+        entity_dependencies = [
+            EntityDependencySummary(
+                entity_id=summary.entity_id,
+                reference_count=summary.reference_count,
+                automation_references=list(summary.automation_references),
+                script_references=list(summary.script_references),
+                scene_references=list(summary.scene_references),
+            )
+            for summary in dependency_summaries
+        ]
+
         referenced_entities = referenced_entity_ids(
             [
                 dependency.referenced_entities
@@ -311,6 +348,8 @@ class EntitiesCollector(BaseCollector):
             script_dependencies=script_dependencies,
             scene_dependency_count=len(scene_dependencies),
             scene_dependencies=scene_dependencies,
+            entity_dependency_count=len(entity_dependencies),
+            entity_dependencies=entity_dependencies,
             unreferenced_entity_count=len(unreferenced_entities),
             unreferenced_entities=unreferenced_entities,
             missing_entity_count=len(missing_ids),
