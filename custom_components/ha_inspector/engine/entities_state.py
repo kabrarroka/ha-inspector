@@ -102,5 +102,8 @@ class EntitiesState(BaseState):
     unreferenced_entity_count: int = 0
     unreferenced_entities: list[EntitySummary] = field(default_factory=list)
 
+    missing_entity_count: int = 0
+    missing_entities: list[str] = field(default_factory=list)
+
     unassigned_area_count: int = 0
     unassigned_area_entities: list[EntitySummary] = field(default_factory=list)

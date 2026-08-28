@@ -23,7 +23,11 @@ from ..entities_state import (
     SceneDependencySummary,
     ScriptDependencySummary,
 )
-from ..entity_usage import referenced_entity_ids, unreferenced_entity_ids
+from ..entity_usage import (
+    missing_entity_ids,
+    referenced_entity_ids,
+    unreferenced_entity_ids,
+)
 from ..scene_dependencies import scene_dependency_from_entities
 from ..script_dependencies import script_dependency_from_entities
 from .base import BaseCollector
@@ -261,6 +265,19 @@ class EntitiesCollector(BaseCollector):
             referenced_entities,
         )
 
+        existing_entity_ids = {
+            entry.entity_id
+            for entry in registry.entities.values()
+        } | {
+            state.entity_id
+            for state in states
+        }
+
+        missing_ids = missing_entity_ids(
+            referenced_entities,
+            existing_entity_ids,
+        )
+
         states_by_entity_id = {
             state.entity_id: state
             for state in states
@@ -296,6 +313,8 @@ class EntitiesCollector(BaseCollector):
             scene_dependencies=scene_dependencies,
             unreferenced_entity_count=len(unreferenced_entities),
             unreferenced_entities=unreferenced_entities,
+            missing_entity_count=len(missing_ids),
+            missing_entities=list(missing_ids),
             unassigned_area_count=len(unassigned_area_entities),
             unassigned_area_entities=unassigned_area_entities,
         )

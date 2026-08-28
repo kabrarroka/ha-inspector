@@ -121,6 +121,8 @@ async def test_collect_empty_entities(monkeypatch) -> None:
         "scene_dependencies": [],
         "unreferenced_entity_count": 0,
         "unreferenced_entities": [],
+        "missing_entity_count": 0,
+        "missing_entities": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
     }
@@ -899,3 +901,131 @@ async def test_collect_unreferenced_entities(monkeypatch) -> None:
     assert context.entities.unreferenced_entities[0].domain == (
         "binary_sensor"
     )
+
+
+@pytest.mark.asyncio
+async def test_collect_missing_entity_references(monkeypatch) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "automation": SimpleNamespace(
+                entity_id="automation.kitchen",
+                domain="automation",
+                name="Kitchen",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "script": SimpleNamespace(
+                entity_id="script.evening",
+                domain="script",
+                name="Evening",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "scene": SimpleNamespace(
+                entity_id="scene.movie",
+                domain="scene",
+                name="Movie",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "registered": SimpleNamespace(
+                entity_id="sensor.registered",
+                domain="sensor",
+                name="Registered",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
+    )
+
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_automation",
+        lambda hass, entity_id: [
+            "sensor.registered",
+            "switch.automation_missing",
+            "switch.shared_missing",
+        ],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_script",
+        lambda hass, entity_id: [
+            "sensor.runtime_only",
+            "light.script_missing",
+            "switch.shared_missing",
+        ],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_scene",
+        lambda hass, entity_id: [
+            "binary_sensor.scene_missing",
+        ],
+    )
+
+    states = [
+        FakeState(
+            "automation.kitchen",
+            "on",
+            "Kitchen",
+        ),
+        FakeState(
+            "script.evening",
+            "off",
+            "Evening",
+        ),
+        FakeState(
+            "scene.movie",
+            "scening",
+            "Movie",
+        ),
+        FakeState(
+            "sensor.registered",
+            "20",
+            "Registered",
+        ),
+        FakeState(
+            "sensor.runtime_only",
+            "10",
+            "Runtime only",
+        ),
+    ]
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass(states),
+        context,
+    )
+
+    assert context.entities.missing_entity_count == 4
+    assert context.entities.missing_entities == [
+        "binary_sensor.scene_missing",
+        "light.script_missing",
+        "switch.automation_missing",
+        "switch.shared_missing",
+    ]

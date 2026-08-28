@@ -1,6 +1,7 @@
 """Tests for known entity usage inspection helpers."""
 
 from custom_components.ha_inspector.engine.entity_usage import (
+    missing_entity_ids,
     referenced_entity_ids,
     unreferenced_entity_ids,
 )
@@ -67,3 +68,48 @@ def test_unreferenced_entity_ids_deduplicates_and_sorts() -> None:
 
 def test_unreferenced_entity_ids_handles_empty_entities() -> None:
     assert unreferenced_entity_ids([], ["sensor.temperature"]) == ()
+
+
+def test_missing_entity_ids_returns_unknown_references() -> None:
+    assert missing_entity_ids(
+        [
+            "sensor.temperature",
+            "light.kitchen",
+            "switch.missing",
+        ],
+        [
+            "sensor.temperature",
+            "light.kitchen",
+        ],
+    ) == ("switch.missing",)
+
+
+def test_missing_entity_ids_deduplicates_and_sorts() -> None:
+    assert missing_entity_ids(
+        [
+            "sensor.z_missing",
+            "sensor.a_missing",
+            "sensor.z_missing",
+        ],
+        [],
+    ) == (
+        "sensor.a_missing",
+        "sensor.z_missing",
+    )
+
+
+def test_missing_entity_ids_handles_all_existing() -> None:
+    assert missing_entity_ids(
+        [
+            "sensor.temperature",
+            "light.kitchen",
+        ],
+        [
+            "sensor.temperature",
+            "light.kitchen",
+        ],
+    ) == ()
+
+
+def test_missing_entity_ids_handles_empty_references() -> None:
+    assert missing_entity_ids([], ["sensor.temperature"]) == ()
