@@ -4,6 +4,7 @@ from custom_components.ha_inspector.engine.entities_state import (
     DuplicateEntityName,
     EntitiesState,
     EntitySummary,
+    SceneDependencySummary,
     ScriptDependencySummary,
 )
 
@@ -28,6 +29,8 @@ def test_entities_state_defaults() -> None:
         "automation_dependencies": [],
         "script_dependency_count": 0,
         "script_dependencies": [],
+        "scene_dependency_count": 0,
+        "scene_dependencies": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
     }
@@ -82,6 +85,18 @@ def test_entities_state_nested_values() -> None:
             ScriptDependencySummary(
                 entity_id="script.evening",
                 name="Evening",
+                referenced_entities=[
+                    "light.living_room",
+                    "media_player.tv",
+                ],
+                referenced_entity_count=2,
+            )
+        ],
+        scene_dependency_count=1,
+        scene_dependencies=[
+            SceneDependencySummary(
+                entity_id="scene.movie",
+                name="Movie",
                 referenced_entities=[
                     "light.living_room",
                     "media_player.tv",
@@ -147,6 +162,18 @@ def test_entities_state_nested_values() -> None:
             {
                 "entity_id": "script.evening",
                 "name": "Evening",
+                "referenced_entities": [
+                    "light.living_room",
+                    "media_player.tv",
+                ],
+                "referenced_entity_count": 2,
+            }
+        ],
+        "scene_dependency_count": 1,
+        "scene_dependencies": [
+            {
+                "entity_id": "scene.movie",
+                "name": "Movie",
                 "referenced_entities": [
                     "light.living_room",
                     "media_player.tv",

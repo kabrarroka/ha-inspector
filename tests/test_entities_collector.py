@@ -70,6 +70,11 @@ def mock_entities_in_automation(
         "entities_in_script",
         lambda hass, entity_id: [],
     )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_scene",
+        lambda hass, entity_id: [],
+    )
 
 
 @pytest.mark.asyncio
@@ -112,6 +117,8 @@ async def test_collect_empty_entities(monkeypatch) -> None:
         "automation_dependencies": [],
         "script_dependency_count": 0,
         "script_dependencies": [],
+        "scene_dependency_count": 0,
+        "scene_dependencies": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
     }
@@ -576,5 +583,101 @@ async def test_collect_script_dependencies(monkeypatch) -> None:
     second = context.entities.script_dependencies[1]
 
     assert second.name == "Z rule"
+    assert second.referenced_entities == []
+    assert second.referenced_entity_count == 0
+
+
+@pytest.mark.asyncio
+async def test_collect_scene_dependencies(monkeypatch) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "z": SimpleNamespace(
+                entity_id="scene.z_scene",
+                domain="scene",
+                name=None,
+                original_name="Z scene",
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "a": SimpleNamespace(
+                entity_id="scene.a_scene",
+                domain="scene",
+                name="A scene",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "sensor": SimpleNamespace(
+                entity_id="sensor.temperature",
+                domain="sensor",
+                name="Temperature",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
+    )
+
+    referenced_entities = {
+        "scene.a_scene": [
+            "light.kitchen",
+            "media_player.tv",
+            "light.kitchen",
+        ],
+        "scene.z_scene": [],
+    }
+
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_scene",
+        lambda hass, entity_id: referenced_entities[entity_id],
+    )
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass([]),
+        context,
+    )
+
+    assert context.entities.scene_dependency_count == 2
+
+    assert [
+        dependency.entity_id
+        for dependency in context.entities.scene_dependencies
+    ] == [
+        "scene.a_scene",
+        "scene.z_scene",
+    ]
+
+    first = context.entities.scene_dependencies[0]
+
+    assert first.name == "A scene"
+    assert first.referenced_entities == [
+        "light.kitchen",
+        "media_player.tv",
+    ]
+    assert first.referenced_entity_count == 2
+
+    second = context.entities.scene_dependencies[1]
+
+    assert second.name == "Z scene"
     assert second.referenced_entities == []
     assert second.referenced_entity_count == 0

@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from typing import TYPE_CHECKING
 
 from homeassistant.components.automation import entities_in_automation
+from homeassistant.components.homeassistant.scene import entities_in_scene
 from homeassistant.components.script import entities_in_script
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers import device_registry as dr
@@ -19,8 +20,10 @@ from ..entities_state import (
     DuplicateEntityName,
     EntitiesState,
     EntitySummary,
+    SceneDependencySummary,
     ScriptDependencySummary,
 )
+from ..scene_dependencies import scene_dependency_from_entities
 from ..script_dependencies import script_dependency_from_entities
 from .base import BaseCollector
 
@@ -198,6 +201,37 @@ class EntitiesCollector(BaseCollector):
             key=lambda item: item.entity_id
         )
 
+        scene_dependencies: list[SceneDependencySummary] = []
+
+        for entry in registry.entities.values():
+            if entry.domain != "scene":
+                continue
+
+            name = entry.name or entry.original_name or entry.entity_id
+
+            scene_dependency = scene_dependency_from_entities(
+                entry.entity_id,
+                name,
+                entities_in_scene(hass, entry.entity_id),
+            )
+
+            scene_dependencies.append(
+                SceneDependencySummary(
+                    entity_id=scene_dependency.scene_entity_id,
+                    name=scene_dependency.name,
+                    referenced_entities=list(
+                        scene_dependency.referenced_entities
+                    ),
+                    referenced_entity_count=(
+                        scene_dependency.referenced_entity_count
+                    ),
+                )
+            )
+
+        scene_dependencies.sort(
+            key=lambda item: item.entity_id
+        )
+
         state = EntitiesState(
             total_entities=len(states),
             domain_counts=dict(sorted(domain_counts.items())),
@@ -215,6 +249,8 @@ class EntitiesCollector(BaseCollector):
             automation_dependencies=automation_dependencies,
             script_dependency_count=len(script_dependencies),
             script_dependencies=script_dependencies,
+            scene_dependency_count=len(scene_dependencies),
+            scene_dependencies=scene_dependencies,
             unassigned_area_count=len(unassigned_area_entities),
             unassigned_area_entities=unassigned_area_entities,
         )
