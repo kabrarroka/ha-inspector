@@ -119,6 +119,8 @@ async def test_collect_empty_entities(monkeypatch) -> None:
         "script_dependencies": [],
         "scene_dependency_count": 0,
         "scene_dependencies": [],
+        "unreferenced_entity_count": 0,
+        "unreferenced_entities": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
     }
@@ -681,3 +683,219 @@ async def test_collect_scene_dependencies(monkeypatch) -> None:
     assert second.name == "Z scene"
     assert second.referenced_entities == []
     assert second.referenced_entity_count == 0
+
+
+@pytest.mark.asyncio
+async def test_collect_unreferenced_entities(monkeypatch) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "automation": SimpleNamespace(
+                entity_id="automation.kitchen",
+                domain="automation",
+                name="Kitchen automation",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "script": SimpleNamespace(
+                entity_id="script.evening",
+                domain="script",
+                name="Evening",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "scene": SimpleNamespace(
+                entity_id="scene.movie",
+                domain="scene",
+                name="Movie",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "automation_used": SimpleNamespace(
+                entity_id="sensor.automation_used",
+                domain="sensor",
+                name="Automation used",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "script_used": SimpleNamespace(
+                entity_id="light.script_used",
+                domain="light",
+                name="Script used",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "scene_used": SimpleNamespace(
+                entity_id="switch.scene_used",
+                domain="switch",
+                name="Scene used",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "sensor_unreferenced": SimpleNamespace(
+                entity_id="sensor.unreferenced",
+                domain="sensor",
+                name="Unreferenced",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "binary_unreferenced": SimpleNamespace(
+                entity_id="binary_sensor.unreferenced",
+                domain="binary_sensor",
+                name="Unreferenced binary",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "disabled": SimpleNamespace(
+                entity_id="sensor.disabled_candidate",
+                domain="sensor",
+                name="Disabled candidate",
+                original_name=None,
+                disabled_by="user",
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "diagnostic": SimpleNamespace(
+                entity_id="sensor.diagnostic_candidate",
+                domain="sensor",
+                name="Diagnostic candidate",
+                original_name=None,
+                disabled_by=None,
+                entity_category="diagnostic",
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
+    )
+
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_automation",
+        lambda hass, entity_id: ["sensor.automation_used"],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_script",
+        lambda hass, entity_id: ["light.script_used"],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_scene",
+        lambda hass, entity_id: ["switch.scene_used"],
+    )
+
+    states = [
+        FakeState(
+            "automation.kitchen",
+            "on",
+            "Kitchen automation",
+        ),
+        FakeState(
+            "script.evening",
+            "off",
+            "Evening",
+        ),
+        FakeState(
+            "scene.movie",
+            "scening",
+            "Movie",
+        ),
+        FakeState(
+            "sensor.automation_used",
+            "20",
+            "Automation used",
+        ),
+        FakeState(
+            "light.script_used",
+            "on",
+            "Script used",
+        ),
+        FakeState(
+            "switch.scene_used",
+            "off",
+            "Scene used",
+        ),
+        FakeState(
+            "sensor.unreferenced",
+            "10",
+            "Unreferenced",
+        ),
+        FakeState(
+            "binary_sensor.unreferenced",
+            "off",
+            "Unreferenced binary",
+        ),
+        FakeState(
+            "sensor.disabled_candidate",
+            "10",
+            "Disabled candidate",
+        ),
+        FakeState(
+            "sensor.diagnostic_candidate",
+            "10",
+            "Diagnostic candidate",
+        ),
+        FakeState(
+            "sensor.runtime_only",
+            "10",
+            "Runtime only",
+        ),
+    ]
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass(states),
+        context,
+    )
+
+    assert context.entities.unreferenced_entity_count == 2
+    assert [
+        entity.entity_id
+        for entity in context.entities.unreferenced_entities
+    ] == [
+        "binary_sensor.unreferenced",
+        "sensor.unreferenced",
+    ]
+
+    assert context.entities.unreferenced_entities[0].name == (
+        "Unreferenced binary"
+    )
+    assert context.entities.unreferenced_entities[0].domain == (
+        "binary_sensor"
+    )

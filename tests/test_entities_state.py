@@ -31,6 +31,8 @@ def test_entities_state_defaults() -> None:
         "script_dependencies": [],
         "scene_dependency_count": 0,
         "scene_dependencies": [],
+        "unreferenced_entity_count": 0,
+        "unreferenced_entities": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
     }
@@ -181,6 +183,8 @@ def test_entities_state_nested_values() -> None:
                 "referenced_entity_count": 2,
             }
         ],
+        "unreferenced_entity_count": 0,
+        "unreferenced_entities": [],
         "unassigned_area_count": 0,
         "unassigned_area_entities": [],
 
