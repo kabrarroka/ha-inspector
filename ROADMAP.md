@@ -80,7 +80,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Entity reference discovery
 - [x] Automation dependency inspection
 - [x] Script dependency inspection
-- [ ] Scene dependency inspection
+- [x] Scene dependency inspection
 - [ ] Template and configuration reference inspection
 - [ ] Unused entity detection
 - [ ] Missing entity reference detection

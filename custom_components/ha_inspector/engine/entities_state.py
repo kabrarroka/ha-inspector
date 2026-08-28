@@ -53,6 +53,16 @@ class ScriptDependencySummary:
 
 
 @dataclass(slots=True)
+class SceneDependencySummary:
+    """Represent resolved entity dependencies for one scene."""
+
+    entity_id: str
+    name: str
+    referenced_entities: list[str] = field(default_factory=list)
+    referenced_entity_count: int = 0
+
+
+@dataclass(slots=True)
 class EntitiesState(BaseState):
     """Represent the stable entity inspection contract."""
 
@@ -81,6 +91,11 @@ class EntitiesState(BaseState):
 
     script_dependency_count: int = 0
     script_dependencies: list[ScriptDependencySummary] = field(
+        default_factory=list
+    )
+
+    scene_dependency_count: int = 0
+    scene_dependencies: list[SceneDependencySummary] = field(
         default_factory=list
     )
 
