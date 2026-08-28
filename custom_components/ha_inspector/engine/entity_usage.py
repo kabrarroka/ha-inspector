@@ -41,3 +41,19 @@ def unreferenced_entity_ids(
             and entity_id.split(".", 1)[0] not in excluded_domains
         )
     )
+
+
+def missing_entity_ids(
+    referenced_entities: Iterable[str],
+    existing_entities: Iterable[str],
+) -> tuple[str, ...]:
+    """Return referenced entity IDs that are not known to exist."""
+    existing = set(existing_entities)
+
+    return tuple(
+        sorted(
+            entity_id
+            for entity_id in set(referenced_entities)
+            if entity_id not in existing
+        )
+    )
