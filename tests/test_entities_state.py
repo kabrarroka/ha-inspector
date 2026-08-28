@@ -3,6 +3,7 @@ from custom_components.ha_inspector.engine.entities_state import (
     DisabledAutomation,
     DuplicateEntityName,
     EntitiesState,
+    EntityDependencySummary,
     EntitySummary,
     SceneDependencySummary,
     ScriptDependencySummary,
@@ -31,6 +32,8 @@ def test_entities_state_defaults() -> None:
         "script_dependencies": [],
         "scene_dependency_count": 0,
         "scene_dependencies": [],
+        "entity_dependency_count": 0,
+        "entity_dependencies": [],
         "unreferenced_entity_count": 0,
         "unreferenced_entities": [],
         "missing_entity_count": 0,
@@ -106,6 +109,16 @@ def test_entities_state_nested_values() -> None:
                     "media_player.tv",
                 ],
                 referenced_entity_count=2,
+            )
+        ],
+        entity_dependency_count=1,
+        entity_dependencies=[
+            EntityDependencySummary(
+                entity_id="light.living_room",
+                reference_count=3,
+                automation_references=["automation.evening"],
+                script_references=["script.evening"],
+                scene_references=["scene.movie"],
             )
         ],
         missing_entity_count=2,
@@ -188,6 +201,16 @@ def test_entities_state_nested_values() -> None:
                     "media_player.tv",
                 ],
                 "referenced_entity_count": 2,
+            }
+        ],
+        "entity_dependency_count": 1,
+        "entity_dependencies": [
+            {
+                "entity_id": "light.living_room",
+                "reference_count": 3,
+                "automation_references": ["automation.evening"],
+                "script_references": ["script.evening"],
+                "scene_references": ["scene.movie"],
             }
         ],
         "unreferenced_entity_count": 0,

@@ -119,6 +119,8 @@ async def test_collect_empty_entities(monkeypatch) -> None:
         "script_dependencies": [],
         "scene_dependency_count": 0,
         "scene_dependencies": [],
+        "entity_dependency_count": 0,
+        "entity_dependencies": [],
         "unreferenced_entity_count": 0,
         "unreferenced_entities": [],
         "missing_entity_count": 0,
@@ -1029,3 +1031,120 @@ async def test_collect_missing_entity_references(monkeypatch) -> None:
         "switch.automation_missing",
         "switch.shared_missing",
     ]
+
+@pytest.mark.asyncio
+async def test_collect_entity_dependency_summaries(monkeypatch) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "automation": SimpleNamespace(
+                entity_id="automation.kitchen",
+                domain="automation",
+                name="Kitchen",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "script": SimpleNamespace(
+                entity_id="script.evening",
+                domain="script",
+                name="Evening",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "scene": SimpleNamespace(
+                entity_id="scene.movie",
+                domain="scene",
+                name="Movie",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
+    )
+
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_automation",
+        lambda hass, entity_id: [
+            "light.kitchen",
+            "sensor.temperature",
+        ],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_script",
+        lambda hass, entity_id: [
+            "light.kitchen",
+            "switch.fan",
+        ],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_scene",
+        lambda hass, entity_id: [
+            "light.kitchen",
+        ],
+    )
+
+    states = [
+        FakeState("automation.kitchen", "on", "Kitchen"),
+        FakeState("script.evening", "off", "Evening"),
+        FakeState("scene.movie", "scening", "Movie"),
+        FakeState("light.kitchen", "on", "Kitchen light"),
+        FakeState("sensor.temperature", "21", "Temperature"),
+        FakeState("switch.fan", "off", "Fan"),
+    ]
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass(states),
+        context,
+    )
+
+    assert context.entities.entity_dependency_count == 3
+
+    assert [
+        dependency.entity_id
+        for dependency in context.entities.entity_dependencies
+    ] == [
+        "light.kitchen",
+        "sensor.temperature",
+        "switch.fan",
+    ]
+
+    kitchen = context.entities.entity_dependencies[0]
+    assert kitchen.reference_count == 3
+    assert kitchen.automation_references == ["automation.kitchen"]
+    assert kitchen.script_references == ["script.evening"]
+    assert kitchen.scene_references == ["scene.movie"]
+
+    temperature = context.entities.entity_dependencies[1]
+    assert temperature.reference_count == 1
+    assert temperature.automation_references == ["automation.kitchen"]
+    assert temperature.script_references == []
+    assert temperature.scene_references == []
+
+    fan = context.entities.entity_dependencies[2]
+    assert fan.reference_count == 1
+    assert fan.automation_references == []
+    assert fan.script_references == ["script.evening"]
+    assert fan.scene_references == []

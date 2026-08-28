@@ -63,6 +63,17 @@ class SceneDependencySummary:
 
 
 @dataclass(slots=True)
+class EntityDependencySummary:
+    """Represent known configuration references to one entity."""
+
+    entity_id: str
+    reference_count: int = 0
+    automation_references: list[str] = field(default_factory=list)
+    script_references: list[str] = field(default_factory=list)
+    scene_references: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class EntitiesState(BaseState):
     """Represent the stable entity inspection contract."""
 
@@ -96,6 +107,11 @@ class EntitiesState(BaseState):
 
     scene_dependency_count: int = 0
     scene_dependencies: list[SceneDependencySummary] = field(
+        default_factory=list
+    )
+
+    entity_dependency_count: int = 0
+    entity_dependencies: list[EntityDependencySummary] = field(
         default_factory=list
     )
 
