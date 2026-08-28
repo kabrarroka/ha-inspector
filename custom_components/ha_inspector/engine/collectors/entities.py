@@ -23,6 +23,7 @@ from ..entities_state import (
     SceneDependencySummary,
     ScriptDependencySummary,
 )
+from ..entity_usage import referenced_entity_ids, unreferenced_entity_ids
 from ..scene_dependencies import scene_dependency_from_entities
 from ..script_dependencies import script_dependency_from_entities
 from .base import BaseCollector
@@ -232,6 +233,48 @@ class EntitiesCollector(BaseCollector):
             key=lambda item: item.entity_id
         )
 
+        referenced_entities = referenced_entity_ids(
+            [
+                dependency.referenced_entities
+                for dependency in automation_dependencies
+            ]
+            + [
+                dependency.referenced_entities
+                for dependency in script_dependencies
+            ]
+            + [
+                dependency.referenced_entities
+                for dependency in scene_dependencies
+            ]
+        )
+
+        unreferenced_candidate_ids = (
+            entry.entity_id
+            for entry in registry.entities.values()
+            if entry.disabled_by is None
+            and entry.entity_category is None
+            and hass.states.get(entry.entity_id) is not None
+        )
+
+        unreferenced_ids = unreferenced_entity_ids(
+            unreferenced_candidate_ids,
+            referenced_entities,
+        )
+
+        states_by_entity_id = {
+            state.entity_id: state
+            for state in states
+        }
+
+        unreferenced_entities = [
+            EntitySummary(
+                entity_id=entity_id,
+                name=states_by_entity_id[entity_id].name,
+                domain=states_by_entity_id[entity_id].domain,
+            )
+            for entity_id in unreferenced_ids
+        ]
+
         state = EntitiesState(
             total_entities=len(states),
             domain_counts=dict(sorted(domain_counts.items())),
@@ -251,6 +294,8 @@ class EntitiesCollector(BaseCollector):
             script_dependencies=script_dependencies,
             scene_dependency_count=len(scene_dependencies),
             scene_dependencies=scene_dependencies,
+            unreferenced_entity_count=len(unreferenced_entities),
+            unreferenced_entities=unreferenced_entities,
             unassigned_area_count=len(unassigned_area_entities),
             unassigned_area_entities=unassigned_area_entities,
         )
