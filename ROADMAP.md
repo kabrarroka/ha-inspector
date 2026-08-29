@@ -91,7 +91,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Missing entity reference findings
 - [x] Unreferenced entity findings
 - [x] Dependency health inspection for unavailable and unknown entities
-- [ ] Affected configuration summaries
+- [x] Affected configuration summaries
 - [ ] Dependency impact scoring and prioritization
 - [ ] Dependency diagnostics in domain health and dashboard summary
 - [ ] Dependency-focused inspection profile

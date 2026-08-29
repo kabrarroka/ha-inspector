@@ -82,6 +82,9 @@ class DependencyHealthSummary:
     domain: str
     state: str
     reference_count: int = 0
+    automation_references: list[str] = field(default_factory=list)
+    script_references: list[str] = field(default_factory=list)
+    scene_references: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)

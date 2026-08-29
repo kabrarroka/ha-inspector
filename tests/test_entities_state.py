@@ -134,6 +134,9 @@ def test_entities_state_nested_values() -> None:
                 domain="sensor",
                 state="unavailable",
                 reference_count=2,
+                automation_references=["automation.climate"],
+                script_references=["script.climate"],
+                scene_references=[],
             )
         ],
         unknown_dependency_count=1,
@@ -144,6 +147,9 @@ def test_entities_state_nested_values() -> None:
                 domain="sensor",
                 state="unknown",
                 reference_count=1,
+                automation_references=["automation.humidity"],
+                script_references=[],
+                scene_references=[],
             )
         ],
         missing_entity_count=2,
@@ -246,6 +252,9 @@ def test_entities_state_nested_values() -> None:
                 "domain": "sensor",
                 "state": "unavailable",
                 "reference_count": 2,
+                "automation_references": ["automation.climate"],
+                "script_references": ["script.climate"],
+                "scene_references": [],
             }
         ],
         "unknown_dependency_count": 1,
@@ -256,6 +265,9 @@ def test_entities_state_nested_values() -> None:
                 "domain": "sensor",
                 "state": "unknown",
                 "reference_count": 1,
+                "automation_references": ["automation.humidity"],
+                "script_references": [],
+                "scene_references": [],
             }
         ],
         "unreferenced_entity_count": 0,

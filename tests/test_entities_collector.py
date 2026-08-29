@@ -1180,6 +1180,16 @@ async def test_collect_dependency_health_for_unavailable_and_unknown_entities(
                 area_id=None,
                 device_id=None,
             ),
+            "scene": SimpleNamespace(
+                entity_id="scene.movie",
+                domain="scene",
+                name="Movie",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
         }
     )
 
@@ -1212,7 +1222,9 @@ async def test_collect_dependency_health_for_unavailable_and_unknown_entities(
     monkeypatch.setattr(
         entities_module,
         "entities_in_scene",
-        lambda hass, entity_id: [],
+        lambda hass, entity_id: [
+            "binary_sensor.window",
+        ],
     )
 
     states = [
@@ -1225,6 +1237,11 @@ async def test_collect_dependency_health_for_unavailable_and_unknown_entities(
             "script.evening",
             "off",
             "Evening",
+        ),
+        FakeState(
+            "scene.movie",
+            "scening",
+            "Movie",
         ),
         FakeState(
             "sensor.temperature",
@@ -1263,6 +1280,9 @@ async def test_collect_dependency_health_for_unavailable_and_unknown_entities(
     assert unavailable.domain == "sensor"
     assert unavailable.state == STATE_UNAVAILABLE
     assert unavailable.reference_count == 2
+    assert unavailable.automation_references == ["automation.kitchen"]
+    assert unavailable.script_references == ["script.evening"]
+    assert unavailable.scene_references == []
 
     assert context.entities.unknown_dependency_count == 1
     assert [
@@ -1276,4 +1296,7 @@ async def test_collect_dependency_health_for_unavailable_and_unknown_entities(
     assert unknown.name == "Window"
     assert unknown.domain == "binary_sensor"
     assert unknown.state == STATE_UNKNOWN
-    assert unknown.reference_count == 1
+    assert unknown.reference_count == 2
+    assert unknown.automation_references == ["automation.kitchen"]
+    assert unknown.script_references == []
+    assert unknown.scene_references == ["scene.movie"]
