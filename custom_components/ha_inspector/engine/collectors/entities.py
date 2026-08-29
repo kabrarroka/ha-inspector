@@ -289,6 +289,15 @@ class EntitiesCollector(BaseCollector):
                 reference_count=dependencies_by_entity_id[
                     entity.entity_id
                 ].reference_count,
+                automation_references=dependencies_by_entity_id[
+                    entity.entity_id
+                ].automation_references,
+                script_references=dependencies_by_entity_id[
+                    entity.entity_id
+                ].script_references,
+                scene_references=dependencies_by_entity_id[
+                    entity.entity_id
+                ].scene_references,
             )
             for entity in sorted(
                 unavailable_entities,
@@ -306,6 +315,15 @@ class EntitiesCollector(BaseCollector):
                 reference_count=dependencies_by_entity_id[
                     entity.entity_id
                 ].reference_count,
+                automation_references=dependencies_by_entity_id[
+                    entity.entity_id
+                ].automation_references,
+                script_references=dependencies_by_entity_id[
+                    entity.entity_id
+                ].script_references,
+                scene_references=dependencies_by_entity_id[
+                    entity.entity_id
+                ].scene_references,
             )
             for entity in sorted(
                 unknown_entities,
