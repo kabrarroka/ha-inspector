@@ -1283,6 +1283,8 @@ async def test_collect_dependency_health_for_unavailable_and_unknown_entities(
     assert unavailable.automation_references == ["automation.kitchen"]
     assert unavailable.script_references == ["script.evening"]
     assert unavailable.scene_references == []
+    assert unavailable.impact_score == 30
+    assert unavailable.priority == "medium"
 
     assert context.entities.unknown_dependency_count == 1
     assert [
@@ -1300,3 +1302,110 @@ async def test_collect_dependency_health_for_unavailable_and_unknown_entities(
     assert unknown.automation_references == ["automation.kitchen"]
     assert unknown.script_references == []
     assert unknown.scene_references == ["scene.movie"]
+    assert unknown.impact_score == 20
+    assert unknown.priority == "medium"
+
+
+@pytest.mark.asyncio
+async def test_dependency_health_is_prioritized_by_impact(monkeypatch) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "automation": SimpleNamespace(
+                entity_id="automation.kitchen",
+                domain="automation",
+                name="Kitchen",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "script": SimpleNamespace(
+                entity_id="script.evening",
+                domain="script",
+                name="Evening",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_automation",
+        lambda hass, entity_id: [
+            "sensor.alpha",
+            "sensor.zeta",
+        ],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_script",
+        lambda hass, entity_id: [
+            "sensor.zeta",
+        ],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_scene",
+        lambda hass, entity_id: [],
+    )
+
+    states = [
+        FakeState(
+            "automation.kitchen",
+            "on",
+            "Kitchen",
+        ),
+        FakeState(
+            "script.evening",
+            "off",
+            "Evening",
+        ),
+        FakeState(
+            "sensor.alpha",
+            STATE_UNAVAILABLE,
+            "Alpha",
+        ),
+        FakeState(
+            "sensor.zeta",
+            STATE_UNAVAILABLE,
+            "Zeta",
+        ),
+    ]
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass(states),
+        context,
+    )
+
+    assert [
+        dependency.entity_id
+        for dependency in context.entities.unavailable_dependencies
+    ] == [
+        "sensor.zeta",
+        "sensor.alpha",
+    ]
+
+    assert [
+        dependency.impact_score
+        for dependency in context.entities.unavailable_dependencies
+    ] == [
+        30,
+        25,
+    ]

@@ -14,6 +14,7 @@ from homeassistant.helpers import entity_registry as er
 
 from ..automation_dependencies import automation_dependency_from_entities
 from ..context import InspectionContext
+from ..dependency_impact import dependency_impact_score, dependency_priority
 from ..entities_state import (
     AutomationDependencySummary,
     DependencyHealthSummary,
@@ -331,6 +332,28 @@ class EntitiesCollector(BaseCollector):
             )
             if entity.entity_id in dependencies_by_entity_id
         ]
+
+        for dependency in unavailable_dependencies + unknown_dependencies:
+            dependency.impact_score = dependency_impact_score(
+                state=dependency.state,
+                reference_count=dependency.reference_count,
+            )
+            dependency.priority = dependency_priority(
+                dependency.impact_score
+            )
+
+        unavailable_dependencies.sort(
+            key=lambda dependency: (
+                -dependency.impact_score,
+                dependency.entity_id,
+            )
+        )
+        unknown_dependencies.sort(
+            key=lambda dependency: (
+                -dependency.impact_score,
+                dependency.entity_id,
+            )
+        )
 
         referenced_entities = referenced_entity_ids(
             [
