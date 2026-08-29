@@ -120,6 +120,7 @@ def test_profile_is_json_safe():
     assert profile_data["title"] == "Entity inspection"
     assert profile_data["request"]["include_rule_ids"] == [
         "DUPLICATE_ENTITY_NAMES",
+        "MISSING_ENTITY_REFERENCES",
         "UNAVAILABLE_ENTITIES",
         "UNKNOWN_ENTITIES",
     ]
@@ -219,3 +220,8 @@ def test_targeted_profiles_are_localized() -> None:
         post_restore["title"]
         == "Inspección posterior a restauración"
     )
+
+def test_entities_profile_includes_missing_entity_references() -> None:
+    profile = get_profile("entities")
+
+    assert "MISSING_ENTITY_REFERENCES" in profile.request.include_rule_ids

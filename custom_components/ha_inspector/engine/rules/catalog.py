@@ -166,6 +166,22 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
         weight=5,
         tags=("entities", "naming", "usability"),
     ),
+    "MISSING_ENTITY_REFERENCES": RuleDescriptor(
+        rule_id="entities.missing_references",
+        category=Category.ENTITIES,
+        title="Missing entity references",
+        description=(
+            "Detects configuration references to entities that no longer exist."
+        ),
+        weight=20,
+        tags=(
+            "entities",
+            "dependencies",
+            "references",
+            "configuration",
+            "errors",
+        ),
+    ),
     "ENTITIES_WITHOUT_AREA": RuleDescriptor(
         rule_id="entities.without_area",
         category=Category.ENTITIES,

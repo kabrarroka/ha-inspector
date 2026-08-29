@@ -266,6 +266,16 @@ _FINDING_TRANSLATIONS: Final[
         },
 
         # Entities
+        "MISSING_ENTITY_REFERENCES_FOUND": {
+            "title": "Se han detectado referencias a entidades inexistentes",
+            "description": (
+                "{missing_entity_count} entidades referenciadas ya no existen."
+            ),
+            "recommendation": (
+                "Revisa las automatizaciones, scripts y escenas afectadas y "
+                "elimina o sustituye las referencias a entidades que ya no existen."
+            ),
+        },
         "UNAVAILABLE_ENTITIES_EXCESSIVE": {
             "title": "Hay demasiadas entidades no disponibles",
             "description": (
