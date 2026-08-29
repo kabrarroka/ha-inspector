@@ -86,6 +86,17 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Missing entity reference detection
 - [x] Entity dependency summaries
 
+## Epic J — Dependency diagnostics and cleanup
+
+- [ ] Missing entity reference findings
+- [ ] Unreferenced entity findings
+- [ ] Dependency health inspection for unavailable and unknown entities
+- [ ] Affected configuration summaries
+- [ ] Dependency impact scoring and prioritization
+- [ ] Dependency diagnostics in domain health and dashboard summary
+- [ ] Dependency-focused inspection profile
+- [ ] Dependency diagnostics in Home Assistant entities and services
+
 ## Version direction
 
 ### 0.5 — Engine foundation
@@ -111,3 +122,8 @@ improved operational diagnostics, and richer Home Assistant presentation.
 
 Entity-reference discovery, configuration dependency analysis, unused entity
 detection, missing-reference detection, and dependency-oriented diagnostics.
+
+### 1.3 — Dependency diagnostics and configuration cleanup
+
+Actionable dependency findings, configuration impact analysis, dependency
+health scoring, prioritization, and dedicated dependency-focused diagnostics.
