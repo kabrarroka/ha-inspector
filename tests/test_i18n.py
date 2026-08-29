@@ -208,3 +208,35 @@ def test_localize_finding_falls_back_for_missing_or_invalid_fields(
     assert localized.title == finding.title
     assert localized.description == finding.description
     assert localized.recommendation == finding.recommendation
+
+def test_localize_missing_entity_references_finding() -> None:
+    from custom_components.ha_inspector.engine.i18n import localize_finding
+    from custom_components.ha_inspector.engine.models import Finding
+    from custom_components.ha_inspector.engine.severity import Severity
+
+    finding = Finding(
+        finding_id="MISSING_ENTITY_REFERENCES_FOUND",
+        severity=Severity.ERROR,
+        title="Missing entity references detected",
+        description="2 referenced entities do not exist.",
+        recommendation="Review affected configuration.",
+        data={
+            "missing_entity_count": 2,
+            "missing_entities": [
+                "light.removed_lamp",
+                "sensor.old_temperature",
+            ],
+        },
+    )
+
+    localized = localize_finding(finding, "es")
+
+    assert localized.title == (
+        "Se han detectado referencias a entidades inexistentes"
+    )
+    assert localized.description == (
+        "2 entidades referenciadas ya no existen."
+    )
+    assert localized.recommendation is not None
+    assert "automatizaciones, scripts y escenas" in localized.recommendation
+    assert localized.data == finding.data

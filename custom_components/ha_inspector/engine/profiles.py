@@ -96,10 +96,13 @@ _BUILT_IN_PROFILES: dict[str, InspectionProfile] = {
     "entities": InspectionProfile(
         profile_id="entities",
         title="Entity inspection",
-        description="Inspect entity availability, state and naming.",
+        description=(
+            "Inspect entity availability, state, naming and configuration references."
+        ),
         request=InspectionRequest(
             include_rule_ids=(
                 "DUPLICATE_ENTITY_NAMES",
+                "MISSING_ENTITY_REFERENCES",
                 "UNAVAILABLE_ENTITIES",
                 "UNKNOWN_ENTITIES",
             ),
@@ -219,8 +222,8 @@ _PROFILE_TRANSLATIONS: Mapping[
                 ),
                 "entities": (
                     "Inspección de entidades",
-                    "Inspecciona la disponibilidad, el estado y los "
-                    "nombres de las entidades.",
+                    "Inspecciona la disponibilidad, el estado, los nombres "
+                    "y las referencias de configuración de las entidades.",
                 ),
                 "integrations": (
                     "Inspección de integraciones",

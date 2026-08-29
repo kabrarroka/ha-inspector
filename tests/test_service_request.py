@@ -62,6 +62,7 @@ def test_build_request_with_profile_mapping():
 
     assert request.include_rule_ids == (
         "DUPLICATE_ENTITY_NAMES",
+        "MISSING_ENTITY_REFERENCES",
         "UNAVAILABLE_ENTITIES",
         "UNKNOWN_ENTITIES",
     )

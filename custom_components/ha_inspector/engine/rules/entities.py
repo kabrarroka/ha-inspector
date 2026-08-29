@@ -181,6 +181,39 @@ class DuplicateEntityNamesRule(BaseRule):
             )
         ]
 
+
+class MissingEntityReferencesRule(BaseRule):
+    """Report entity references that no longer resolve."""
+
+    rule_id = "MISSING_ENTITY_REFERENCES"
+
+    async def check(self, context: InspectionContext) -> list[Finding]:
+        """Report known configuration references to missing entities."""
+        entities = context.entities.missing_entities
+
+        if not entities:
+            return []
+
+        return [
+            Finding(
+                finding_id="MISSING_ENTITY_REFERENCES_FOUND",
+                severity=Severity.ERROR,
+                title="Missing entity references detected",
+                description=(
+                    f"{len(entities)} referenced entities do not exist."
+                ),
+                recommendation=(
+                    "Review the affected automations, scripts and scenes and "
+                    "remove or replace references to entities that no longer exist."
+                ),
+                data={
+                    "missing_entity_count": len(entities),
+                    "missing_entities": entities,
+                },
+            )
+        ]
+
+
 class EntitiesWithoutAreaRule(BaseRule):
     """Report entities that are not assigned to an area."""
 

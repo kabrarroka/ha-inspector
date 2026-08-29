@@ -17,6 +17,7 @@ from custom_components.ha_inspector.engine.rules.automations import (
 from custom_components.ha_inspector.engine.rules.entities import (
     DuplicateEntityNamesRule,
     EntitiesWithoutAreaRule,
+    MissingEntityReferencesRule,
     UnavailableEntitiesRule,
     UnknownEntitiesRule,
 )
@@ -414,3 +415,39 @@ def test_unknown_entities_rejects_invalid_thresholds(
             warning_percentage=warning_percentage,
             error_percentage=error_percentage,
         )
+
+
+@pytest.mark.asyncio
+async def test_missing_entity_references_rule_returns_nothing_when_empty() -> None:
+    context = InspectionContext(entities=EntitiesState())
+
+    assert await MissingEntityReferencesRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_missing_entity_references_rule_reports_missing_entities() -> None:
+    context = InspectionContext(
+        entities=EntitiesState(
+            missing_entity_count=2,
+            missing_entities=[
+                "light.removed_lamp",
+                "sensor.old_temperature",
+            ],
+        )
+    )
+
+    findings = await MissingEntityReferencesRule().check(context)
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.finding_id == "MISSING_ENTITY_REFERENCES_FOUND"
+    assert finding.severity is Severity.ERROR
+    assert finding.data == {
+        "missing_entity_count": 2,
+        "missing_entities": [
+            "light.removed_lamp",
+            "sensor.old_temperature",
+        ],
+    }
