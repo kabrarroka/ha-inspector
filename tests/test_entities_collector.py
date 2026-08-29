@@ -121,6 +121,10 @@ async def test_collect_empty_entities(monkeypatch) -> None:
         "scene_dependencies": [],
         "entity_dependency_count": 0,
         "entity_dependencies": [],
+        "unavailable_dependency_count": 0,
+        "unavailable_dependencies": [],
+        "unknown_dependency_count": 0,
+        "unknown_dependencies": [],
         "unreferenced_entity_count": 0,
         "unreferenced_entities": [],
         "missing_entity_count": 0,
@@ -1148,3 +1152,128 @@ async def test_collect_entity_dependency_summaries(monkeypatch) -> None:
     assert fan.automation_references == []
     assert fan.script_references == ["script.evening"]
     assert fan.scene_references == []
+
+
+@pytest.mark.asyncio
+async def test_collect_dependency_health_for_unavailable_and_unknown_entities(
+    monkeypatch,
+) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "automation": SimpleNamespace(
+                entity_id="automation.kitchen",
+                domain="automation",
+                name="Kitchen",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+            "script": SimpleNamespace(
+                entity_id="script.evening",
+                domain="script",
+                name="Evening",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
+    )
+
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_automation",
+        lambda hass, entity_id: [
+            "sensor.temperature",
+            "binary_sensor.window",
+        ],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_script",
+        lambda hass, entity_id: [
+            "sensor.temperature",
+        ],
+    )
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_scene",
+        lambda hass, entity_id: [],
+    )
+
+    states = [
+        FakeState(
+            "automation.kitchen",
+            "on",
+            "Kitchen",
+        ),
+        FakeState(
+            "script.evening",
+            "off",
+            "Evening",
+        ),
+        FakeState(
+            "sensor.temperature",
+            STATE_UNAVAILABLE,
+            "Temperature",
+        ),
+        FakeState(
+            "binary_sensor.window",
+            STATE_UNKNOWN,
+            "Window",
+        ),
+        FakeState(
+            "sensor.unreferenced_problem",
+            STATE_UNAVAILABLE,
+            "Unreferenced problem",
+        ),
+    ]
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass(states),
+        context,
+    )
+
+    assert context.entities.unavailable_dependency_count == 1
+    assert [
+        dependency.entity_id
+        for dependency in context.entities.unavailable_dependencies
+    ] == [
+        "sensor.temperature",
+    ]
+
+    unavailable = context.entities.unavailable_dependencies[0]
+    assert unavailable.name == "Temperature"
+    assert unavailable.domain == "sensor"
+    assert unavailable.state == STATE_UNAVAILABLE
+    assert unavailable.reference_count == 2
+
+    assert context.entities.unknown_dependency_count == 1
+    assert [
+        dependency.entity_id
+        for dependency in context.entities.unknown_dependencies
+    ] == [
+        "binary_sensor.window",
+    ]
+
+    unknown = context.entities.unknown_dependencies[0]
+    assert unknown.name == "Window"
+    assert unknown.domain == "binary_sensor"
+    assert unknown.state == STATE_UNKNOWN
+    assert unknown.reference_count == 1
