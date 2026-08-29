@@ -123,6 +123,7 @@ def test_profile_is_json_safe():
         "MISSING_ENTITY_REFERENCES",
         "UNAVAILABLE_ENTITIES",
         "UNKNOWN_ENTITIES",
+        "UNREFERENCED_ENTITIES",
     ]
 
 
@@ -225,3 +226,9 @@ def test_entities_profile_includes_missing_entity_references() -> None:
     profile = get_profile("entities")
 
     assert "MISSING_ENTITY_REFERENCES" in profile.request.include_rule_ids
+
+
+def test_entities_profile_includes_unreferenced_entities() -> None:
+    profile = get_profile("entities")
+
+    assert "UNREFERENCED_ENTITIES" in profile.request.include_rule_ids

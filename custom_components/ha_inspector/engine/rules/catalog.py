@@ -182,6 +182,24 @@ RULE_DESCRIPTORS: dict[str, RuleDescriptor] = {
             "errors",
         ),
     ),
+    "UNREFERENCED_ENTITIES": RuleDescriptor(
+        rule_id="entities.unreferenced",
+        category=Category.ENTITIES,
+        title="Unreferenced entities",
+        description=(
+            "Reports entities with no references in the configuration sources "
+            "currently inspected by HA Inspector."
+        ),
+        weight=0,
+        tags=(
+            "entities",
+            "dependencies",
+            "references",
+            "configuration",
+            "inventory",
+        ),
+    ),
+
     "ENTITIES_WITHOUT_AREA": RuleDescriptor(
         rule_id="entities.without_area",
         category=Category.ENTITIES,

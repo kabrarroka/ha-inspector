@@ -20,6 +20,7 @@ from custom_components.ha_inspector.engine.rules.entities import (
     MissingEntityReferencesRule,
     UnavailableEntitiesRule,
     UnknownEntitiesRule,
+    UnreferencedEntitiesRule,
 )
 from custom_components.ha_inspector.engine.severity import Severity
 
@@ -449,5 +450,56 @@ async def test_missing_entity_references_rule_reports_missing_entities() -> None
         "missing_entities": [
             "light.removed_lamp",
             "sensor.old_temperature",
+        ],
+    }
+
+@pytest.mark.asyncio
+async def test_unreferenced_entities_rule_returns_nothing_when_empty() -> None:
+    context = InspectionContext(entities=EntitiesState())
+
+    assert await UnreferencedEntitiesRule().check(context) == []
+
+
+@pytest.mark.asyncio
+async def test_unreferenced_entities_rule_reports_unreferenced_entities() -> None:
+    context = InspectionContext(
+        entities=EntitiesState(
+            unreferenced_entity_count=2,
+            unreferenced_entities=[
+                EntitySummary(
+                    entity_id="sensor.spare_temperature",
+                    name="Spare temperature",
+                    domain="sensor",
+                ),
+                EntitySummary(
+                    entity_id="light.old_lamp",
+                    name="Old lamp",
+                    domain="light",
+                ),
+            ],
+        )
+    )
+
+    findings = await UnreferencedEntitiesRule().check(context)
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.finding_id == "UNREFERENCED_ENTITIES_FOUND"
+    assert finding.severity is Severity.INFO
+    assert finding.data == {
+        "unreferenced_entity_count": 2,
+        "unreferenced_entities": [
+            EntitySummary(
+                entity_id="sensor.spare_temperature",
+                name="Spare temperature",
+                domain="sensor",
+            ),
+            EntitySummary(
+                entity_id="light.old_lamp",
+                name="Old lamp",
+                domain="light",
+            ),
         ],
     }

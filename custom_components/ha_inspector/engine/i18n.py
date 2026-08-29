@@ -266,6 +266,18 @@ _FINDING_TRANSLATIONS: Final[
         },
 
         # Entities
+        "UNREFERENCED_ENTITIES_FOUND": {
+            "title": "Entidades sin referencias conocidas detectadas",
+            "description": (
+                "{unreferenced_entity_count} entidades no tienen referencias "
+                "en las fuentes de configuración inspeccionadas por HA Inspector."
+            ),
+            "recommendation": (
+                "Revisa estas entidades antes de eliminarlas. Pueden seguir "
+                "utilizándose desde paneles, integraciones, clientes externos "
+                "u otras fuentes que HA Inspector no inspecciona actualmente."
+            ),
+        },
         "MISSING_ENTITY_REFERENCES_FOUND": {
             "title": "Se han detectado referencias a entidades inexistentes",
             "description": (

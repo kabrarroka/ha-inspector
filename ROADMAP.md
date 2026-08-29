@@ -89,7 +89,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 ## Epic J — Dependency diagnostics and cleanup
 
 - [x] Missing entity reference findings
-- [ ] Unreferenced entity findings
+- [x] Unreferenced entity findings
 - [ ] Dependency health inspection for unavailable and unknown entities
 - [ ] Affected configuration summaries
 - [ ] Dependency impact scoring and prioritization

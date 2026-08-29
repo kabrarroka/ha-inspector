@@ -240,3 +240,37 @@ def test_localize_missing_entity_references_finding() -> None:
     assert localized.recommendation is not None
     assert "automatizaciones, scripts y escenas" in localized.recommendation
     assert localized.data == finding.data
+
+
+def test_localize_unreferenced_entities_finding() -> None:
+    from custom_components.ha_inspector.engine.i18n import localize_finding
+    from custom_components.ha_inspector.engine.models import Finding
+    from custom_components.ha_inspector.engine.severity import Severity
+
+    finding = Finding(
+        finding_id="UNREFERENCED_ENTITIES_FOUND",
+        severity=Severity.INFO,
+        title="Entities with no known references detected",
+        description=(
+            "2 entities have no references in the configuration sources "
+            "inspected by HA Inspector."
+        ),
+        recommendation=(
+            "Review these entities before removing them."
+        ),
+        data={
+            "unreferenced_entity_count": 2,
+            "unreferenced_entities": [],
+        },
+    )
+
+    localized = localize_finding(finding, "es")
+
+    assert localized.title == "Entidades sin referencias conocidas detectadas"
+    assert localized.description == (
+        "2 entidades no tienen referencias en las fuentes de configuración "
+        "inspeccionadas por HA Inspector."
+    )
+    assert localized.recommendation is not None
+    assert "antes de eliminarlas" in localized.recommendation
+    assert localized.data == finding.data

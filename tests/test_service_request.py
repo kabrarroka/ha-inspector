@@ -65,6 +65,7 @@ def test_build_request_with_profile_mapping():
         "MISSING_ENTITY_REFERENCES",
         "UNAVAILABLE_ENTITIES",
         "UNKNOWN_ENTITIES",
+        "UNREFERENCED_ENTITIES",
     )
 
 
