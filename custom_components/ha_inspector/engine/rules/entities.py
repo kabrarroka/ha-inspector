@@ -214,6 +214,41 @@ class MissingEntityReferencesRule(BaseRule):
         ]
 
 
+class UnreferencedEntitiesRule(BaseRule):
+    """Report entities with no known configuration references."""
+
+    rule_id = "UNREFERENCED_ENTITIES"
+
+    async def check(self, context: InspectionContext) -> list[Finding]:
+        """Report entities not referenced by known dependency sources."""
+        entities = context.entities.unreferenced_entities
+
+        if not entities:
+            return []
+
+        return [
+            Finding(
+                finding_id="UNREFERENCED_ENTITIES_FOUND",
+                severity=Severity.INFO,
+                title="Entities with no known references detected",
+                description=(
+                    f"{len(entities)} entities have no references in the "
+                    "configuration sources inspected by HA Inspector."
+                ),
+                recommendation=(
+                    "Review these entities before removing them. They may still "
+                    "be used by dashboards, integrations, external clients or "
+                    "other sources that HA Inspector does not currently inspect."
+                ),
+                data={
+                    "unreferenced_entity_count": len(entities),
+                    "unreferenced_entities": entities,
+                },
+            )
+        ]
+
+
+
 class EntitiesWithoutAreaRule(BaseRule):
     """Report entities that are not assigned to an area."""
 

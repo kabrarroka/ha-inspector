@@ -103,6 +103,7 @@ _BUILT_IN_PROFILES: dict[str, InspectionProfile] = {
             include_rule_ids=(
                 "DUPLICATE_ENTITY_NAMES",
                 "MISSING_ENTITY_REFERENCES",
+                "UNREFERENCED_ENTITIES",
                 "UNAVAILABLE_ENTITIES",
                 "UNKNOWN_ENTITIES",
             ),
