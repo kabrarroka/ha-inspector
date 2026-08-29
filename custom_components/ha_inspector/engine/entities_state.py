@@ -85,6 +85,8 @@ class DependencyHealthSummary:
     automation_references: list[str] = field(default_factory=list)
     script_references: list[str] = field(default_factory=list)
     scene_references: list[str] = field(default_factory=list)
+    impact_score: int = 0
+    priority: str = "low"
 
 
 @dataclass(slots=True)

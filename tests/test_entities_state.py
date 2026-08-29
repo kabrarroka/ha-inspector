@@ -137,6 +137,8 @@ def test_entities_state_nested_values() -> None:
                 automation_references=["automation.climate"],
                 script_references=["script.climate"],
                 scene_references=[],
+                impact_score=30,
+                priority="medium",
             )
         ],
         unknown_dependency_count=1,
@@ -150,6 +152,8 @@ def test_entities_state_nested_values() -> None:
                 automation_references=["automation.humidity"],
                 script_references=[],
                 scene_references=[],
+                impact_score=15,
+                priority="low",
             )
         ],
         missing_entity_count=2,
@@ -255,6 +259,8 @@ def test_entities_state_nested_values() -> None:
                 "automation_references": ["automation.climate"],
                 "script_references": ["script.climate"],
                 "scene_references": [],
+                "impact_score": 30,
+                "priority": "medium",
             }
         ],
         "unknown_dependency_count": 1,
@@ -268,6 +274,8 @@ def test_entities_state_nested_values() -> None:
                 "automation_references": ["automation.humidity"],
                 "script_references": [],
                 "scene_references": [],
+                "impact_score": 15,
+                "priority": "low",
             }
         ],
         "unreferenced_entity_count": 0,
