@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.2.0
+
+### Added
+
+- Entity reference discovery across nested configuration values.
+- Automation dependency inspection.
+- Script dependency inspection.
+- Scene dependency inspection.
+- Template and configuration reference inspection.
+- Conservative unreferenced entity detection across known dependency sources.
+- Missing entity reference detection.
+- Per-entity dependency summaries with automation, script, and scene references.
+
+### Changed
+
+- Expanded entity diagnostics with configuration dependency information.
+- Added deterministic reverse dependency summaries grouped by referenced entity.
+- Distinguished unreferenced entities from entities that can be conclusively
+  considered unused.
+- Extended entity inspection state with missing-reference and dependency
+  summary information.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.1.0.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 74 source files.
+- 687 tests pass.
+- Python coverage is 100% across 2986 statements.
+- Release archive/source integrity validation passes across 78 files.
+- Release-readiness validation passes.
+
 ## 1.1.0
 
 ### Added
