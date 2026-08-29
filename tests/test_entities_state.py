@@ -1,5 +1,6 @@
 from custom_components.ha_inspector.engine.entities_state import (
     AutomationDependencySummary,
+    DependencyHealthSummary,
     DisabledAutomation,
     DuplicateEntityName,
     EntitiesState,
@@ -34,6 +35,10 @@ def test_entities_state_defaults() -> None:
         "scene_dependencies": [],
         "entity_dependency_count": 0,
         "entity_dependencies": [],
+        "unavailable_dependency_count": 0,
+        "unavailable_dependencies": [],
+        "unknown_dependency_count": 0,
+        "unknown_dependencies": [],
         "unreferenced_entity_count": 0,
         "unreferenced_entities": [],
         "missing_entity_count": 0,
@@ -119,6 +124,26 @@ def test_entities_state_nested_values() -> None:
                 automation_references=["automation.evening"],
                 script_references=["script.evening"],
                 scene_references=["scene.movie"],
+            )
+        ],
+        unavailable_dependency_count=1,
+        unavailable_dependencies=[
+            DependencyHealthSummary(
+                entity_id="sensor.temperature",
+                name="Temperature",
+                domain="sensor",
+                state="unavailable",
+                reference_count=2,
+            )
+        ],
+        unknown_dependency_count=1,
+        unknown_dependencies=[
+            DependencyHealthSummary(
+                entity_id="sensor.humidity",
+                name="Humidity",
+                domain="sensor",
+                state="unknown",
+                reference_count=1,
             )
         ],
         missing_entity_count=2,
@@ -211,6 +236,26 @@ def test_entities_state_nested_values() -> None:
                 "automation_references": ["automation.evening"],
                 "script_references": ["script.evening"],
                 "scene_references": ["scene.movie"],
+            }
+        ],
+        "unavailable_dependency_count": 1,
+        "unavailable_dependencies": [
+            {
+                "entity_id": "sensor.temperature",
+                "name": "Temperature",
+                "domain": "sensor",
+                "state": "unavailable",
+                "reference_count": 2,
+            }
+        ],
+        "unknown_dependency_count": 1,
+        "unknown_dependencies": [
+            {
+                "entity_id": "sensor.humidity",
+                "name": "Humidity",
+                "domain": "sensor",
+                "state": "unknown",
+                "reference_count": 1,
             }
         ],
         "unreferenced_entity_count": 0,

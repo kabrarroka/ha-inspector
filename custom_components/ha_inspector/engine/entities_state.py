@@ -74,6 +74,17 @@ class EntityDependencySummary:
 
 
 @dataclass(slots=True)
+class DependencyHealthSummary:
+    """Represent a referenced entity with a problematic runtime state."""
+
+    entity_id: str
+    name: str
+    domain: str
+    state: str
+    reference_count: int = 0
+
+
+@dataclass(slots=True)
 class EntitiesState(BaseState):
     """Represent the stable entity inspection contract."""
 
@@ -112,6 +123,16 @@ class EntitiesState(BaseState):
 
     entity_dependency_count: int = 0
     entity_dependencies: list[EntityDependencySummary] = field(
+        default_factory=list
+    )
+
+    unavailable_dependency_count: int = 0
+    unavailable_dependencies: list[DependencyHealthSummary] = field(
+        default_factory=list
+    )
+
+    unknown_dependency_count: int = 0
+    unknown_dependencies: list[DependencyHealthSummary] = field(
         default_factory=list
     )
 
