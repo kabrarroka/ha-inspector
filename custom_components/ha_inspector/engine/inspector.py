@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from .collectors.base import BaseCollector
 from .context import InspectionContext
+from .dependency_diagnostics import dependency_diagnostics
 from .i18n import normalize_language
 from .registry import InspectionRegistry
 from .request import InspectionRequest
@@ -120,6 +121,10 @@ class Inspector:
         )
         rules_seconds = self._clock() - rules_started
         inspection_seconds = self._clock() - inspection_started
+
+        result.dependency_diagnostics = dependency_diagnostics(
+            context.entities
+        )
 
         result.metadata["timings"] = {
             "inspection_seconds": inspection_seconds,

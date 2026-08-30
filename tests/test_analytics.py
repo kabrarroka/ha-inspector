@@ -223,13 +223,18 @@ def test_domain_health_marks_unchecked_domains() -> None:
         "integrations",
         "entities",
     ):
-        assert domain_health[domain] == {
+        expected = {
             "domain": domain,
             "status": "not_checked",
             "health": None,
             "checks": 0,
             "findings": 0,
         }
+
+        if domain == "entities":
+            expected["dependencies"] = result.dependency_diagnostics
+
+        assert domain_health[domain] == expected
 
 
 def test_domain_health_ignores_non_primary_categories() -> None:
@@ -245,3 +250,35 @@ def test_domain_health_ignores_non_primary_categories() -> None:
 
     assert "recorder" not in domain_health
     assert "database" not in domain_health
+
+
+
+def test_domain_health_exposes_entity_dependency_diagnostics() -> None:
+    """Entity domain health exposes dependency diagnostics."""
+    result = InspectionResult(
+        dependency_diagnostics={
+            "affected_entities": 3,
+            "unavailable": 2,
+            "unknown": 1,
+            "critical": 1,
+            "high": 1,
+            "medium": 1,
+            "low": 0,
+            "max_impact_score": 55,
+        }
+    )
+
+    dependencies = InspectionAnalytics(result).domain_health[
+        "entities"
+    ]["dependencies"]
+
+    assert dependencies == {
+        "affected_entities": 3,
+        "unavailable": 2,
+        "unknown": 1,
+        "critical": 1,
+        "high": 1,
+        "medium": 1,
+        "low": 0,
+        "max_impact_score": 55,
+    }

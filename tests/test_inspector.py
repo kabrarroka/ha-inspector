@@ -8,6 +8,9 @@ import pytest
 
 from custom_components.ha_inspector.engine.collectors.base import BaseCollector
 from custom_components.ha_inspector.engine.context import InspectionContext
+from custom_components.ha_inspector.engine.entities_state import (
+    DependencyHealthSummary,
+)
 from custom_components.ha_inspector.engine.inspector import Inspector
 from custom_components.ha_inspector.engine.models import Finding
 from custom_components.ha_inspector.engine.registry import EngineRegistry
@@ -430,3 +433,59 @@ async def test_collector_failure_is_logged(
         in caplog.text
     )
     assert "collector exploded" in caplog.text
+
+
+
+async def test_run_exposes_dependency_diagnostics() -> None:
+    """Inspector transfers dependency diagnostics from context to result."""
+
+    class DependencyCollector(BaseCollector):
+        collector_id = "dependency_test"
+
+        async def collect(self, hass, context: InspectionContext) -> None:
+            del hass
+
+            context.entities.unavailable_dependencies = [
+                DependencyHealthSummary(
+                    entity_id="sensor.temperature",
+                    name="Temperature",
+                    domain="sensor",
+                    state="unavailable",
+                    impact_score=55,
+                    priority="critical",
+                ),
+            ]
+            context.entities.unknown_dependencies = [
+                DependencyHealthSummary(
+                    entity_id="sensor.humidity",
+                    name="Humidity",
+                    domain="sensor",
+                    state="unknown",
+                    impact_score=30,
+                    priority="medium",
+                ),
+            ]
+
+    inspector = Inspector(collectors=[DependencyCollector()])
+
+    result = await inspector.run(object())
+
+    assert result.dependency_diagnostics == {
+        "affected_entities": 2,
+        "unavailable": 1,
+        "unknown": 1,
+        "critical": 1,
+        "high": 0,
+        "medium": 1,
+        "low": 0,
+        "max_impact_score": 55,
+    }
+
+    assert (
+        result.domain_health["entities"]["dependencies"]
+        == result.dependency_diagnostics
+    )
+    assert (
+        result.dashboard_summary["dependencies"]
+        == result.dependency_diagnostics
+    )
