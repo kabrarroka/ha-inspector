@@ -357,6 +357,7 @@ def test_dashboard_summary_for_empty_result() -> None:
         "errors": 0,
         "warnings": 0,
         "info": 0,
+        "dependencies": result.dependency_diagnostics,
         "domains": result.domain_health,
     }
 
@@ -368,3 +369,31 @@ def test_as_dict_includes_dashboard_summary() -> None:
     payload = result.as_dict()
 
     assert payload["dashboard_summary"] == result.dashboard_summary
+
+
+
+def test_dashboard_summary_exposes_dependency_diagnostics() -> None:
+    """Dashboard summary exposes compact dependency diagnostics."""
+    result = InspectionResult(
+        dependency_diagnostics={
+            "affected_entities": 2,
+            "unavailable": 1,
+            "unknown": 1,
+            "critical": 0,
+            "high": 1,
+            "medium": 1,
+            "low": 0,
+            "max_impact_score": 40,
+        }
+    )
+
+    assert result.dashboard_summary["dependencies"] == {
+        "affected_entities": 2,
+        "unavailable": 1,
+        "unknown": 1,
+        "critical": 0,
+        "high": 1,
+        "medium": 1,
+        "low": 0,
+        "max_impact_score": 40,
+    }

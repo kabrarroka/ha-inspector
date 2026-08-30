@@ -64,7 +64,7 @@ class InspectionAnalytics:
 
         categories = self.categories
 
-        return {
+        domain_health: dict[str, dict[str, Any]] = {
             domain: (
                 {
                     "domain": domain,
@@ -84,6 +84,12 @@ class InspectionAnalytics:
             )
             for domain in domains
         }
+
+        domain_health["entities"]["dependencies"] = (
+            self.result.dependency_diagnostics
+        )
+
+        return domain_health
 
     @property
     def health_summary(self) -> dict[str, int]:

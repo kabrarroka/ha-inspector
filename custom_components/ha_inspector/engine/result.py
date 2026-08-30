@@ -8,6 +8,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 from .analytics import InspectionAnalytics
+from .dependency_diagnostics import (
+    DependencyDiagnostics,
+    empty_dependency_diagnostics,
+)
 from .models import Finding
 from .score import (
     HealthScore,
@@ -36,6 +40,9 @@ class InspectionResult:
     )
     category_penalties: dict[str, float] = field(default_factory=dict)
     scoring_entries: list[ScoringEntry] = field(default_factory=list)
+    dependency_diagnostics: DependencyDiagnostics = field(
+        default_factory=empty_dependency_diagnostics
+    )
 
     def add_many(self, findings: Iterable[Finding]) -> None:
         """Add multiple findings to the result."""
@@ -154,6 +161,7 @@ class InspectionResult:
             "errors": self.count_by_severity(Severity.ERROR),
             "warnings": self.count_by_severity(Severity.WARNING),
             "info": self.count_by_severity(Severity.INFO),
+            "dependencies": self.dependency_diagnostics,
             "domains": self.domain_health,
         }
 
