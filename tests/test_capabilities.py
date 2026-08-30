@@ -87,6 +87,7 @@ def test_capabilities_include_builtin_profiles() -> None:
     capabilities = EngineCapabilities.from_registry(_registry())
 
     assert capabilities.profile_ids == (
+        "dependencies",
         "entities",
         "full",
         "integrations",
@@ -120,7 +121,7 @@ def test_capabilities_as_dict_returns_public_document() -> None:
         "rules": 1,
         "categories": 1,
         "tags": 2,
-        "profiles": 9,
+        "profiles": 10,
     }
 
     assert data["collectors"] == ["alpha"]
@@ -129,6 +130,7 @@ def test_capabilities_as_dict_returns_public_document() -> None:
     assert data["tags"] == ["alpha", "test"]
 
     assert data["profile_ids"] == [
+        "dependencies",
         "entities",
         "full",
         "integrations",

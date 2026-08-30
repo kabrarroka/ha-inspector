@@ -107,7 +107,7 @@ async def test_info_service_response(
         ],
     }
     assert response["engine"] == {
-        "profiles": 9,
+        "profiles": 10,
         "rules": 3,
         "collectors": 2,
     }

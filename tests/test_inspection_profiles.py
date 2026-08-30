@@ -14,6 +14,7 @@ from custom_components.ha_inspector.engine.profiles import (
 
 def test_expected_profiles_are_registered():
     assert tuple(sorted(PROFILES)) == (
+        "dependencies",
         "entities",
         "full",
         "integrations",
@@ -232,3 +233,29 @@ def test_entities_profile_includes_unreferenced_entities() -> None:
     profile = get_profile("entities")
 
     assert "UNREFERENCED_ENTITIES" in profile.request.include_rule_ids
+
+
+
+def test_dependencies_profile_selects_dependency_rules() -> None:
+    """Dependency profile selects dependency-oriented entity checks."""
+    request = create_profile_request("dependencies")
+
+    assert request.include_rule_ids == (
+        "MISSING_ENTITY_REFERENCES",
+        "UNAVAILABLE_ENTITIES",
+        "UNKNOWN_ENTITIES",
+        "UNREFERENCED_ENTITIES",
+    )
+
+
+def test_dependencies_profile_is_localized() -> None:
+    """Dependency profile provides a Spanish summary."""
+    profile = get_profile("dependencies").as_summary("es")
+
+    assert profile["title"] == "Inspección de dependencias"
+    assert (
+        profile["description"]
+        == "Inspecciona las dependencias de configuración, las "
+        "referencias ausentes y las entidades referenciadas "
+        "con problemas."
+    )
