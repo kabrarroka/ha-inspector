@@ -109,6 +109,22 @@ _BUILT_IN_PROFILES: dict[str, InspectionProfile] = {
             ),
         ),
     ),
+    "dependencies": InspectionProfile(
+        profile_id="dependencies",
+        title="Dependency inspection",
+        description=(
+            "Inspect configuration dependencies, missing references and "
+            "problematic referenced entities."
+        ),
+        request=InspectionRequest(
+            include_rule_ids=(
+                "MISSING_ENTITY_REFERENCES",
+                "UNREFERENCED_ENTITIES",
+                "UNAVAILABLE_ENTITIES",
+                "UNKNOWN_ENTITIES",
+            ),
+        ),
+    ),
     "integrations": InspectionProfile(
         profile_id="integrations",
         title="Integration inspection",
@@ -225,6 +241,12 @@ _PROFILE_TRANSLATIONS: Mapping[
                     "Inspección de entidades",
                     "Inspecciona la disponibilidad, el estado, los nombres "
                     "y las referencias de configuración de las entidades.",
+                ),
+                "dependencies": (
+                    "Inspección de dependencias",
+                    "Inspecciona las dependencias de configuración, las "
+                    "referencias ausentes y las entidades referenciadas "
+                    "con problemas.",
                 ),
                 "integrations": (
                     "Inspección de integraciones",

@@ -121,6 +121,7 @@ async def test_list_profiles_contains_builtin_profiles(
     }
 
     assert profile_ids == {
+        "dependencies",
         "entities",
         "full",
         "integrations",
