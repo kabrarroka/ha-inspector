@@ -1409,3 +1409,66 @@ async def test_dependency_health_is_prioritized_by_impact(monkeypatch) -> None:
         30,
         25,
     ]
+
+
+@pytest.mark.asyncio
+async def test_collect_missing_entity_references_ignores_internal_registry_ids(
+    monkeypatch,
+) -> None:
+    registry = SimpleNamespace(
+        entities={
+            "automation": SimpleNamespace(
+                entity_id="automation.device_condition",
+                domain="automation",
+                name="Device condition",
+                original_name=None,
+                disabled_by=None,
+                entity_category=None,
+                area_id=None,
+                device_id=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        entities_module.er,
+        "async_get",
+        lambda hass: registry,
+    )
+    monkeypatch.setattr(
+        entities_module.dr,
+        "async_get",
+        lambda hass: FakeDeviceRegistry(),
+    )
+
+    monkeypatch.setattr(
+        entities_module,
+        "entities_in_automation",
+        lambda hass, entity_id: [
+            "57324feedae07b0428d144cd73013d02",
+            "sensor.real_missing",
+        ],
+    )
+
+    context = InspectionContext()
+
+    await EntitiesCollector().collect(
+        FakeHass(
+            [
+                FakeState(
+                    "automation.device_condition",
+                    "on",
+                    "Device condition",
+                ),
+            ]
+        ),
+        context,
+    )
+
+    assert context.entities.automation_dependencies[0].referenced_entities == [
+        "sensor.real_missing",
+    ]
+    assert context.entities.missing_entity_count == 1
+    assert context.entities.missing_entities == [
+        "sensor.real_missing",
+    ]

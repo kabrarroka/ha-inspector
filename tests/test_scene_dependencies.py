@@ -1,5 +1,6 @@
 """Tests for scene dependency inspection helpers."""
 
+from custom_components.ha_inspector.engine.entity_references import EntityReference
 from custom_components.ha_inspector.engine.scene_dependencies import (
     SceneDependency,
     scene_dependency_from_entities,
@@ -58,3 +59,25 @@ def test_scene_dependency_supports_no_references() -> None:
     assert dependency.references == ()
     assert dependency.referenced_entities == ()
     assert dependency.referenced_entity_count == 0
+
+
+def test_scene_dependency_ignores_internal_entity_registry_ids() -> None:
+    dependency = scene_dependency_from_entities(
+        "scene.device_scene",
+        "Device scene",
+        [
+            "e896fe3b3a7d1eb58e306aa01b68fc38",
+            "light.living_room",
+        ],
+    )
+
+    assert dependency.references == (
+        EntityReference(
+            entity_id="light.living_room",
+            path=(),
+        ),
+    )
+    assert dependency.referenced_entities == (
+        "light.living_room",
+    )
+    assert dependency.referenced_entity_count == 1

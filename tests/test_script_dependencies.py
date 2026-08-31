@@ -46,3 +46,25 @@ def test_script_dependency_from_resolved_entities_empty() -> None:
     assert dependency.references == ()
     assert dependency.referenced_entities == ()
     assert dependency.referenced_entity_count == 0
+
+
+def test_script_dependency_ignores_internal_entity_registry_ids() -> None:
+    dependency = script_dependency_from_entities(
+        "script.device_action",
+        "Device action",
+        [
+            "57324feedae07b0428d144cd73013d02",
+            "light.kitchen",
+        ],
+    )
+
+    assert dependency.references == (
+        EntityReference(
+            entity_id="light.kitchen",
+            path=(),
+        ),
+    )
+    assert dependency.referenced_entities == (
+        "light.kitchen",
+    )
+    assert dependency.referenced_entity_count == 1

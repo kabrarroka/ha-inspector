@@ -3,6 +3,7 @@
 from custom_components.ha_inspector.engine.entity_references import (
     EntityReference,
     discover_entity_references,
+    valid_entity_ids,
 )
 
 
@@ -113,3 +114,19 @@ def test_discover_entity_references_rejects_invalid_candidate_shapes() -> None:
     ]
 
     assert discover_entity_references(value) == []
+
+
+
+def test_valid_entity_ids_filters_invalid_values_and_deduplicates() -> None:
+    assert valid_entity_ids(
+        [
+            "light.kitchen",
+            "57324feedae07b0428d144cd73013d02",
+            "binary_sensor.motion",
+            "light.kitchen",
+            "not-an-entity",
+        ]
+    ) == (
+        "binary_sensor.motion",
+        "light.kitchen",
+    )
