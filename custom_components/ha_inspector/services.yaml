@@ -30,6 +30,8 @@ run:
               value: pre_upgrade
             - label: Posterior a restauración
               value: post_restore
+            - label: Dependencias
+              value: dependencies
     diagnostics:
       name: Incluir diagnóstico
       description: >
@@ -127,5 +129,15 @@ export_diagnostic_report:
     Devuelve un informe de diagnóstico exportable basado en el último
     resultado de inspección disponible. El informe incluye estado de salud,
     findings y métricas operativas, y excluye el contexto técnico sin filtrar.
+  response:
+    optional: false
+
+
+dependency_diagnostics:
+  name: Diagnóstico de dependencias
+  description: >
+    Devuelve el resumen compacto de dependencias del último resultado de
+    inspección disponible, incluyendo entidades afectadas, estados
+    problemáticos, prioridades e impacto máximo.
   response:
     optional: false

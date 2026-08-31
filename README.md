@@ -191,6 +191,7 @@ public_api:
     - clear_acknowledgement
     - clear_acknowledgements
     - export_diagnostic_report
+    - dependency_diagnostics
 engine: {}
 ```
 
@@ -274,6 +275,34 @@ finding_ids: []
 count: 0
 ```
 
+### `ha_inspector.dependency_diagnostics`
+
+Returns the compact dependency diagnostics from the most recent inspection.
+
+The service does not run a new inspection. Before any inspection has completed,
+it returns a stable empty summary.
+
+```yaml
+action: ha_inspector.dependency_diagnostics
+response_variable: dependency_diagnostics
+```
+
+Response shape:
+
+```yaml
+affected_entities: 4
+unavailable: 2
+unknown: 2
+critical: 1
+high: 1
+medium: 1
+low: 1
+max_impact_score: 55
+```
+
+The same compact dependency information is also exposed by the dedicated
+`Dependency health` diagnostic sensor.
+
 ### `ha_inspector.export_diagnostic_report`
 
 Returns an exportable diagnostic report built from the most recent inspection.
@@ -326,7 +355,7 @@ diagnostic context.
 
 ## Built-in profiles
 
-HA Inspector currently provides nine inspection profiles.
+HA Inspector currently provides ten inspection profiles.
 
 | Profile | Purpose |
 | --- | --- |
@@ -334,6 +363,7 @@ HA Inspector currently provides nine inspection profiles.
 | `quick` | Run a reduced set of high-value system and availability checks |
 | `system` | Inspect Home Assistant system and platform information |
 | `entities` | Inspect entity availability, state, and naming |
+| `dependencies` | Inspect configuration dependencies, missing references, and problematic referenced entities |
 | `integrations` | Inspect integration setup and lifecycle errors |
 | `post_restore` | Check service health after restoring a backup |
 | `pre_upgrade` | Check recovery readiness before upgrading |
@@ -347,7 +377,7 @@ HA Inspector exposes public API version **1**.
 
 The stable public contract includes:
 
-- Home Assistant services: `run`, `list_profiles`, `describe_profile`, `info`, `list_acknowledgements`, `acknowledge_finding`, `clear_acknowledgement`, `clear_acknowledgements`, and `export_diagnostic_report`.
+- Home Assistant services: `run`, `list_profiles`, `describe_profile`, `info`, `list_acknowledgements`, `acknowledge_finding`, `clear_acknowledgement`, `clear_acknowledgements`, `export_diagnostic_report`, and `dependency_diagnostics`.
 - `InspectionRequest` for inspection request configuration.
 - `InspectionResult` and its serialized result document.
 - `Finding` and `Severity`.
