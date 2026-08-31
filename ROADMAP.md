@@ -97,6 +97,17 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Dependency-focused inspection profile
 - [x] Dependency diagnostics in Home Assistant entities and services
 
+## Epic K — Dependency investigation and safe cleanup
+
+- [ ] Reverse dependency lookup by entity
+- [ ] Dependency summaries grouped by configuration type
+- [ ] Active and disabled configuration reference classification
+- [ ] Stale reference investigation context
+- [ ] Per-entity dependency impact summary
+- [ ] Public entity dependency query service
+- [ ] Dependency investigation diagnostics in Home Assistant
+- [ ] Safe cleanup recommendations without automatic configuration changes
+
 ## Version direction
 
 ### 0.5 — Engine foundation
@@ -127,3 +138,9 @@ detection, missing-reference detection, and dependency-oriented diagnostics.
 
 Actionable dependency findings, configuration impact analysis, dependency
 health scoring, prioritization, and dedicated dependency-focused diagnostics.
+
+### 1.4 — Dependency investigation and safe cleanup
+
+Reverse dependency lookup, configuration-aware reference investigation,
+per-entity impact analysis, Home Assistant-facing dependency queries, and
+safe cleanup guidance without automatic configuration changes.
