@@ -95,7 +95,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Dependency impact scoring and prioritization
 - [x] Dependency diagnostics in domain health and dashboard summary
 - [x] Dependency-focused inspection profile
-- [ ] Dependency diagnostics in Home Assistant entities and services
+- [x] Dependency diagnostics in Home Assistant entities and services
 
 ## Version direction
 

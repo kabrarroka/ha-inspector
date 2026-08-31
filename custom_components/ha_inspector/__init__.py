@@ -51,6 +51,7 @@ SERVICE_ACKNOWLEDGE_FINDING = "acknowledge_finding"
 SERVICE_CLEAR_ACKNOWLEDGEMENT = "clear_acknowledgement"
 SERVICE_CLEAR_ACKNOWLEDGEMENTS = "clear_acknowledgements"
 SERVICE_EXPORT_DIAGNOSTIC_REPORT = "export_diagnostic_report"
+SERVICE_DEPENDENCY_DIAGNOSTICS = "dependency_diagnostics"
 
 API_VERSION = PUBLIC_API_VERSION
 
@@ -105,6 +106,7 @@ SERVICE_CLEAR_ACKNOWLEDGEMENT_SCHEMA = vol.Schema(
 
 SERVICE_CLEAR_ACKNOWLEDGEMENTS_SCHEMA = vol.Schema({})
 SERVICE_EXPORT_DIAGNOSTIC_REPORT_SCHEMA = vol.Schema({})
+SERVICE_DEPENDENCY_DIAGNOSTICS_SCHEMA = vol.Schema({})
 
 
 def _load_engine() -> tuple[
@@ -441,6 +443,58 @@ async def async_setup(
         SERVICE_CLEAR_ACKNOWLEDGEMENTS,
         async_handle_clear_acknowledgements,
         schema=SERVICE_CLEAR_ACKNOWLEDGEMENTS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def async_handle_dependency_diagnostics(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return dependency diagnostics from the latest inspection."""
+        del call
+
+        result = hass.data.setdefault(DOMAIN, {}).get(DATA_LAST_RESULT)
+
+        if not isinstance(result, Mapping):
+            from .engine.dependency_diagnostics import (
+                empty_dependency_diagnostics,
+            )
+
+            return dict(empty_dependency_diagnostics())
+
+        dashboard_summary = result.get("dashboard_summary", {})
+
+        if not isinstance(dashboard_summary, Mapping):
+            from .engine.dependency_diagnostics import (
+                empty_dependency_diagnostics,
+            )
+
+            return dict(empty_dependency_diagnostics())
+
+        dependencies = dashboard_summary.get("dependencies", {})
+
+        if not isinstance(dependencies, Mapping):
+            from .engine.dependency_diagnostics import (
+                empty_dependency_diagnostics,
+            )
+
+            return dict(empty_dependency_diagnostics())
+
+        return {
+            "affected_entities": dependencies.get("affected_entities", 0),
+            "unavailable": dependencies.get("unavailable", 0),
+            "unknown": dependencies.get("unknown", 0),
+            "critical": dependencies.get("critical", 0),
+            "high": dependencies.get("high", 0),
+            "medium": dependencies.get("medium", 0),
+            "low": dependencies.get("low", 0),
+            "max_impact_score": dependencies.get("max_impact_score", 0),
+        }
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DEPENDENCY_DIAGNOSTICS,
+        async_handle_dependency_diagnostics,
+        schema=SERVICE_DEPENDENCY_DIAGNOSTICS_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 

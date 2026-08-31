@@ -10,6 +10,7 @@ import pytest
 
 from custom_components.ha_inspector.sensor import (
     HAInspectorCollectorFailuresSensor,
+    HAInspectorDependencyHealthSensor,
     HAInspectorDomainHealthSensor,
     HAInspectorFindingsSensor,
     HAInspectorHealthScoreSensor,
@@ -163,7 +164,7 @@ async def test_setup_entry_adds_status_sensor() -> None:
     async_add_entities.assert_called_once()
 
     entities = async_add_entities.call_args.args[0]
-    assert len(entities) == 8
+    assert len(entities) == 9
 
     assert isinstance(entities[0], HAInspectorStatusSensor)
     assert entities[0].unique_id == "entry-1_status"
@@ -177,6 +178,9 @@ async def test_setup_entry_adds_status_sensor() -> None:
     assert isinstance(entities[3], HAInspectorCollectorFailuresSensor)
     assert entities[3].unique_id == "entry-1_collector_failures"
 
+    assert isinstance(entities[4], HAInspectorDependencyHealthSensor)
+    assert entities[4].unique_id == "entry-1_dependency_health"
+
     expected_domains = (
         "storage",
         "system",
@@ -184,7 +188,7 @@ async def test_setup_entry_adds_status_sensor() -> None:
         "entities",
     )
 
-    for entity, domain in zip(entities[4:], expected_domains, strict=True):
+    for entity, domain in zip(entities[5:], expected_domains, strict=True):
         assert isinstance(entity, HAInspectorDomainHealthSensor)
         assert entity.unique_id == f"entry-1_{domain}_health"
 
@@ -511,3 +515,88 @@ def test_domain_health_sensor_handles_invalid_domain_data() -> None:
     assert sensor.extra_state_attributes["status"] == "not_checked"
     assert sensor.extra_state_attributes["checks"] == 3
     assert sensor.extra_state_attributes["findings"] == 2
+
+
+def test_dependency_health_sensor_without_result() -> None:
+    """Dependency health sensor exposes a stable empty state."""
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDependencyHealthSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 0
+    assert sensor.extra_state_attributes == {
+        "unavailable": 0,
+        "unknown": 0,
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "max_impact_score": 0,
+    }
+
+
+def test_dependency_health_sensor_with_result() -> None:
+    """Dependency health sensor exposes compact dependency diagnostics."""
+    result: dict[str, Any] = {
+        "dashboard_summary": {
+            "dependencies": {
+                "affected_entities": 4,
+                "unavailable": 2,
+                "unknown": 2,
+                "critical": 1,
+                "high": 1,
+                "medium": 1,
+                "low": 1,
+                "max_impact_score": 55,
+            },
+        },
+    }
+
+    hass = SimpleNamespace(
+        data={"ha_inspector": {"last_result": result}}
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDependencyHealthSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 4
+    assert sensor.extra_state_attributes == {
+        "unavailable": 2,
+        "unknown": 2,
+        "critical": 1,
+        "high": 1,
+        "medium": 1,
+        "low": 1,
+        "max_impact_score": 55,
+    }
+
+
+def test_dependency_health_sensor_handles_invalid_summary() -> None:
+    """Dependency health sensor tolerates malformed result data."""
+    hass = SimpleNamespace(
+        data={
+            "ha_inspector": {
+                "last_result": {
+                    "dashboard_summary": {
+                        "dependencies": "invalid",
+                    },
+                },
+            },
+        }
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDependencyHealthSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 0
+    assert sensor.extra_state_attributes["max_impact_score"] == 0

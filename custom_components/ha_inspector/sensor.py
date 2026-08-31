@@ -44,6 +44,7 @@ async def async_setup_entry(
             HAInspectorHealthScoreSensor(hass, entry),
             HAInspectorFindingsSensor(hass, entry),
             HAInspectorCollectorFailuresSensor(hass, entry),
+            HAInspectorDependencyHealthSensor(hass, entry),
             HAInspectorDomainHealthSensor(hass, entry, domain="storage"),
             HAInspectorDomainHealthSensor(hass, entry, domain="system"),
             HAInspectorDomainHealthSensor(
@@ -316,6 +317,42 @@ class HAInspectorCollectorFailuresSensor(HAInspectorDiagnosticSensor):
             "collectors_succeeded": metadata.get("collectors_succeeded", 0),
             "collector_errors": metadata.get("collector_errors", []),
         }
+
+class HAInspectorDependencyHealthSensor(HAInspectorDiagnosticSensor):
+    """Expose dependency health diagnostics."""
+
+    _attr_name = "Dependency health"
+    _attr_icon = "mdi:vector-link"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the dependency health sensor."""
+        super().__init__(hass, entry, key="dependency_health")
+
+    def _update_from_result(
+        self,
+        result: dict[str, Any] | None,
+    ) -> None:
+        """Update dependency health from the latest inspection."""
+        dependencies: dict[str, Any] = {}
+
+        if result:
+            dashboard_summary = result.get("dashboard_summary", {})
+            if isinstance(dashboard_summary, dict):
+                candidate = dashboard_summary.get("dependencies", {})
+                if isinstance(candidate, dict):
+                    dependencies = candidate
+
+        self._attr_native_value = dependencies.get("affected_entities", 0)
+        self._attr_extra_state_attributes = {
+            "unavailable": dependencies.get("unavailable", 0),
+            "unknown": dependencies.get("unknown", 0),
+            "critical": dependencies.get("critical", 0),
+            "high": dependencies.get("high", 0),
+            "medium": dependencies.get("medium", 0),
+            "low": dependencies.get("low", 0),
+            "max_impact_score": dependencies.get("max_impact_score", 0),
+        }
+
 
 class HAInspectorDomainHealthSensor(HAInspectorDiagnosticSensor):
     """Expose health information for a primary HA Inspector domain."""
