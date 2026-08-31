@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.3.1
+
+### Fixed
+
+- Ignore Home Assistant internal entity-registry IDs exposed by device
+  conditions when collecting automation, script, and scene dependencies.
+- Prevent those internal registry IDs from being reported as missing entity
+  references.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.3.0.
+
+### Validation
+
+- Regression coverage includes automation, script, scene, and entity collector
+  handling of internal entity-registry IDs.
+- The fix has been validated against a real Home Assistant installation.
+- Ruff passes.
+- mypy passes across 76 source files.
+- 725 tests pass.
+- Python coverage is 100% across 3109 statements.
+- Release archive/source integrity validation passes across 80 files.
+- Release-readiness validation passes.
+
 ## 1.3.0
 
 ### Added
