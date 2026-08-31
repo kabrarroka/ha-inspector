@@ -6,6 +6,8 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from homeassistant.core import valid_entity_id
+
 type ReferencePathPart = str | int
 type ReferencePath = tuple[ReferencePathPart, ...]
 
@@ -55,3 +57,13 @@ def discover_entity_references(value: object) -> list[EntityReference]:
 
     visit(value, ())
     return references
+
+
+
+def valid_entity_ids(entity_ids: list[str]) -> tuple[str, ...]:
+    """Return unique syntactically valid entity IDs in sorted order."""
+    return tuple(
+        entity_id
+        for entity_id in sorted(set(entity_ids))
+        if valid_entity_id(entity_id)
+    )

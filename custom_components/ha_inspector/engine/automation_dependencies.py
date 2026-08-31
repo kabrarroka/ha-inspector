@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .entity_references import EntityReference
+from .entity_references import EntityReference, valid_entity_ids
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,7 +41,7 @@ def automation_dependency_from_entities(
             entity_id=entity_id,
             path=(),
         )
-        for entity_id in sorted(set(entity_ids))
+        for entity_id in valid_entity_ids(entity_ids)
     )
 
     return AutomationDependency(
