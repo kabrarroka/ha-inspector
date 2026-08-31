@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.3.0
+
+### Added
+
+- Actionable findings for missing entity references.
+- Findings for entities that are not referenced by known configuration sources.
+- Dependency health inspection for referenced entities in unavailable or
+  unknown states.
+- Affected automation, script, and scene summaries for problematic
+  dependencies.
+- Dependency impact scoring and priority classification.
+- Compact dependency diagnostics in entity domain health and dashboard
+  summaries.
+- Built-in `dependencies` inspection profile.
+- Dedicated `Dependency health` diagnostic sensor.
+- Public `ha_inspector.dependency_diagnostics` response service.
+
+### Changed
+
+- Expanded entity dependency diagnostics with runtime health and configuration
+  impact information.
+- Prioritized problematic dependencies by impact score and reference count.
+- Extended Home Assistant-facing diagnostics with dependency-specific sensor
+  and service output.
+- Expanded the built-in inspection profile set from nine to ten profiles.
+- Added dependency diagnostics to the stable public service inventory.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.2.0.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 76 source files.
+- 720 tests pass.
+- Python coverage is 100% across 3106 statements.
+- Release archive/source integrity validation passes.
+- Release-readiness validation passes.
+
 ## 1.2.0
 
 ### Added
