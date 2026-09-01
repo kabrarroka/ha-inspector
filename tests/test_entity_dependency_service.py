@@ -176,6 +176,7 @@ async def test_entity_dependency_returns_live_reference_context(
         "disabled_script_references": [],
         "active_scene_references": [],
         "disabled_scene_references": ["scene.disabled"],
+        "cleanup_recommendation": None,
     }
 
 
@@ -226,6 +227,7 @@ async def test_entity_dependency_returns_zero_impact_for_existing_unreferenced_e
         "disabled_script_references": [],
         "active_scene_references": [],
         "disabled_scene_references": [],
+        "cleanup_recommendation": None,
     }
 
 
@@ -286,6 +288,12 @@ async def test_entity_dependency_marks_missing_referenced_entity_as_nonexistent(
         "disabled_script_references": [],
         "active_scene_references": [],
         "disabled_scene_references": [],
+        "cleanup_recommendation": {
+            "action": "review_active_references",
+            "safety": "review_required",
+            "reason": "Entity is referenced by active configuration",
+            "affected_configurations": ["automation.active"],
+        },
     }
 
 
@@ -336,3 +344,150 @@ async def test_entity_dependency_ignores_internal_entity_registry_ids(
     assert response["referenced"] is False
     assert response["reference_count"] == 0
     assert response["active_automation_references"] == []
+
+
+@pytest.mark.asyncio
+async def test_entity_dependency_recommends_review_for_missing_active_reference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing entities with active references require manual review."""
+    from types import SimpleNamespace
+
+    hass, registrations = await _setup_services(monkeypatch)
+
+    registry = SimpleNamespace(
+        entities={
+            "automation_active": SimpleNamespace(
+                entity_id="automation.active",
+                domain="automation",
+                disabled_by=None,
+                name="Active automation",
+                original_name=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        "homeassistant.helpers.entity_registry.async_get",
+        lambda _hass: registry,
+    )
+    monkeypatch.setattr(
+        "homeassistant.components.automation.entities_in_automation",
+        lambda _hass, entity_id: (
+            ["sensor.missing"]
+            if entity_id == "automation.active"
+            else []
+        ),
+    )
+
+    hass.states.get.return_value = None
+
+    call = MagicMock()
+    call.data = {"entity_id": "sensor.missing"}
+
+    response = await registrations[SERVICE_ENTITY_DEPENDENCY](call)
+
+    assert response["cleanup_recommendation"] == {
+        "action": "review_active_references",
+        "safety": "review_required",
+        "reason": "Entity is referenced by active configuration",
+        "affected_configurations": ["automation.active"],
+    }
+
+
+@pytest.mark.asyncio
+async def test_entity_dependency_recommends_disabled_reference_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing entities referenced only by disabled configuration are safer."""
+    from types import SimpleNamespace
+
+    hass, registrations = await _setup_services(monkeypatch)
+
+    registry = SimpleNamespace(
+        entities={
+            "automation_disabled": SimpleNamespace(
+                entity_id="automation.disabled",
+                domain="automation",
+                disabled_by="user",
+                name="Disabled automation",
+                original_name=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        "homeassistant.helpers.entity_registry.async_get",
+        lambda _hass: registry,
+    )
+    monkeypatch.setattr(
+        "homeassistant.components.automation.entities_in_automation",
+        lambda _hass, entity_id: (
+            ["sensor.missing"]
+            if entity_id == "automation.disabled"
+            else []
+        ),
+    )
+
+    hass.states.get.return_value = None
+
+    call = MagicMock()
+    call.data = {"entity_id": "sensor.missing"}
+
+    response = await registrations[SERVICE_ENTITY_DEPENDENCY](call)
+
+    assert response["cleanup_recommendation"] == {
+        "action": "remove_disabled_references",
+        "safety": "likely_safe",
+        "reason": "Entity is referenced only by disabled configuration",
+        "affected_configurations": ["automation.disabled"],
+    }
+
+
+@pytest.mark.asyncio
+async def test_entity_dependency_does_not_recommend_cleanup_for_existing_entity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Existing entities never receive stale-reference cleanup advice."""
+    from types import SimpleNamespace
+
+    _, registrations = await _setup_services(monkeypatch)
+
+    registry = SimpleNamespace(
+        entities={
+            "target": SimpleNamespace(
+                entity_id="sensor.temperature",
+                domain="sensor",
+                disabled_by=None,
+                name="Temperature",
+                original_name=None,
+            ),
+            "automation_active": SimpleNamespace(
+                entity_id="automation.active",
+                domain="automation",
+                disabled_by=None,
+                name="Active automation",
+                original_name=None,
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        "homeassistant.helpers.entity_registry.async_get",
+        lambda _hass: registry,
+    )
+    monkeypatch.setattr(
+        "homeassistant.components.automation.entities_in_automation",
+        lambda _hass, entity_id: (
+            ["sensor.temperature"]
+            if entity_id == "automation.active"
+            else []
+        ),
+    )
+
+    call = MagicMock()
+    call.data = {"entity_id": "sensor.temperature"}
+
+    response = await registrations[SERVICE_ENTITY_DEPENDENCY](call)
+
+    assert response["cleanup_recommendation"] is None
