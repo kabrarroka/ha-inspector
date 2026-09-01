@@ -104,7 +104,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Active and disabled configuration reference classification
 - [x] Stale reference investigation context
 - [x] Per-entity dependency impact summary
-- [ ] Public entity dependency query service
+- [x] Public entity dependency query service
 - [ ] Dependency investigation diagnostics in Home Assistant
 - [ ] Safe cleanup recommendations without automatic configuration changes
 
