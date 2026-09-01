@@ -516,6 +516,9 @@ async def async_setup(
         from .engine.automation_dependencies import (
             automation_dependency_from_entities,
         )
+        from .engine.cleanup_recommendations import (
+            build_cleanup_recommendation,
+        )
         from .engine.entity_dependency_impact_summary import (
             build_entity_dependency_impact_summary,
         )
@@ -592,6 +595,21 @@ async def async_setup(
             for entry in registry.entities.values()
         ) or hass.states.get(entity_id) is not None
 
+        cleanup_recommendation = None
+
+        if not exists:
+            recommendation = build_cleanup_recommendation(context)
+
+            if recommendation is not None:
+                cleanup_recommendation = {
+                    "action": recommendation.action,
+                    "safety": recommendation.safety,
+                    "reason": recommendation.reason,
+                    "affected_configurations": list(
+                        recommendation.affected_configurations
+                    ),
+                }
+
         return {
             "entity_id": entity_id,
             "exists": exists,
@@ -622,6 +640,7 @@ async def async_setup(
             "disabled_scene_references": list(
                 context.disabled_scene_references
             ),
+            "cleanup_recommendation": cleanup_recommendation,
         }
 
     hass.services.async_register(

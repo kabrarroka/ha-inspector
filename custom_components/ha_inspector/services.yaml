@@ -147,7 +147,9 @@ entity_dependency:
   description: >
     Devuelve las referencias actuales de automatizaciones, scripts y escenas
     que utilizan una entidad, separando configuraciones activas y deshabilitadas.
-    También indica si la entidad existe actualmente en Home Assistant.
+    También indica si la entidad existe actualmente en Home Assistant y, para
+    referencias obsoletas, puede incluir una recomendación de limpieza segura
+    sin realizar cambios automáticos en la configuración.
   fields:
     entity_id:
       name: ID de entidad
