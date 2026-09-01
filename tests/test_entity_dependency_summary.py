@@ -143,3 +143,56 @@ def test_build_entity_dependency_summaries_sorts_entities() -> None:
 
 def test_build_entity_dependency_summaries_handles_empty_input() -> None:
     assert build_entity_dependency_summaries([], [], []) == ()
+
+
+def test_find_entity_dependency_returns_matching_summary() -> None:
+    from custom_components.ha_inspector.engine.entity_dependency_summary import (
+        find_entity_dependency,
+    )
+
+    summaries = build_entity_dependency_summaries(
+        [
+            ("automation.kitchen", ["light.kitchen"]),
+            ("automation.climate", ["sensor.temperature"]),
+        ],
+        [
+            ("script.evening", ["light.kitchen"]),
+        ],
+        [
+            ("scene.movie", ["light.kitchen"]),
+        ],
+    )
+
+    assert find_entity_dependency(summaries, "light.kitchen") == (
+        EntityDependencySummary(
+            entity_id="light.kitchen",
+            reference_count=3,
+            automation_references=("automation.kitchen",),
+            script_references=("script.evening",),
+            scene_references=("scene.movie",),
+        )
+    )
+
+
+def test_find_entity_dependency_returns_none_for_unknown_entity() -> None:
+    from custom_components.ha_inspector.engine.entity_dependency_summary import (
+        find_entity_dependency,
+    )
+
+    summaries = build_entity_dependency_summaries(
+        [
+            ("automation.kitchen", ["light.kitchen"]),
+        ],
+        [],
+        [],
+    )
+
+    assert find_entity_dependency(summaries, "sensor.missing") is None
+
+
+def test_find_entity_dependency_handles_empty_summaries() -> None:
+    from custom_components.ha_inspector.engine.entity_dependency_summary import (
+        find_entity_dependency,
+    )
+
+    assert find_entity_dependency((), "light.kitchen") is None

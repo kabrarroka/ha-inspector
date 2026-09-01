@@ -66,3 +66,18 @@ def build_entity_dependency_summaries(
         )
         for entity_id in sorted(entity_ids)
     )
+
+
+def find_entity_dependency(
+    summaries: Iterable[EntityDependencySummary],
+    entity_id: str,
+) -> EntityDependencySummary | None:
+    """Return the dependency summary for one entity, if known."""
+    return next(
+        (
+            summary
+            for summary in summaries
+            if summary.entity_id == entity_id
+        ),
+        None,
+    )
