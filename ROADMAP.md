@@ -100,7 +100,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 ## Epic K — Dependency investigation and safe cleanup
 
 - [x] Reverse dependency lookup by entity
-- [ ] Dependency summaries grouped by configuration type
+- [x] Dependency summaries grouped by configuration type
 - [ ] Active and disabled configuration reference classification
 - [ ] Stale reference investigation context
 - [ ] Per-entity dependency impact summary
