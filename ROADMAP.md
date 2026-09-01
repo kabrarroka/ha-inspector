@@ -101,7 +101,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 - [x] Reverse dependency lookup by entity
 - [x] Dependency summaries grouped by configuration type
-- [ ] Active and disabled configuration reference classification
+- [x] Active and disabled configuration reference classification
 - [ ] Stale reference investigation context
 - [ ] Per-entity dependency impact summary
 - [ ] Public entity dependency query service
