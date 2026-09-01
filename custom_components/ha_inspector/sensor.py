@@ -45,6 +45,7 @@ async def async_setup_entry(
             HAInspectorFindingsSensor(hass, entry),
             HAInspectorCollectorFailuresSensor(hass, entry),
             HAInspectorDependencyHealthSensor(hass, entry),
+            HAInspectorDependencyInvestigationSensor(hass, entry),
             HAInspectorDomainHealthSensor(hass, entry, domain="storage"),
             HAInspectorDomainHealthSensor(hass, entry, domain="system"),
             HAInspectorDomainHealthSensor(
@@ -351,6 +352,56 @@ class HAInspectorDependencyHealthSensor(HAInspectorDiagnosticSensor):
             "medium": dependencies.get("medium", 0),
             "low": dependencies.get("low", 0),
             "max_impact_score": dependencies.get("max_impact_score", 0),
+        }
+
+
+class HAInspectorDependencyInvestigationSensor(
+    HAInspectorDiagnosticSensor
+):
+    """Expose dependency investigation diagnostics."""
+
+    _attr_name = "Dependency investigation"
+    _attr_icon = "mdi:file-search-outline"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the dependency investigation sensor."""
+        super().__init__(hass, entry, key="dependency_investigation")
+
+    def _update_from_result(
+        self,
+        result: dict[str, Any] | None,
+    ) -> None:
+        """Update dependency investigation diagnostics."""
+        entities: dict[str, Any] = {}
+
+        if result:
+            diagnostics = result.get("diagnostics", {})
+            if isinstance(diagnostics, dict):
+                candidate = diagnostics.get("entities", {})
+                if isinstance(candidate, dict):
+                    entities = candidate
+
+        self._attr_native_value = entities.get(
+            "missing_entity_count",
+            0,
+        )
+        self._attr_extra_state_attributes = {
+            "missing_entities": entities.get(
+                "missing_entities",
+                [],
+            ),
+            "unreferenced_entity_count": entities.get(
+                "unreferenced_entity_count",
+                0,
+            ),
+            "unreferenced_entities": entities.get(
+                "unreferenced_entities",
+                [],
+            ),
+            "disabled_automation_count": entities.get(
+                "disabled_automation_count",
+                0,
+            ),
         }
 
 
