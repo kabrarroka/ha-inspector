@@ -11,6 +11,7 @@ import pytest
 from custom_components.ha_inspector.sensor import (
     HAInspectorCollectorFailuresSensor,
     HAInspectorDependencyHealthSensor,
+    HAInspectorDependencyInvestigationSensor,
     HAInspectorDomainHealthSensor,
     HAInspectorFindingsSensor,
     HAInspectorHealthScoreSensor,
@@ -164,7 +165,7 @@ async def test_setup_entry_adds_status_sensor() -> None:
     async_add_entities.assert_called_once()
 
     entities = async_add_entities.call_args.args[0]
-    assert len(entities) == 9
+    assert len(entities) == 10
 
     assert isinstance(entities[0], HAInspectorStatusSensor)
     assert entities[0].unique_id == "entry-1_status"
@@ -181,6 +182,12 @@ async def test_setup_entry_adds_status_sensor() -> None:
     assert isinstance(entities[4], HAInspectorDependencyHealthSensor)
     assert entities[4].unique_id == "entry-1_dependency_health"
 
+    assert isinstance(
+        entities[5],
+        HAInspectorDependencyInvestigationSensor,
+    )
+    assert entities[5].unique_id == "entry-1_dependency_investigation"
+
     expected_domains = (
         "storage",
         "system",
@@ -188,7 +195,7 @@ async def test_setup_entry_adds_status_sensor() -> None:
         "entities",
     )
 
-    for entity, domain in zip(entities[5:], expected_domains, strict=True):
+    for entity, domain in zip(entities[6:], expected_domains, strict=True):
         assert isinstance(entity, HAInspectorDomainHealthSensor)
         assert entity.unique_id == f"entry-1_{domain}_health"
 
@@ -600,3 +607,102 @@ def test_dependency_health_sensor_handles_invalid_summary() -> None:
 
     assert sensor.native_value == 0
     assert sensor.extra_state_attributes["max_impact_score"] == 0
+
+
+def test_dependency_investigation_sensor_without_result() -> None:
+    """Dependency investigation sensor exposes a stable empty state."""
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDependencyInvestigationSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 0
+    assert sensor.extra_state_attributes == {
+        "missing_entities": [],
+        "unreferenced_entity_count": 0,
+        "unreferenced_entities": [],
+        "disabled_automation_count": 0,
+    }
+
+
+def test_dependency_investigation_sensor_with_result() -> None:
+    """Dependency investigation sensor exposes entity investigation data."""
+    result: dict[str, Any] = {
+        "diagnostics": {
+            "entities": {
+                "missing_entity_count": 2,
+                "missing_entities": [
+                    "sensor.removed_temperature",
+                    "switch.removed_pump",
+                ],
+                "unreferenced_entity_count": 1,
+                "unreferenced_entities": [
+                    {
+                        "entity_id": "sensor.unused",
+                        "name": "Unused",
+                        "domain": "sensor",
+                    },
+                ],
+                "disabled_automation_count": 3,
+            },
+        },
+    }
+
+    hass = SimpleNamespace(
+        data={"ha_inspector": {"last_result": result}}
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDependencyInvestigationSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 2
+    assert sensor.extra_state_attributes == {
+        "missing_entities": [
+            "sensor.removed_temperature",
+            "switch.removed_pump",
+        ],
+        "unreferenced_entity_count": 1,
+        "unreferenced_entities": [
+            {
+                "entity_id": "sensor.unused",
+                "name": "Unused",
+                "domain": "sensor",
+            },
+        ],
+        "disabled_automation_count": 3,
+    }
+
+
+def test_dependency_investigation_sensor_handles_invalid_diagnostics() -> None:
+    """Dependency investigation sensor tolerates malformed diagnostics."""
+    hass = SimpleNamespace(
+        data={
+            "ha_inspector": {
+                "last_result": {
+                    "diagnostics": {
+                        "entities": "invalid",
+                    },
+                },
+            }
+        }
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDependencyInvestigationSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 0
+    assert sensor.extra_state_attributes == {
+        "missing_entities": [],
+        "unreferenced_entity_count": 0,
+        "unreferenced_entities": [],
+        "disabled_automation_count": 0,
+    }

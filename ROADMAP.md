@@ -105,7 +105,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Stale reference investigation context
 - [x] Per-entity dependency impact summary
 - [x] Public entity dependency query service
-- [ ] Dependency investigation diagnostics in Home Assistant
+- [x] Dependency investigation diagnostics in Home Assistant
 - [ ] Safe cleanup recommendations without automatic configuration changes
 
 ## Version direction
