@@ -128,3 +128,39 @@ def test_build_stale_reference_contexts_handles_empty_input() -> None:
         [],
         [],
     ) == ()
+
+
+def test_stale_reference_context_handles_one_shot_entity_iterables() -> None:
+    contexts = stale_context.build_stale_reference_contexts(
+        ("sensor.alpha", "sensor.beta"),
+        (
+            (
+                "automation.shared",
+                iter(("sensor.beta", "sensor.alpha")),
+                False,
+            ),
+        ),
+        (),
+        (),
+    )
+
+    assert contexts == (
+        stale_context.StaleReferenceContext(
+            entity_id="sensor.alpha",
+            active_automation_references=("automation.shared",),
+            disabled_automation_references=(),
+            active_script_references=(),
+            disabled_script_references=(),
+            active_scene_references=(),
+            disabled_scene_references=(),
+        ),
+        stale_context.StaleReferenceContext(
+            entity_id="sensor.beta",
+            active_automation_references=("automation.shared",),
+            disabled_automation_references=(),
+            active_script_references=(),
+            disabled_script_references=(),
+            active_scene_references=(),
+            disabled_scene_references=(),
+        ),
+    )
