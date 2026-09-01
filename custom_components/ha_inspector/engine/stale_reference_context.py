@@ -19,6 +19,20 @@ class StaleReferenceContext:
     disabled_scene_references: tuple[str, ...]
 
 
+def _normalize_dependencies(
+    dependencies: Iterable[tuple[str, Iterable[str], bool]],
+) -> tuple[tuple[str, frozenset[str], bool], ...]:
+    """Materialize dependency entity IDs for repeated lookups."""
+    return tuple(
+        (
+            configuration_entity_id,
+            frozenset(entity_ids),
+            is_disabled,
+        )
+        for configuration_entity_id, entity_ids, is_disabled in dependencies
+    )
+
+
 def _references_by_status(
     entity_id: str,
     dependencies: Iterable[tuple[str, Iterable[str], bool]],
@@ -52,9 +66,11 @@ def build_stale_reference_contexts(
     """Build investigation context for missing entity references."""
     missing_entities = tuple(sorted(set(missing_entity_ids)))
 
-    automation_dependencies = tuple(automation_dependencies)
-    script_dependencies = tuple(script_dependencies)
-    scene_dependencies = tuple(scene_dependencies)
+    automation_dependencies = _normalize_dependencies(
+        automation_dependencies
+    )
+    script_dependencies = _normalize_dependencies(script_dependencies)
+    scene_dependencies = _normalize_dependencies(scene_dependencies)
 
     contexts: list[StaleReferenceContext] = []
 
