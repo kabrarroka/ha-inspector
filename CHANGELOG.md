@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.4.0
+
+### Added
+
+- Reverse dependency lookup for individual entities.
+- Dependency summaries grouped by automation, script, and scene configuration
+  type.
+- Classification of active and disabled configuration references.
+- Stale-reference investigation context for missing entities.
+- Per-entity dependency impact summaries.
+- Public `ha_inspector.entity_dependency` response service for live dependency
+  queries.
+- Dedicated `Dependency investigation` diagnostic sensor in Home Assistant.
+- Safe cleanup recommendations for missing entities without automatic
+  configuration changes.
+
+### Changed
+
+- Expanded dependency investigation with current automation, script, and scene
+  reference details.
+- Distinguished active references from disabled-only references when
+  investigating stale entity references.
+- Added non-destructive cleanup guidance to the entity dependency service.
+- Extended Home Assistant-facing dependency diagnostics with missing,
+  unreferenced, and disabled-automation context.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.3.1.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 81 source files.
+- 760 tests pass.
+- Python test coverage remains 100%.
+- Safe cleanup recommendations never modify Home Assistant configuration
+  automatically.
+- Release archive/source integrity validation and release-readiness validation
+  are required before publication.
+
 ## 1.3.1
 
 ### Fixed
