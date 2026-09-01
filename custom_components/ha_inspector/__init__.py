@@ -52,6 +52,7 @@ SERVICE_CLEAR_ACKNOWLEDGEMENT = "clear_acknowledgement"
 SERVICE_CLEAR_ACKNOWLEDGEMENTS = "clear_acknowledgements"
 SERVICE_EXPORT_DIAGNOSTIC_REPORT = "export_diagnostic_report"
 SERVICE_DEPENDENCY_DIAGNOSTICS = "dependency_diagnostics"
+SERVICE_ENTITY_DEPENDENCY = "entity_dependency"
 
 API_VERSION = PUBLIC_API_VERSION
 
@@ -107,6 +108,11 @@ SERVICE_CLEAR_ACKNOWLEDGEMENT_SCHEMA = vol.Schema(
 SERVICE_CLEAR_ACKNOWLEDGEMENTS_SCHEMA = vol.Schema({})
 SERVICE_EXPORT_DIAGNOSTIC_REPORT_SCHEMA = vol.Schema({})
 SERVICE_DEPENDENCY_DIAGNOSTICS_SCHEMA = vol.Schema({})
+SERVICE_ENTITY_DEPENDENCY_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): str,
+    }
+)
 
 
 def _load_engine() -> tuple[
@@ -495,6 +501,134 @@ async def async_setup(
         SERVICE_DEPENDENCY_DIAGNOSTICS,
         async_handle_dependency_diagnostics,
         schema=SERVICE_DEPENDENCY_DIAGNOSTICS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def async_handle_entity_dependency(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return dependency information for one entity."""
+        from homeassistant.components.automation import entities_in_automation
+        from homeassistant.components.homeassistant.scene import entities_in_scene
+        from homeassistant.components.script import entities_in_script
+        from homeassistant.helpers import entity_registry as er
+
+        from .engine.automation_dependencies import (
+            automation_dependency_from_entities,
+        )
+        from .engine.entity_dependency_impact_summary import (
+            build_entity_dependency_impact_summary,
+        )
+        from .engine.scene_dependencies import (
+            scene_dependency_from_entities,
+        )
+        from .engine.script_dependencies import (
+            script_dependency_from_entities,
+        )
+        from .engine.stale_reference_context import (
+            build_stale_reference_contexts,
+        )
+
+        entity_id = str(call.data["entity_id"])
+        registry = er.async_get(hass)
+
+        automation_dependencies = []
+        script_dependencies = []
+        scene_dependencies = []
+
+        for entry in registry.entities.values():
+            disabled = entry.disabled_by is not None
+
+            if entry.domain == "automation":
+                automation_dependency = automation_dependency_from_entities(
+                    entry.entity_id,
+                    entry.name or entry.original_name or entry.entity_id,
+                    entities_in_automation(hass, entry.entity_id),
+                )
+                automation_dependencies.append(
+                    (
+                        entry.entity_id,
+                        automation_dependency.referenced_entities,
+                        disabled,
+                    )
+                )
+            elif entry.domain == "script":
+                script_dependency = script_dependency_from_entities(
+                    entry.entity_id,
+                    entry.name or entry.original_name or entry.entity_id,
+                    entities_in_script(hass, entry.entity_id),
+                )
+                script_dependencies.append(
+                    (
+                        entry.entity_id,
+                        script_dependency.referenced_entities,
+                        disabled,
+                    )
+                )
+            elif entry.domain == "scene":
+                scene_dependency = scene_dependency_from_entities(
+                    entry.entity_id,
+                    entry.name or entry.original_name or entry.entity_id,
+                    entities_in_scene(hass, entry.entity_id),
+                )
+                scene_dependencies.append(
+                    (
+                        entry.entity_id,
+                        scene_dependency.referenced_entities,
+                        disabled,
+                    )
+                )
+
+        context = build_stale_reference_contexts(
+            (entity_id,),
+            automation_dependencies,
+            script_dependencies,
+            scene_dependencies,
+        )[0]
+        impact = build_entity_dependency_impact_summary(context)
+
+        exists = any(
+            entry.entity_id == entity_id
+            for entry in registry.entities.values()
+        ) or hass.states.get(entity_id) is not None
+
+        return {
+            "entity_id": entity_id,
+            "exists": exists,
+            "referenced": impact.reference_count > 0,
+            "reference_count": impact.reference_count,
+            "active_reference_count": impact.active_reference_count,
+            "disabled_reference_count": impact.disabled_reference_count,
+            "automation_reference_count": (
+                impact.automation_reference_count
+            ),
+            "script_reference_count": impact.script_reference_count,
+            "scene_reference_count": impact.scene_reference_count,
+            "active_automation_references": list(
+                context.active_automation_references
+            ),
+            "disabled_automation_references": list(
+                context.disabled_automation_references
+            ),
+            "active_script_references": list(
+                context.active_script_references
+            ),
+            "disabled_script_references": list(
+                context.disabled_script_references
+            ),
+            "active_scene_references": list(
+                context.active_scene_references
+            ),
+            "disabled_scene_references": list(
+                context.disabled_scene_references
+            ),
+        }
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ENTITY_DEPENDENCY,
+        async_handle_entity_dependency,
+        schema=SERVICE_ENTITY_DEPENDENCY_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 
