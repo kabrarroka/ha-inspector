@@ -20,6 +20,7 @@ PUBLIC_SERVICES = (
     "clear_acknowledgements",
     "export_diagnostic_report",
     "dependency_diagnostics",
+    "entity_dependency",
 )
 
 
