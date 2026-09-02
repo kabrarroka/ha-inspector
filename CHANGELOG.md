@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.4.1
+
+### Fixed
+
+- Advertise the public `ha_inspector.entity_dependency` service through the
+  public API description returned by `ha_inspector.info`.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.4.0.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 81 source files.
+- 760 tests pass.
+- Python test coverage remains 100%.
+- Public API and `ha_inspector.info` contract tests include
+  `entity_dependency`.
+
 ## 1.4.0
 
 ### Added
