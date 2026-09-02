@@ -8,7 +8,7 @@ from homeassistant.const import Platform
 
 DOMAIN: Final = "ha_inspector"
 NAME: Final = "HA Inspector"
-VERSION: Final = "1.4.1"
+VERSION: Final = "1.4.2"
 
 PLATFORMS: Final = (Platform.SENSOR,)
 

@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.4.2
+
+### Fixed
+
+- Update the `Dependency investigation` diagnostic sensor from the serialized
+  inspection findings that Home Assistant actually receives.
+- Prevent malformed dependency findings or counter values from breaking
+  dependency investigation sensor updates.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.4.1.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 81 source files.
+- 761 tests pass.
+- Python test coverage remains 100%.
+- Dependency investigation sensor tests cover live inspection updates and
+  malformed finding data.
+
 ## 1.4.1
 
 ### Fixed
