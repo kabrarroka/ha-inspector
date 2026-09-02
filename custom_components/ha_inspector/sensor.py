@@ -372,36 +372,52 @@ class HAInspectorDependencyInvestigationSensor(
         result: dict[str, Any] | None,
     ) -> None:
         """Update dependency investigation diagnostics."""
-        entities: dict[str, Any] = {}
+        missing_entity_count = 0
+        missing_entities: list[Any] = []
+        unreferenced_entity_count = 0
+        unreferenced_entities: list[Any] = []
+        disabled_automation_count = 0
 
-        if result:
-            diagnostics = result.get("diagnostics", {})
-            if isinstance(diagnostics, dict):
-                candidate = diagnostics.get("entities", {})
-                if isinstance(candidate, dict):
-                    entities = candidate
+        findings = result.get("findings", []) if result else []
+        if not isinstance(findings, list):
+            findings = []
 
-        self._attr_native_value = entities.get(
-            "missing_entity_count",
-            0,
-        )
+        for finding in findings:
+            if not isinstance(finding, dict):
+                continue
+
+            finding_id = finding.get("id")
+            data = finding.get("data", {})
+            if not isinstance(data, dict):
+                continue
+
+            if finding_id == "MISSING_ENTITY_REFERENCES_FOUND":
+                candidate_count = data.get("missing_entity_count", 0)
+                if type(candidate_count) is int:
+                    missing_entity_count = candidate_count
+                candidate = data.get("missing_entities", [])
+                if isinstance(candidate, list):
+                    missing_entities = candidate
+
+            elif finding_id == "UNREFERENCED_ENTITIES_FOUND":
+                candidate_count = data.get("unreferenced_entity_count", 0)
+                if type(candidate_count) is int:
+                    unreferenced_entity_count = candidate_count
+                candidate = data.get("unreferenced_entities", [])
+                if isinstance(candidate, list):
+                    unreferenced_entities = candidate
+
+            elif finding_id == "DISABLED_AUTOMATIONS_FOUND":
+                candidate_count = data.get("disabled_automation_count", 0)
+                if type(candidate_count) is int:
+                    disabled_automation_count = candidate_count
+
+        self._attr_native_value = missing_entity_count
         self._attr_extra_state_attributes = {
-            "missing_entities": entities.get(
-                "missing_entities",
-                [],
-            ),
-            "unreferenced_entity_count": entities.get(
-                "unreferenced_entity_count",
-                0,
-            ),
-            "unreferenced_entities": entities.get(
-                "unreferenced_entities",
-                [],
-            ),
-            "disabled_automation_count": entities.get(
-                "disabled_automation_count",
-                0,
-            ),
+            "missing_entities": missing_entities,
+            "unreferenced_entity_count": unreferenced_entity_count,
+            "unreferenced_entities": unreferenced_entities,
+            "disabled_automation_count": disabled_automation_count,
         }
 
 
