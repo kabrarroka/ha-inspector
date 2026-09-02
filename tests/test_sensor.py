@@ -629,26 +629,39 @@ def test_dependency_investigation_sensor_without_result() -> None:
 
 
 def test_dependency_investigation_sensor_with_result() -> None:
-    """Dependency investigation sensor exposes entity investigation data."""
+    """Dependency investigation sensor derives data from real findings."""
     result: dict[str, Any] = {
-        "diagnostics": {
-            "entities": {
-                "missing_entity_count": 2,
-                "missing_entities": [
-                    "sensor.removed_temperature",
-                    "switch.removed_pump",
-                ],
-                "unreferenced_entity_count": 1,
-                "unreferenced_entities": [
-                    {
-                        "entity_id": "sensor.unused",
-                        "name": "Unused",
-                        "domain": "sensor",
-                    },
-                ],
-                "disabled_automation_count": 3,
+        "findings": [
+            {
+                "id": "MISSING_ENTITY_REFERENCES_FOUND",
+                "data": {
+                    "missing_entity_count": 2,
+                    "missing_entities": [
+                        "sensor.removed_temperature",
+                        "switch.removed_pump",
+                    ],
+                },
             },
-        },
+            {
+                "id": "UNREFERENCED_ENTITIES_FOUND",
+                "data": {
+                    "unreferenced_entity_count": 1,
+                    "unreferenced_entities": [
+                        {
+                            "entity_id": "sensor.unused",
+                            "name": "Unused",
+                            "domain": "sensor",
+                        },
+                    ],
+                },
+            },
+            {
+                "id": "DISABLED_AUTOMATIONS_FOUND",
+                "data": {
+                    "disabled_automation_count": 3,
+                },
+            },
+        ],
     }
 
     hass = SimpleNamespace(
@@ -679,18 +692,122 @@ def test_dependency_investigation_sensor_with_result() -> None:
     }
 
 
-def test_dependency_investigation_sensor_handles_invalid_diagnostics() -> None:
-    """Dependency investigation sensor tolerates malformed diagnostics."""
-    hass = SimpleNamespace(
-        data={
-            "ha_inspector": {
-                "last_result": {
-                    "diagnostics": {
-                        "entities": "invalid",
+def test_dependency_investigation_sensor_handles_finished_inspection() -> None:
+    """Dependency investigation sensor updates after an inspection."""
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorDependencyInvestigationSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+    sensor.async_write_ha_state = MagicMock()  # type: ignore[method-assign]
+
+    assert sensor.native_value == 0
+
+    sensor._handle_inspection_finished(
+        {
+            "findings": [
+                {
+                    "id": "MISSING_ENTITY_REFERENCES_FOUND",
+                    "data": {
+                        "missing_entity_count": 2,
+                        "missing_entities": [
+                            "sensor.removed_temperature",
+                            "switch.removed_pump",
+                        ],
                     },
                 },
-            }
+                {
+                    "id": "UNREFERENCED_ENTITIES_FOUND",
+                    "data": {
+                        "unreferenced_entity_count": 1,
+                        "unreferenced_entities": [
+                            {
+                                "entity_id": "sensor.unused",
+                                "name": "Unused",
+                                "domain": "sensor",
+                            },
+                        ],
+                    },
+                },
+            ],
         }
+    )
+
+    assert sensor.native_value == 2
+    assert sensor.extra_state_attributes == {
+        "missing_entities": [
+            "sensor.removed_temperature",
+            "switch.removed_pump",
+        ],
+        "unreferenced_entity_count": 1,
+        "unreferenced_entities": [
+            {
+                "entity_id": "sensor.unused",
+                "name": "Unused",
+                "domain": "sensor",
+            },
+        ],
+        "disabled_automation_count": 0,
+    }
+    sensor.async_write_ha_state.assert_called_once()
+
+
+def test_dependency_investigation_sensor_handles_invalid_findings() -> None:
+    """Dependency investigation sensor handles malformed findings safely."""
+    invalid_result: dict[str, Any] = {"findings": "invalid"}
+
+    invalid_hass = SimpleNamespace(
+        data={"ha_inspector": {"last_result": invalid_result}}
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    invalid_sensor = HAInspectorDependencyInvestigationSensor(  # type: ignore[arg-type]
+        invalid_hass,
+        entry,
+    )
+
+    assert invalid_sensor.native_value == 0
+    assert invalid_sensor.extra_state_attributes == {
+        "missing_entities": [],
+        "unreferenced_entity_count": 0,
+        "unreferenced_entities": [],
+        "disabled_automation_count": 0,
+    }
+
+    result: dict[str, Any] = {
+        "findings": [
+            None,
+            "invalid",
+            {
+                "id": "MISSING_ENTITY_REFERENCES_FOUND",
+                "data": {
+                    "missing_entity_count": "invalid",
+                },
+            },
+            {
+                "id": "DISABLED_AUTOMATIONS_FOUND",
+                "data": {
+                    "disabled_automation_count": {},
+                },
+            },
+            {
+                "id": "MISSING_ENTITY_REFERENCES_FOUND",
+                "data": "invalid",
+            },
+            {
+                "id": "UNREFERENCED_ENTITIES_FOUND",
+                "data": {
+                    "unreferenced_entity_count": 2,
+                    "unreferenced_entities": "invalid",
+                },
+            },
+        ],
+    }
+
+    hass = SimpleNamespace(
+        data={"ha_inspector": {"last_result": result}}
     )
     entry = SimpleNamespace(entry_id="entry-1")
 
@@ -702,7 +819,7 @@ def test_dependency_investigation_sensor_handles_invalid_diagnostics() -> None:
     assert sensor.native_value == 0
     assert sensor.extra_state_attributes == {
         "missing_entities": [],
-        "unreferenced_entity_count": 0,
+        "unreferenced_entity_count": 2,
         "unreferenced_entities": [],
         "disabled_automation_count": 0,
     }
