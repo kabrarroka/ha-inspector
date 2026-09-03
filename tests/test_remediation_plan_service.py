@@ -250,7 +250,8 @@ async def test_remediation_plan_returns_none_when_no_references_exist(
     """Entities without dependency references do not require remediation."""
     from types import SimpleNamespace
 
-    _, registrations = await _setup_services(monkeypatch)
+    hass, registrations = await _setup_services(monkeypatch)
+    hass.states.get.return_value = None
 
     registry = SimpleNamespace(entities={})
 
