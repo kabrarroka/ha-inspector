@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.5.0
+
+### Added
+
+- Per-entity remediation plans for stale dependency references.
+- Remediation actions grouped by affected automation, script, and scene
+  configuration.
+- Remediation safety and confidence classification.
+- Before-change dependency impact previews.
+- Remediation progress and resolution tracking.
+- Before-and-after dependency comparison.
+- Public `ha_inspector.remediation_plan` response service for live remediation
+  queries.
+- Dedicated `Remediation workflow` diagnostic sensor in Home Assistant.
+
+### Changed
+
+- Reused live dependency context across entity dependency and remediation
+  queries.
+- Added compact remediation workflow diagnostics to inspection results.
+- Existing entities are excluded from stale-reference remediation plans.
+- Expanded Home Assistant-facing dependency diagnostics with remediation
+  guidance while keeping configuration changes under explicit user control.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.4.2.
+- Remediation workflows are non-destructive and never modify Home Assistant
+  configuration automatically.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 84 source files.
+- 808 tests pass.
+- Python test coverage is 100%.
+- Remediation planning, classification, impact preview, progress tracking,
+  dependency comparison, public service responses, and Home Assistant
+  diagnostics are covered by automated tests.
+
 ## 1.4.2
 
 ### Fixed

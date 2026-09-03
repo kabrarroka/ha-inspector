@@ -2,7 +2,7 @@
 
 HA Inspector is a custom integration for Home Assistant that inspects a Home Assistant installation and reports configuration, availability, storage, recorder, integration, and entity-related findings.
 
-Current version: **1.4.2**
+Current version: **1.5.0**
 
 ## Features
 
@@ -456,7 +456,7 @@ GitHub Actions runs Ruff, mypy, and pytest for pushes and pull requests.
 
 HA Inspector is under active development.
 
-Current integration version: **1.4.2**
+Current integration version: **1.5.0**
 
 The project maintains 100% Python test coverage across `custom_components.ha_inspector`.
 
