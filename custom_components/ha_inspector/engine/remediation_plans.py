@@ -191,3 +191,28 @@ def group_remediation_actions(
             status,
         ), actions in grouped.items()
     )
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationClassification:
+    """Represent remediation safety and confidence classification."""
+
+    safety: str
+    confidence: str
+    reason: str
+
+
+def classify_remediation_plan(
+    plan: RemediationPlan,
+) -> RemediationClassification:
+    """Classify remediation safety and confidence."""
+    if plan.safety not in {"review_required", "likely_safe"}:
+        raise ValueError(
+            f"Unsupported remediation safety: {plan.safety}"
+        )
+
+    return RemediationClassification(
+        safety=plan.safety,
+        confidence="high",
+        reason=plan.reason,
+    )

@@ -381,3 +381,86 @@ def test_group_remediation_actions_preserves_plan_and_step_order() -> None:
             action="first_action",
         ),
     )
+
+
+def test_classify_remediation_plan_review_required() -> None:
+    plan = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(),
+    )
+
+    assert remediation_plans.classify_remediation_plan(
+        plan
+    ) == remediation_plans.RemediationClassification(
+        safety="review_required",
+        confidence="high",
+        reason="Entity is referenced by active configuration",
+    )
+
+
+def test_classify_remediation_plan_likely_safe() -> None:
+    plan = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="remove_disabled_references",
+        safety="likely_safe",
+        reason="Entity is referenced only by disabled configuration",
+        reference_count=1,
+        active_reference_count=0,
+        disabled_reference_count=1,
+        steps=(),
+    )
+
+    assert remediation_plans.classify_remediation_plan(
+        plan
+    ) == remediation_plans.RemediationClassification(
+        safety="likely_safe",
+        confidence="high",
+        reason="Entity is referenced only by disabled configuration",
+    )
+
+
+def test_classify_remediation_plan_rejects_unknown_safety() -> None:
+    plan = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="unknown",
+        safety="unknown",
+        reason="Unknown remediation state",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(),
+    )
+
+    try:
+        remediation_plans.classify_remediation_plan(plan)
+    except ValueError as err:
+        assert str(err) == "Unsupported remediation safety: unknown"
+    else:
+        raise AssertionError("ValueError was not raised")
+
+
+def test_classify_remediation_plan_preserves_plan_reason_and_safety() -> None:
+    plan = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Custom remediation reason",
+        reference_count=10,
+        active_reference_count=0,
+        disabled_reference_count=10,
+        steps=(),
+    )
+
+    assert remediation_plans.classify_remediation_plan(
+        plan
+    ) == remediation_plans.RemediationClassification(
+        safety="review_required",
+        confidence="high",
+        reason="Custom remediation reason",
+    )
