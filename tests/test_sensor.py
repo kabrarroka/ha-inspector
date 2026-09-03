@@ -941,3 +941,40 @@ def test_remediation_workflow_sensor_handles_malformed_result() -> None:
         "review_reference_count": 0,
         "entities": [],
     }
+
+
+def test_remediation_workflow_sensor_handles_invalid_entities() -> None:
+    """Remediation workflow sensor handles malformed entity diagnostics safely."""
+    hass = SimpleNamespace(
+        data={
+            "ha_inspector": {
+                "last_result": {
+                    "remediation_workflow": {
+                        "affected_entities": 1,
+                        "review_required": 1,
+                        "likely_safe": 0,
+                        "affected_configurations": 1,
+                        "removable_references": 0,
+                        "review_references": 1,
+                        "entities": "invalid",
+                    }
+                }
+            }
+        }
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorRemediationWorkflowSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 1
+    assert sensor.extra_state_attributes == {
+        "review_required_count": 1,
+        "likely_safe_count": 0,
+        "affected_configuration_count": 1,
+        "removable_reference_count": 0,
+        "review_reference_count": 1,
+        "entities": [],
+    }
