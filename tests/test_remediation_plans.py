@@ -626,3 +626,258 @@ def test_preview_remediation_impact_only_projects_removals() -> None:
         review_reference_count=1,
         projected_reference_count=2,
     )
+
+
+def test_track_remediation_progress_pending() -> None:
+    original = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=2,
+        active_reference_count=2,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="active",
+                action="review_entity_reference",
+            ),
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.two",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.track_remediation_progress(
+        original,
+        original,
+    ) == remediation_plans.RemediationProgress(
+        entity_id="sensor.missing",
+        status="pending",
+        total_action_count=2,
+        completed_action_count=0,
+        remaining_action_count=2,
+    )
+
+
+def test_track_remediation_progress_in_progress() -> None:
+    original = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=2,
+        active_reference_count=2,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="active",
+                action="review_entity_reference",
+            ),
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.two",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+    current = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.two",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.track_remediation_progress(
+        original,
+        current,
+    ) == remediation_plans.RemediationProgress(
+        entity_id="sensor.missing",
+        status="in_progress",
+        total_action_count=2,
+        completed_action_count=1,
+        remaining_action_count=1,
+    )
+
+
+def test_track_remediation_progress_resolved() -> None:
+    original = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="remove_disabled_references",
+        safety="likely_safe",
+        reason="Entity is referenced only by disabled configuration",
+        reference_count=1,
+        active_reference_count=0,
+        disabled_reference_count=1,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="disabled",
+                action="remove_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.track_remediation_progress(
+        original,
+        None,
+    ) == remediation_plans.RemediationProgress(
+        entity_id="sensor.missing",
+        status="resolved",
+        total_action_count=1,
+        completed_action_count=1,
+        remaining_action_count=0,
+    )
+
+
+def test_track_remediation_progress_ignores_status_and_action_changes() -> None:
+    original = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+    current = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="remove_disabled_references",
+        safety="likely_safe",
+        reason="Entity is referenced only by disabled configuration",
+        reference_count=1,
+        active_reference_count=0,
+        disabled_reference_count=1,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="disabled",
+                action="remove_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.track_remediation_progress(
+        original,
+        current,
+    ) == remediation_plans.RemediationProgress(
+        entity_id="sensor.missing",
+        status="pending",
+        total_action_count=1,
+        completed_action_count=0,
+        remaining_action_count=1,
+    )
+
+
+def test_track_remediation_progress_rejects_different_entities() -> None:
+    original = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(),
+    )
+    current = remediation_plans.RemediationPlan(
+        entity_id="sensor.other",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(),
+    )
+
+    try:
+        remediation_plans.track_remediation_progress(
+            original,
+            current,
+        )
+    except ValueError as err:
+        assert str(err) == (
+            "Cannot track remediation progress for different entities: "
+            "sensor.missing != sensor.other"
+        )
+    else:
+        raise AssertionError("ValueError was not raised")
+
+
+def test_track_remediation_progress_detects_new_references() -> None:
+    original = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.original",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+    current = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.new_reference",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.track_remediation_progress(
+        original,
+        current,
+    ) == remediation_plans.RemediationProgress(
+        entity_id="sensor.missing",
+        status="in_progress",
+        total_action_count=1,
+        completed_action_count=1,
+        remaining_action_count=0,
+        new_reference_count=1,
+    )

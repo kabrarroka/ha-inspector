@@ -258,3 +258,63 @@ def preview_remediation_impact(
             plan.reference_count - removable_reference_count,
         ),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationProgress:
+    """Represent remediation progress for an entity."""
+
+    entity_id: str
+    status: str
+    total_action_count: int
+    completed_action_count: int
+    remaining_action_count: int
+    new_reference_count: int = 0
+
+
+def track_remediation_progress(
+    original: RemediationPlan,
+    current: RemediationPlan | None,
+) -> RemediationProgress:
+    """Track remediation progress from remaining configuration references."""
+    if current is not None and current.entity_id != original.entity_id:
+        raise ValueError(
+            "Cannot track remediation progress for different entities: "
+            f"{original.entity_id} != {current.entity_id}"
+        )
+
+    original_references = {
+        (step.configuration_type, step.configuration_id)
+        for step in original.steps
+    }
+    current_references = (
+        {
+            (step.configuration_type, step.configuration_id)
+            for step in current.steps
+        }
+        if current is not None
+        else set()
+    )
+
+    remaining_references = original_references & current_references
+    new_references = current_references - original_references
+    total_action_count = len(original_references)
+    remaining_action_count = len(remaining_references)
+    completed_action_count = total_action_count - remaining_action_count
+    new_reference_count = len(new_references)
+
+    if not current_references:
+        status = "resolved"
+    elif completed_action_count == 0 and new_reference_count == 0:
+        status = "pending"
+    else:
+        status = "in_progress"
+
+    return RemediationProgress(
+        entity_id=original.entity_id,
+        status=status,
+        total_action_count=total_action_count,
+        completed_action_count=completed_action_count,
+        remaining_action_count=remaining_action_count,
+        new_reference_count=new_reference_count,
+    )
