@@ -113,7 +113,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Per-entity remediation plans
 - [x] Remediation actions grouped by affected configuration
 - [x] Remediation safety and confidence classification
-- [ ] Before-change dependency impact preview
+- [x] Before-change dependency impact preview
 - [ ] Remediation progress and resolution tracking
 - [ ] Before-and-after dependency comparison
 - [ ] Public remediation plan query service

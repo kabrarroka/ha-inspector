@@ -464,3 +464,165 @@ def test_classify_remediation_plan_preserves_plan_reason_and_safety() -> None:
         confidence="high",
         reason="Custom remediation reason",
     )
+
+
+def test_preview_remediation_impact_for_removable_references() -> None:
+    plan = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="remove_disabled_references",
+        safety="likely_safe",
+        reason="Entity is referenced only by disabled configuration",
+        reference_count=2,
+        active_reference_count=0,
+        disabled_reference_count=2,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.disabled_one",
+                status="disabled",
+                action="remove_entity_reference",
+            ),
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.disabled_two",
+                status="disabled",
+                action="remove_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.preview_remediation_impact(
+        plan
+    ) == remediation_plans.RemediationImpactPreview(
+        entity_id="sensor.missing",
+        current_reference_count=2,
+        affected_configuration_count=2,
+        removable_reference_count=2,
+        review_reference_count=0,
+        projected_reference_count=0,
+    )
+
+
+def test_preview_remediation_impact_for_review_references() -> None:
+    plan = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=2,
+        active_reference_count=1,
+        disabled_reference_count=1,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.active_one",
+                status="active",
+                action="review_entity_reference",
+            ),
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.disabled_two",
+                status="disabled",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.preview_remediation_impact(
+        plan
+    ) == remediation_plans.RemediationImpactPreview(
+        entity_id="sensor.missing",
+        current_reference_count=2,
+        affected_configuration_count=2,
+        removable_reference_count=0,
+        review_reference_count=2,
+        projected_reference_count=2,
+    )
+
+
+def test_preview_remediation_impact_supports_empty_plan() -> None:
+    plan = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=0,
+        active_reference_count=0,
+        disabled_reference_count=0,
+        steps=(),
+    )
+
+    assert remediation_plans.preview_remediation_impact(
+        plan
+    ) == remediation_plans.RemediationImpactPreview(
+        entity_id="sensor.missing",
+        current_reference_count=0,
+        affected_configuration_count=0,
+        removable_reference_count=0,
+        review_reference_count=0,
+        projected_reference_count=0,
+    )
+
+
+def test_preview_remediation_impact_rejects_unknown_step_action() -> None:
+    plan = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="unknown",
+        safety="review_required",
+        reason="Unknown remediation state",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="active",
+                action="unknown",
+            ),
+        ),
+    )
+
+    try:
+        remediation_plans.preview_remediation_impact(plan)
+    except ValueError as err:
+        assert str(err) == "Unsupported remediation step action: unknown"
+    else:
+        raise AssertionError("ValueError was not raised")
+
+
+def test_preview_remediation_impact_only_projects_removals() -> None:
+    plan = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=3,
+        active_reference_count=2,
+        disabled_reference_count=1,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.disabled_one",
+                status="disabled",
+                action="remove_entity_reference",
+            ),
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.active_two",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.preview_remediation_impact(
+        plan
+    ) == remediation_plans.RemediationImpactPreview(
+        entity_id="sensor.missing",
+        current_reference_count=3,
+        affected_configuration_count=2,
+        removable_reference_count=1,
+        review_reference_count=1,
+        projected_reference_count=2,
+    )

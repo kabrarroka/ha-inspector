@@ -216,3 +216,45 @@ def classify_remediation_plan(
         confidence="high",
         reason=plan.reason,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationImpactPreview:
+    """Represent projected dependency impact before remediation changes."""
+
+    entity_id: str
+    current_reference_count: int
+    affected_configuration_count: int
+    removable_reference_count: int
+    review_reference_count: int
+    projected_reference_count: int
+
+
+def preview_remediation_impact(
+    plan: RemediationPlan,
+) -> RemediationImpactPreview:
+    """Preview dependency impact without applying remediation changes."""
+    removable_reference_count = 0
+    review_reference_count = 0
+
+    for step in plan.steps:
+        if step.action == "remove_entity_reference":
+            removable_reference_count += 1
+        elif step.action == "review_entity_reference":
+            review_reference_count += 1
+        else:
+            raise ValueError(
+                f"Unsupported remediation step action: {step.action}"
+            )
+
+    return RemediationImpactPreview(
+        entity_id=plan.entity_id,
+        current_reference_count=plan.reference_count,
+        affected_configuration_count=len(plan.steps),
+        removable_reference_count=removable_reference_count,
+        review_reference_count=review_reference_count,
+        projected_reference_count=max(
+            0,
+            plan.reference_count - removable_reference_count,
+        ),
+    )
