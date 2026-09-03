@@ -182,3 +182,202 @@ def test_build_remediation_plans_skips_contexts_without_references() -> None:
     )
     assert plans[0].action == "review_active_references"
     assert plans[1].action == "remove_disabled_references"
+
+
+
+def test_group_remediation_actions_by_affected_configuration() -> None:
+    plans = (
+        remediation_plans.RemediationPlan(
+            entity_id="sensor.temperature_missing",
+            action="review_active_references",
+            safety="review_required",
+            reason="Entity is referenced by active configuration",
+            reference_count=2,
+            active_reference_count=2,
+            disabled_reference_count=0,
+            steps=(
+                remediation_plans.RemediationStep(
+                    configuration_type="automation",
+                    configuration_id="automation.kitchen",
+                    status="active",
+                    action="review_entity_reference",
+                ),
+                remediation_plans.RemediationStep(
+                    configuration_type="script",
+                    configuration_id="script.evening",
+                    status="active",
+                    action="review_entity_reference",
+                ),
+            ),
+        ),
+        remediation_plans.RemediationPlan(
+            entity_id="switch.fan_missing",
+            action="review_active_references",
+            safety="review_required",
+            reason="Entity is referenced by active configuration",
+            reference_count=1,
+            active_reference_count=1,
+            disabled_reference_count=0,
+            steps=(
+                remediation_plans.RemediationStep(
+                    configuration_type="automation",
+                    configuration_id="automation.kitchen",
+                    status="active",
+                    action="review_entity_reference",
+                ),
+            ),
+        ),
+    )
+
+    assert remediation_plans.group_remediation_actions(
+        plans
+    ) == (
+        remediation_plans.ConfigurationRemediationActions(
+            configuration_type="automation",
+            configuration_id="automation.kitchen",
+            status="active",
+            actions=(
+                remediation_plans.ConfigurationRemediationAction(
+                    entity_id="sensor.temperature_missing",
+                    action="review_entity_reference",
+                ),
+                remediation_plans.ConfigurationRemediationAction(
+                    entity_id="switch.fan_missing",
+                    action="review_entity_reference",
+                ),
+            ),
+        ),
+        remediation_plans.ConfigurationRemediationActions(
+            configuration_type="script",
+            configuration_id="script.evening",
+            status="active",
+            actions=(
+                remediation_plans.ConfigurationRemediationAction(
+                    entity_id="sensor.temperature_missing",
+                    action="review_entity_reference",
+                ),
+            ),
+        ),
+    )
+
+
+def test_group_remediation_actions_handles_empty_plans() -> None:
+    assert remediation_plans.group_remediation_actions(()) == ()
+
+
+def test_group_remediation_actions_keeps_different_statuses_separate() -> None:
+    plans = (
+        remediation_plans.RemediationPlan(
+            entity_id="sensor.active_reference",
+            action="review_active_references",
+            safety="review_required",
+            reason="Entity is referenced by active configuration",
+            reference_count=1,
+            active_reference_count=1,
+            disabled_reference_count=0,
+            steps=(
+                remediation_plans.RemediationStep(
+                    configuration_type="automation",
+                    configuration_id="automation.shared",
+                    status="active",
+                    action="review_entity_reference",
+                ),
+            ),
+        ),
+        remediation_plans.RemediationPlan(
+            entity_id="sensor.disabled_reference",
+            action="remove_disabled_references",
+            safety="likely_safe",
+            reason="Entity is referenced only by disabled configuration",
+            reference_count=1,
+            active_reference_count=0,
+            disabled_reference_count=1,
+            steps=(
+                remediation_plans.RemediationStep(
+                    configuration_type="automation",
+                    configuration_id="automation.shared",
+                    status="disabled",
+                    action="remove_entity_reference",
+                ),
+            ),
+        ),
+    )
+
+    groups = remediation_plans.group_remediation_actions(plans)
+
+    assert tuple(
+        (group.configuration_id, group.status)
+        for group in groups
+    ) == (
+        ("automation.shared", "active"),
+        ("automation.shared", "disabled"),
+    )
+
+
+def test_group_remediation_actions_preserves_plan_and_step_order() -> None:
+    plans = (
+        remediation_plans.RemediationPlan(
+            entity_id="sensor.second",
+            action="review_active_references",
+            safety="review_required",
+            reason="Entity is referenced by active configuration",
+            reference_count=2,
+            active_reference_count=2,
+            disabled_reference_count=0,
+            steps=(
+                remediation_plans.RemediationStep(
+                    configuration_type="script",
+                    configuration_id="script.shared",
+                    status="active",
+                    action="second_action",
+                ),
+                remediation_plans.RemediationStep(
+                    configuration_type="automation",
+                    configuration_id="automation.other",
+                    status="active",
+                    action="review_entity_reference",
+                ),
+            ),
+        ),
+        remediation_plans.RemediationPlan(
+            entity_id="sensor.first",
+            action="review_active_references",
+            safety="review_required",
+            reason="Entity is referenced by active configuration",
+            reference_count=1,
+            active_reference_count=1,
+            disabled_reference_count=0,
+            steps=(
+                remediation_plans.RemediationStep(
+                    configuration_type="script",
+                    configuration_id="script.shared",
+                    status="active",
+                    action="first_action",
+                ),
+            ),
+        ),
+    )
+
+    groups = remediation_plans.group_remediation_actions(plans)
+
+    assert tuple(
+        (
+            group.configuration_type,
+            group.configuration_id,
+            group.status,
+        )
+        for group in groups
+    ) == (
+        ("script", "script.shared", "active"),
+        ("automation", "automation.other", "active"),
+    )
+    assert groups[0].actions == (
+        remediation_plans.ConfigurationRemediationAction(
+            entity_id="sensor.second",
+            action="second_action",
+        ),
+        remediation_plans.ConfigurationRemediationAction(
+            entity_id="sensor.first",
+            action="first_action",
+        ),
+    )

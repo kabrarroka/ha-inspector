@@ -133,3 +133,61 @@ def build_remediation_plans(
         for plan in plans
         if plan is not None
     )
+
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigurationRemediationAction:
+    """Represent one entity remediation action for a configuration."""
+
+    entity_id: str
+    action: str
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigurationRemediationActions:
+    """Represent remediation actions grouped by affected configuration."""
+
+    configuration_type: str
+    configuration_id: str
+    status: str
+    actions: tuple[ConfigurationRemediationAction, ...]
+
+
+def group_remediation_actions(
+    plans: Iterable[RemediationPlan],
+) -> tuple[ConfigurationRemediationActions, ...]:
+    """Group entity remediation actions by affected configuration."""
+    grouped: dict[
+        tuple[str, str, str],
+        list[ConfigurationRemediationAction],
+    ] = {}
+
+    for plan in plans:
+        for step in plan.steps:
+            key = (
+                step.configuration_type,
+                step.configuration_id,
+                step.status,
+            )
+            actions = grouped.setdefault(key, [])
+            action = ConfigurationRemediationAction(
+                entity_id=plan.entity_id,
+                action=step.action,
+            )
+            if action not in actions:
+                actions.append(action)
+
+    return tuple(
+        ConfigurationRemediationActions(
+            configuration_type=configuration_type,
+            configuration_id=configuration_id,
+            status=status,
+            actions=tuple(actions),
+        )
+        for (
+            configuration_type,
+            configuration_id,
+            status,
+        ), actions in grouped.items()
+    )
