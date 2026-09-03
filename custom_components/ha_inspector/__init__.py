@@ -53,6 +53,7 @@ SERVICE_CLEAR_ACKNOWLEDGEMENTS = "clear_acknowledgements"
 SERVICE_EXPORT_DIAGNOSTIC_REPORT = "export_diagnostic_report"
 SERVICE_DEPENDENCY_DIAGNOSTICS = "dependency_diagnostics"
 SERVICE_ENTITY_DEPENDENCY = "entity_dependency"
+SERVICE_REMEDIATION_PLAN = "remediation_plan"
 
 API_VERSION = PUBLIC_API_VERSION
 
@@ -109,6 +110,12 @@ SERVICE_CLEAR_ACKNOWLEDGEMENTS_SCHEMA = vol.Schema({})
 SERVICE_EXPORT_DIAGNOSTIC_REPORT_SCHEMA = vol.Schema({})
 SERVICE_DEPENDENCY_DIAGNOSTICS_SCHEMA = vol.Schema({})
 SERVICE_ENTITY_DEPENDENCY_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): str,
+    }
+)
+
+SERVICE_REMEDIATION_PLAN_SCHEMA = vol.Schema(
     {
         vol.Required("entity_id"): str,
     }
@@ -508,86 +515,21 @@ async def async_setup(
         call: ServiceCall,
     ) -> ServiceResponse:
         """Return dependency information for one entity."""
-        from homeassistant.components.automation import entities_in_automation
-        from homeassistant.components.homeassistant.scene import entities_in_scene
-        from homeassistant.components.script import entities_in_script
         from homeassistant.helpers import entity_registry as er
 
-        from .engine.automation_dependencies import (
-            automation_dependency_from_entities,
-        )
         from .engine.cleanup_recommendations import (
             build_cleanup_recommendation,
         )
         from .engine.entity_dependency_impact_summary import (
             build_entity_dependency_impact_summary,
         )
-        from .engine.scene_dependencies import (
-            scene_dependency_from_entities,
-        )
-        from .engine.script_dependencies import (
-            script_dependency_from_entities,
-        )
-        from .engine.stale_reference_context import (
-            build_stale_reference_contexts,
+        from .engine.live_dependency_context import (
+            build_live_stale_reference_context,
         )
 
         entity_id = str(call.data["entity_id"])
         registry = er.async_get(hass)
-
-        automation_dependencies = []
-        script_dependencies = []
-        scene_dependencies = []
-
-        for entry in registry.entities.values():
-            disabled = entry.disabled_by is not None
-
-            if entry.domain == "automation":
-                automation_dependency = automation_dependency_from_entities(
-                    entry.entity_id,
-                    entry.name or entry.original_name or entry.entity_id,
-                    entities_in_automation(hass, entry.entity_id),
-                )
-                automation_dependencies.append(
-                    (
-                        entry.entity_id,
-                        automation_dependency.referenced_entities,
-                        disabled,
-                    )
-                )
-            elif entry.domain == "script":
-                script_dependency = script_dependency_from_entities(
-                    entry.entity_id,
-                    entry.name or entry.original_name or entry.entity_id,
-                    entities_in_script(hass, entry.entity_id),
-                )
-                script_dependencies.append(
-                    (
-                        entry.entity_id,
-                        script_dependency.referenced_entities,
-                        disabled,
-                    )
-                )
-            elif entry.domain == "scene":
-                scene_dependency = scene_dependency_from_entities(
-                    entry.entity_id,
-                    entry.name or entry.original_name or entry.entity_id,
-                    entities_in_scene(hass, entry.entity_id),
-                )
-                scene_dependencies.append(
-                    (
-                        entry.entity_id,
-                        scene_dependency.referenced_entities,
-                        disabled,
-                    )
-                )
-
-        context = build_stale_reference_contexts(
-            (entity_id,),
-            automation_dependencies,
-            script_dependencies,
-            scene_dependencies,
-        )[0]
+        context = build_live_stale_reference_context(hass, entity_id)
         impact = build_entity_dependency_impact_summary(context)
 
         exists = any(
@@ -648,6 +590,81 @@ async def async_setup(
         SERVICE_ENTITY_DEPENDENCY,
         async_handle_entity_dependency,
         schema=SERVICE_ENTITY_DEPENDENCY_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def async_handle_remediation_plan(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return the remediation plan for one entity."""
+        from .engine.live_dependency_context import (
+            build_live_stale_reference_context,
+        )
+        from .engine.remediation_plans import (
+            build_remediation_plan,
+            classify_remediation_plan,
+            preview_remediation_impact,
+        )
+
+        entity_id = str(call.data["entity_id"])
+        context = build_live_stale_reference_context(hass, entity_id)
+        plan = build_remediation_plan(context)
+
+        if plan is None:
+            return {
+                "entity_id": entity_id,
+                "plan": None,
+                "classification": None,
+                "impact_preview": None,
+            }
+
+        classification = classify_remediation_plan(plan)
+        preview = preview_remediation_impact(plan)
+
+        return {
+            "entity_id": entity_id,
+            "plan": {
+                "action": plan.action,
+                "safety": plan.safety,
+                "reason": plan.reason,
+                "reference_count": plan.reference_count,
+                "active_reference_count": plan.active_reference_count,
+                "disabled_reference_count": plan.disabled_reference_count,
+                "steps": [
+                    {
+                        "configuration_type": step.configuration_type,
+                        "configuration_id": step.configuration_id,
+                        "status": step.status,
+                        "action": step.action,
+                    }
+                    for step in plan.steps
+                ],
+            },
+            "classification": {
+                "safety": classification.safety,
+                "confidence": classification.confidence,
+                "reason": classification.reason,
+            },
+            "impact_preview": {
+                "current_reference_count": preview.current_reference_count,
+                "affected_configuration_count": (
+                    preview.affected_configuration_count
+                ),
+                "removable_reference_count": (
+                    preview.removable_reference_count
+                ),
+                "review_reference_count": preview.review_reference_count,
+                "projected_reference_count": (
+                    preview.projected_reference_count
+                ),
+            },
+        }
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMEDIATION_PLAN,
+        async_handle_remediation_plan,
+        schema=SERVICE_REMEDIATION_PLAN_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 

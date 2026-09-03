@@ -21,6 +21,7 @@ PUBLIC_SERVICES = (
     "export_diagnostic_report",
     "dependency_diagnostics",
     "entity_dependency",
+    "remediation_plan",
 )
 
 
