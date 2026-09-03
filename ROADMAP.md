@@ -108,6 +108,17 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Dependency investigation diagnostics in Home Assistant
 - [x] Safe cleanup recommendations without automatic configuration changes
 
+## Epic L — Dependency remediation workflow
+
+- [x] Per-entity remediation plans
+- [x] Remediation actions grouped by affected configuration
+- [x] Remediation safety and confidence classification
+- [x] Before-change dependency impact preview
+- [x] Remediation progress and resolution tracking
+- [x] Before-and-after dependency comparison
+- [x] Public remediation plan query service
+- [x] Remediation workflow diagnostics in Home Assistant
+
 ## Version direction
 
 ### 0.5 — Engine foundation
@@ -144,3 +155,9 @@ health scoring, prioritization, and dedicated dependency-focused diagnostics.
 Reverse dependency lookup, configuration-aware reference investigation,
 per-entity impact analysis, Home Assistant-facing dependency queries, and
 safe cleanup guidance without automatic configuration changes.
+
+### 1.5 — Dependency remediation workflow
+
+Structured remediation planning, configuration-aware remediation guidance,
+change-impact preview, resolution tracking, and Home Assistant-facing
+remediation workflows without automatic configuration changes.

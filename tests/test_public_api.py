@@ -39,6 +39,7 @@ def test_public_api_services_are_stable() -> None:
         "export_diagnostic_report",
         "dependency_diagnostics",
         "entity_dependency",
+        "remediation_plan",
     )
 
 
@@ -62,6 +63,7 @@ def test_describe_public_api() -> None:
             "export_diagnostic_report",
             "dependency_diagnostics",
             "entity_dependency",
+            "remediation_plan",
         ],
     }
 

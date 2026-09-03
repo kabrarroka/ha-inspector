@@ -313,6 +313,61 @@ def test_as_dict_includes_domain_health() -> None:
     assert payload["domain_health"] == result.domain_health
 
 
+
+def test_remediation_workflow_diagnostics_are_serialized() -> None:
+    """Inspection results expose remediation workflow diagnostics."""
+    result = InspectionResult()
+    result.remediation_workflow_diagnostics = {
+        "affected_entities": 2,
+        "review_required": 1,
+        "likely_safe": 1,
+        "affected_configurations": 3,
+        "removable_references": 1,
+        "review_references": 2,
+        "entities": [
+            {
+                "entity_id": "sensor.missing",
+                "action": "review_active_references",
+                "safety": "review_required",
+                "confidence": "high",
+                "reference_count": 2,
+                "active_reference_count": 2,
+                "disabled_reference_count": 0,
+                "affected_configuration_count": 2,
+                "removable_reference_count": 0,
+                "review_reference_count": 2,
+                "projected_reference_count": 2,
+            }
+        ],
+    }
+
+    document = result.as_dict()
+
+    assert document["remediation_workflow"] == {
+        "affected_entities": 2,
+        "review_required": 1,
+        "likely_safe": 1,
+        "affected_configurations": 3,
+        "removable_references": 1,
+        "review_references": 2,
+        "entities": [
+            {
+                "entity_id": "sensor.missing",
+                "action": "review_active_references",
+                "safety": "review_required",
+                "confidence": "high",
+                "reference_count": 2,
+                "active_reference_count": 2,
+                "disabled_reference_count": 0,
+                "affected_configuration_count": 2,
+                "removable_reference_count": 0,
+                "review_reference_count": 2,
+                "projected_reference_count": 2,
+            }
+        ],
+    }
+
+
 def test_dashboard_summary_exposes_compact_health_state() -> None:
     """Dashboard summary exposes compact inspection health data."""
     result = InspectionResult()

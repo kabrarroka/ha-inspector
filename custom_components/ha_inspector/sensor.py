@@ -46,6 +46,7 @@ async def async_setup_entry(
             HAInspectorCollectorFailuresSensor(hass, entry),
             HAInspectorDependencyHealthSensor(hass, entry),
             HAInspectorDependencyInvestigationSensor(hass, entry),
+            HAInspectorRemediationWorkflowSensor(hass, entry),
             HAInspectorDomainHealthSensor(hass, entry, domain="storage"),
             HAInspectorDomainHealthSensor(hass, entry, domain="system"),
             HAInspectorDomainHealthSensor(
@@ -418,6 +419,52 @@ class HAInspectorDependencyInvestigationSensor(
             "unreferenced_entity_count": unreferenced_entity_count,
             "unreferenced_entities": unreferenced_entities,
             "disabled_automation_count": disabled_automation_count,
+        }
+
+
+class HAInspectorRemediationWorkflowSensor(HAInspectorDiagnosticSensor):
+    """Expose remediation workflow diagnostics."""
+
+    _attr_name = "Remediation workflow"
+    _attr_icon = "mdi:clipboard-text-search-outline"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the remediation workflow sensor."""
+        super().__init__(hass, entry, key="remediation_workflow")
+
+    def _update_from_result(
+        self,
+        result: dict[str, Any] | None,
+    ) -> None:
+        """Update remediation workflow diagnostics."""
+        workflow: dict[str, Any] = {}
+
+        if result:
+            candidate = result.get("remediation_workflow", {})
+            if isinstance(candidate, dict):
+                workflow = candidate
+
+        entities = workflow.get("entities", [])
+        if not isinstance(entities, list):
+            entities = []
+
+        self._attr_native_value = workflow.get("affected_entities", 0)
+        self._attr_extra_state_attributes = {
+            "review_required_count": workflow.get("review_required", 0),
+            "likely_safe_count": workflow.get("likely_safe", 0),
+            "affected_configuration_count": workflow.get(
+                "affected_configurations",
+                0,
+            ),
+            "removable_reference_count": workflow.get(
+                "removable_references",
+                0,
+            ),
+            "review_reference_count": workflow.get(
+                "review_references",
+                0,
+            ),
+            "entities": entities,
         }
 
 

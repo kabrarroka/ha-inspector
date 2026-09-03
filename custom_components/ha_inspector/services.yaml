@@ -161,3 +161,23 @@ entity_dependency:
         text:
   response:
     optional: false
+
+remediation_plan:
+  name: Plan de remediación de entidad
+  description: >
+    Devuelve un plan de remediación no destructivo para las referencias
+    actuales de una entidad en automatizaciones, scripts y escenas.
+    Incluye clasificación de seguridad y confianza, así como una vista
+    previa del impacto esperado antes de realizar cambios manuales.
+    No modifica automáticamente la configuración de Home Assistant.
+  fields:
+    entity_id:
+      name: ID de entidad
+      description: >
+        Identificador de la entidad que se desea investigar. Puede ser
+        también una entidad inexistente para analizar referencias obsoletas.
+      required: true
+      selector:
+        text:
+  response:
+    optional: false

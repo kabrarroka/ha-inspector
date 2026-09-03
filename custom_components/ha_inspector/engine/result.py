@@ -13,6 +13,10 @@ from .dependency_diagnostics import (
     empty_dependency_diagnostics,
 )
 from .models import Finding
+from .remediation_workflow_diagnostics import (
+    RemediationWorkflowDiagnostics,
+    empty_remediation_workflow_diagnostics,
+)
 from .score import (
     HealthScore,
     HealthStatus,
@@ -42,6 +46,9 @@ class InspectionResult:
     scoring_entries: list[ScoringEntry] = field(default_factory=list)
     dependency_diagnostics: DependencyDiagnostics = field(
         default_factory=empty_dependency_diagnostics
+    )
+    remediation_workflow_diagnostics: RemediationWorkflowDiagnostics = field(
+        default_factory=empty_remediation_workflow_diagnostics
     )
 
     def add_many(self, findings: Iterable[Finding]) -> None:
@@ -222,6 +229,7 @@ class InspectionResult:
             "health_summary": self.health_summary,
             "domain_health": self.domain_health,
             "dashboard_summary": self.dashboard_summary,
+            "remediation_workflow": self.remediation_workflow_diagnostics,
             "presentation": self.presentation,
             "summary": {
                 severity.label: self.count_by_severity(severity)

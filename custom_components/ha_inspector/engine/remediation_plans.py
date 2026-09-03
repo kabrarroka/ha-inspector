@@ -1,0 +1,370 @@
+"""Per-entity dependency remediation plan helpers for HA Inspector."""
+
+from __future__ import annotations
+
+from collections.abc import Iterable
+from dataclasses import dataclass
+
+from .cleanup_recommendations import build_cleanup_recommendation
+from .entity_dependency_impact_summary import (
+    build_entity_dependency_impact_summary,
+)
+from .stale_reference_context import StaleReferenceContext
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationStep:
+    """Represent one configuration review step for a stale entity reference."""
+
+    configuration_type: str
+    configuration_id: str
+    status: str
+    action: str
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationPlan:
+    """Represent a non-destructive remediation plan for one entity."""
+
+    entity_id: str
+    action: str
+    safety: str
+    reason: str
+    reference_count: int
+    active_reference_count: int
+    disabled_reference_count: int
+    steps: tuple[RemediationStep, ...]
+
+
+def _build_steps(
+    context: StaleReferenceContext,
+    action: str,
+) -> tuple[RemediationStep, ...]:
+    """Build remediation steps in stable configuration-type order."""
+    steps: list[RemediationStep] = []
+
+    references = (
+        (
+            "automation",
+            "active",
+            context.active_automation_references,
+        ),
+        (
+            "automation",
+            "disabled",
+            context.disabled_automation_references,
+        ),
+        (
+            "script",
+            "active",
+            context.active_script_references,
+        ),
+        (
+            "script",
+            "disabled",
+            context.disabled_script_references,
+        ),
+        (
+            "scene",
+            "active",
+            context.active_scene_references,
+        ),
+        (
+            "scene",
+            "disabled",
+            context.disabled_scene_references,
+        ),
+    )
+
+    for configuration_type, status, configuration_ids in references:
+        for configuration_id in configuration_ids:
+            steps.append(
+                RemediationStep(
+                    configuration_type=configuration_type,
+                    configuration_id=configuration_id,
+                    status=status,
+                    action=action,
+                )
+            )
+
+    return tuple(steps)
+
+
+def build_remediation_plan(
+    context: StaleReferenceContext,
+) -> RemediationPlan | None:
+    """Build one non-destructive remediation plan for a stale entity."""
+    recommendation = build_cleanup_recommendation(context)
+    if recommendation is None:
+        return None
+
+    impact = build_entity_dependency_impact_summary(context)
+
+    return RemediationPlan(
+        entity_id=context.entity_id,
+        action=recommendation.action,
+        safety=recommendation.safety,
+        reason=recommendation.reason,
+        reference_count=impact.reference_count,
+        active_reference_count=impact.active_reference_count,
+        disabled_reference_count=impact.disabled_reference_count,
+        steps=_build_steps(
+            context,
+            (
+                "remove_entity_reference"
+                if recommendation.action == "remove_disabled_references"
+                else "review_entity_reference"
+            ),
+        ),
+    )
+
+
+def build_remediation_plans(
+    contexts: Iterable[StaleReferenceContext],
+) -> tuple[RemediationPlan, ...]:
+    """Build remediation plans, skipping contexts with no recommendation."""
+    plans = (
+        build_remediation_plan(context)
+        for context in contexts
+    )
+
+    return tuple(
+        plan
+        for plan in plans
+        if plan is not None
+    )
+
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigurationRemediationAction:
+    """Represent one entity remediation action for a configuration."""
+
+    entity_id: str
+    action: str
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigurationRemediationActions:
+    """Represent remediation actions grouped by affected configuration."""
+
+    configuration_type: str
+    configuration_id: str
+    status: str
+    actions: tuple[ConfigurationRemediationAction, ...]
+
+
+def group_remediation_actions(
+    plans: Iterable[RemediationPlan],
+) -> tuple[ConfigurationRemediationActions, ...]:
+    """Group entity remediation actions by affected configuration."""
+    grouped: dict[
+        tuple[str, str, str],
+        list[ConfigurationRemediationAction],
+    ] = {}
+
+    for plan in plans:
+        for step in plan.steps:
+            key = (
+                step.configuration_type,
+                step.configuration_id,
+                step.status,
+            )
+            actions = grouped.setdefault(key, [])
+            action = ConfigurationRemediationAction(
+                entity_id=plan.entity_id,
+                action=step.action,
+            )
+            if action not in actions:
+                actions.append(action)
+
+    return tuple(
+        ConfigurationRemediationActions(
+            configuration_type=configuration_type,
+            configuration_id=configuration_id,
+            status=status,
+            actions=tuple(actions),
+        )
+        for (
+            configuration_type,
+            configuration_id,
+            status,
+        ), actions in grouped.items()
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationClassification:
+    """Represent remediation safety and confidence classification."""
+
+    safety: str
+    confidence: str
+    reason: str
+
+
+def classify_remediation_plan(
+    plan: RemediationPlan,
+) -> RemediationClassification:
+    """Classify remediation safety and confidence."""
+    if plan.safety not in {"review_required", "likely_safe"}:
+        raise ValueError(
+            f"Unsupported remediation safety: {plan.safety}"
+        )
+
+    return RemediationClassification(
+        safety=plan.safety,
+        confidence="high",
+        reason=plan.reason,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationImpactPreview:
+    """Represent projected dependency impact before remediation changes."""
+
+    entity_id: str
+    current_reference_count: int
+    affected_configuration_count: int
+    removable_reference_count: int
+    review_reference_count: int
+    projected_reference_count: int
+
+
+def preview_remediation_impact(
+    plan: RemediationPlan,
+) -> RemediationImpactPreview:
+    """Preview dependency impact without applying remediation changes."""
+    removable_reference_count = 0
+    review_reference_count = 0
+
+    for step in plan.steps:
+        if step.action == "remove_entity_reference":
+            removable_reference_count += 1
+        elif step.action == "review_entity_reference":
+            review_reference_count += 1
+        else:
+            raise ValueError(
+                f"Unsupported remediation step action: {step.action}"
+            )
+
+    return RemediationImpactPreview(
+        entity_id=plan.entity_id,
+        current_reference_count=plan.reference_count,
+        affected_configuration_count=len(plan.steps),
+        removable_reference_count=removable_reference_count,
+        review_reference_count=review_reference_count,
+        projected_reference_count=max(
+            0,
+            plan.reference_count - removable_reference_count,
+        ),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationProgress:
+    """Represent remediation progress for an entity."""
+
+    entity_id: str
+    status: str
+    total_action_count: int
+    completed_action_count: int
+    remaining_action_count: int
+    new_reference_count: int = 0
+
+
+def track_remediation_progress(
+    original: RemediationPlan,
+    current: RemediationPlan | None,
+) -> RemediationProgress:
+    """Track remediation progress from remaining configuration references."""
+    if current is not None and current.entity_id != original.entity_id:
+        raise ValueError(
+            "Cannot track remediation progress for different entities: "
+            f"{original.entity_id} != {current.entity_id}"
+        )
+
+    original_references = {
+        (step.configuration_type, step.configuration_id)
+        for step in original.steps
+    }
+    current_references = (
+        {
+            (step.configuration_type, step.configuration_id)
+            for step in current.steps
+        }
+        if current is not None
+        else set()
+    )
+
+    remaining_references = original_references & current_references
+    new_references = current_references - original_references
+    total_action_count = len(original_references)
+    remaining_action_count = len(remaining_references)
+    completed_action_count = total_action_count - remaining_action_count
+    new_reference_count = len(new_references)
+
+    if not current_references:
+        status = "resolved"
+    elif completed_action_count == 0 and new_reference_count == 0:
+        status = "pending"
+    else:
+        status = "in_progress"
+
+    return RemediationProgress(
+        entity_id=original.entity_id,
+        status=status,
+        total_action_count=total_action_count,
+        completed_action_count=completed_action_count,
+        remaining_action_count=remaining_action_count,
+        new_reference_count=new_reference_count,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationDependencyComparison:
+    """Represent dependency references before and after remediation."""
+
+    entity_id: str
+    before_reference_count: int
+    after_reference_count: int
+    removed_reference_count: int
+    unchanged_reference_count: int
+    added_reference_count: int
+
+
+def compare_remediation_dependencies(
+    before: RemediationPlan,
+    after: RemediationPlan | None,
+) -> RemediationDependencyComparison:
+    """Compare dependency references before and after remediation."""
+    if after is not None and after.entity_id != before.entity_id:
+        raise ValueError(
+            "Cannot compare remediation dependencies for different entities: "
+            f"{before.entity_id} != {after.entity_id}"
+        )
+
+    before_references = {
+        (step.configuration_type, step.configuration_id)
+        for step in before.steps
+    }
+    after_references = (
+        {
+            (step.configuration_type, step.configuration_id)
+            for step in after.steps
+        }
+        if after is not None
+        else set()
+    )
+
+    removed_references = before_references - after_references
+    unchanged_references = before_references & after_references
+    added_references = after_references - before_references
+
+    return RemediationDependencyComparison(
+        entity_id=before.entity_id,
+        before_reference_count=len(before_references),
+        after_reference_count=len(after_references),
+        removed_reference_count=len(removed_references),
+        unchanged_reference_count=len(unchanged_references),
+        added_reference_count=len(added_references),
+    )
