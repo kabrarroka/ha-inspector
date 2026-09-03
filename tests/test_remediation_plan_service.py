@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -87,7 +88,8 @@ async def test_remediation_plan_returns_live_plan_for_missing_referenced_entity(
     """Missing referenced entities expose a live remediation plan."""
     from types import SimpleNamespace
 
-    _, registrations = await _setup_services(monkeypatch)
+    hass, registrations = await _setup_services(monkeypatch)
+    hass.states.get.return_value = None
 
     entries = {
         "automation_active": SimpleNamespace(
@@ -175,7 +177,8 @@ async def test_remediation_plan_returns_likely_safe_disabled_only_plan(
     """Disabled-only references expose a removable likely-safe plan."""
     from types import SimpleNamespace
 
-    _, registrations = await _setup_services(monkeypatch)
+    hass, registrations = await _setup_services(monkeypatch)
+    hass.states.get.return_value = None
 
     entries = {
         "automation_disabled": SimpleNamespace(
@@ -263,6 +266,59 @@ async def test_remediation_plan_returns_none_when_no_references_exist(
 
     assert response == {
         "entity_id": "sensor.unused",
+        "plan": None,
+        "classification": None,
+        "impact_preview": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_remediation_plan_ignores_existing_referenced_entity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Existing referenced entities do not require stale-reference remediation."""
+    hass, registrations = await _setup_services(monkeypatch)
+
+    registry = MagicMock()
+    registry.entities.values.return_value = [
+        SimpleNamespace(
+            entity_id="sensor.existing",
+            domain="sensor",
+            name="Existing",
+            original_name=None,
+            disabled_by=None,
+        ),
+        SimpleNamespace(
+            entity_id="automation.active",
+            domain="automation",
+            name="Active",
+            original_name=None,
+            disabled_by=None,
+        ),
+    ]
+
+    monkeypatch.setattr(
+        "custom_components.ha_inspector.engine.live_dependency_context.er.async_get",
+        lambda _hass: registry,
+    )
+    monkeypatch.setattr(
+        "homeassistant.components.automation.entities_in_automation",
+        lambda _hass, entity_id: (
+            {"sensor.existing"}
+            if entity_id == "automation.active"
+            else set()
+        ),
+    )
+
+    hass.states.get.return_value = None
+
+    call = MagicMock()
+    call.data = {"entity_id": "sensor.existing"}
+
+    response = await registrations["remediation_plan"](call)
+
+    assert response == {
+        "entity_id": "sensor.existing",
         "plan": None,
         "classification": None,
         "impact_preview": None,

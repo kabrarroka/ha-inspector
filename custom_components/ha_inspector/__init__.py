@@ -597,6 +597,8 @@ async def async_setup(
         call: ServiceCall,
     ) -> ServiceResponse:
         """Return the remediation plan for one entity."""
+        from homeassistant.helpers import entity_registry as er
+
         from .engine.live_dependency_context import (
             build_live_stale_reference_context,
         )
@@ -607,6 +609,21 @@ async def async_setup(
         )
 
         entity_id = str(call.data["entity_id"])
+        registry = er.async_get(hass)
+
+        exists = any(
+            entry.entity_id == entity_id
+            for entry in registry.entities.values()
+        ) or hass.states.get(entity_id) is not None
+
+        if exists:
+            return {
+                "entity_id": entity_id,
+                "plan": None,
+                "classification": None,
+                "impact_preview": None,
+            }
+
         context = build_live_stale_reference_context(hass, entity_id)
         plan = build_remediation_plan(context)
 
