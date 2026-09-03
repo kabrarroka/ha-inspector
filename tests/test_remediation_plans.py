@@ -881,3 +881,208 @@ def test_track_remediation_progress_detects_new_references() -> None:
         remaining_action_count=0,
         new_reference_count=1,
     )
+
+
+def test_compare_remediation_dependencies_unchanged() -> None:
+    before = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=2,
+        active_reference_count=2,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="active",
+                action="review_entity_reference",
+            ),
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.two",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.compare_remediation_dependencies(
+        before,
+        before,
+    ) == remediation_plans.RemediationDependencyComparison(
+        entity_id="sensor.missing",
+        before_reference_count=2,
+        after_reference_count=2,
+        removed_reference_count=0,
+        unchanged_reference_count=2,
+        added_reference_count=0,
+    )
+
+
+def test_compare_remediation_dependencies_removed_and_added() -> None:
+    before = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=2,
+        active_reference_count=2,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.old",
+                status="active",
+                action="review_entity_reference",
+            ),
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.keep",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+    after = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=2,
+        active_reference_count=2,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="script",
+                configuration_id="script.keep",
+                status="disabled",
+                action="remove_entity_reference",
+            ),
+            remediation_plans.RemediationStep(
+                configuration_type="scene",
+                configuration_id="scene.new",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.compare_remediation_dependencies(
+        before,
+        after,
+    ) == remediation_plans.RemediationDependencyComparison(
+        entity_id="sensor.missing",
+        before_reference_count=2,
+        after_reference_count=2,
+        removed_reference_count=1,
+        unchanged_reference_count=1,
+        added_reference_count=1,
+    )
+
+
+def test_compare_remediation_dependencies_resolved() -> None:
+    before = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="remove_disabled_references",
+        safety="likely_safe",
+        reason="Entity is referenced only by disabled configuration",
+        reference_count=1,
+        active_reference_count=0,
+        disabled_reference_count=1,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="disabled",
+                action="remove_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.compare_remediation_dependencies(
+        before,
+        None,
+    ) == remediation_plans.RemediationDependencyComparison(
+        entity_id="sensor.missing",
+        before_reference_count=1,
+        after_reference_count=0,
+        removed_reference_count=1,
+        unchanged_reference_count=0,
+        added_reference_count=0,
+    )
+
+
+def test_compare_remediation_dependencies_rejects_different_entities() -> None:
+    before = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=0,
+        active_reference_count=0,
+        disabled_reference_count=0,
+        steps=(),
+    )
+    after = remediation_plans.RemediationPlan(
+        entity_id="sensor.other",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=0,
+        active_reference_count=0,
+        disabled_reference_count=0,
+        steps=(),
+    )
+
+    try:
+        remediation_plans.compare_remediation_dependencies(
+            before,
+            after,
+        )
+    except ValueError as err:
+        assert str(err) == (
+            "Cannot compare remediation dependencies for different entities: "
+            "sensor.missing != sensor.other"
+        )
+    else:
+        raise AssertionError("ValueError was not raised")
+
+
+def test_compare_remediation_dependencies_deduplicates_references() -> None:
+    before = remediation_plans.RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=2,
+        active_reference_count=2,
+        disabled_reference_count=0,
+        steps=(
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="active",
+                action="review_entity_reference",
+            ),
+            remediation_plans.RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.one",
+                status="disabled",
+                action="remove_entity_reference",
+            ),
+        ),
+    )
+
+    assert remediation_plans.compare_remediation_dependencies(
+        before,
+        before,
+    ) == remediation_plans.RemediationDependencyComparison(
+        entity_id="sensor.missing",
+        before_reference_count=1,
+        after_reference_count=1,
+        removed_reference_count=0,
+        unchanged_reference_count=1,
+        added_reference_count=0,
+    )

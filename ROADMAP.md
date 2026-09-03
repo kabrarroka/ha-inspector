@@ -115,7 +115,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Remediation safety and confidence classification
 - [x] Before-change dependency impact preview
 - [x] Remediation progress and resolution tracking
-- [ ] Before-and-after dependency comparison
+- [x] Before-and-after dependency comparison
 - [ ] Public remediation plan query service
 - [ ] Remediation workflow diagnostics in Home Assistant
 

@@ -318,3 +318,53 @@ def track_remediation_progress(
         remaining_action_count=remaining_action_count,
         new_reference_count=new_reference_count,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationDependencyComparison:
+    """Represent dependency references before and after remediation."""
+
+    entity_id: str
+    before_reference_count: int
+    after_reference_count: int
+    removed_reference_count: int
+    unchanged_reference_count: int
+    added_reference_count: int
+
+
+def compare_remediation_dependencies(
+    before: RemediationPlan,
+    after: RemediationPlan | None,
+) -> RemediationDependencyComparison:
+    """Compare dependency references before and after remediation."""
+    if after is not None and after.entity_id != before.entity_id:
+        raise ValueError(
+            "Cannot compare remediation dependencies for different entities: "
+            f"{before.entity_id} != {after.entity_id}"
+        )
+
+    before_references = {
+        (step.configuration_type, step.configuration_id)
+        for step in before.steps
+    }
+    after_references = (
+        {
+            (step.configuration_type, step.configuration_id)
+            for step in after.steps
+        }
+        if after is not None
+        else set()
+    )
+
+    removed_references = before_references - after_references
+    unchanged_references = before_references & after_references
+    added_references = after_references - before_references
+
+    return RemediationDependencyComparison(
+        entity_id=before.entity_id,
+        before_reference_count=len(before_references),
+        after_reference_count=len(after_references),
+        removed_reference_count=len(removed_references),
+        unchanged_reference_count=len(unchanged_references),
+        added_reference_count=len(added_references),
+    )
