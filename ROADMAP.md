@@ -110,7 +110,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 ## Epic L — Dependency remediation workflow
 
-- [ ] Per-entity remediation plans
+- [x] Per-entity remediation plans
 - [ ] Remediation actions grouped by affected configuration
 - [ ] Remediation safety and confidence classification
 - [ ] Before-change dependency impact preview
