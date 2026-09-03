@@ -15,6 +15,7 @@ from custom_components.ha_inspector.sensor import (
     HAInspectorDomainHealthSensor,
     HAInspectorFindingsSensor,
     HAInspectorHealthScoreSensor,
+    HAInspectorRemediationWorkflowSensor,
     HAInspectorStatusSensor,
     async_setup_entry,
     status_from_summary,
@@ -165,7 +166,7 @@ async def test_setup_entry_adds_status_sensor() -> None:
     async_add_entities.assert_called_once()
 
     entities = async_add_entities.call_args.args[0]
-    assert len(entities) == 10
+    assert len(entities) == 11
 
     assert isinstance(entities[0], HAInspectorStatusSensor)
     assert entities[0].unique_id == "entry-1_status"
@@ -188,6 +189,12 @@ async def test_setup_entry_adds_status_sensor() -> None:
     )
     assert entities[5].unique_id == "entry-1_dependency_investigation"
 
+    assert isinstance(
+        entities[6],
+        HAInspectorRemediationWorkflowSensor,
+    )
+    assert entities[6].unique_id == "entry-1_remediation_workflow"
+
     expected_domains = (
         "storage",
         "system",
@@ -195,7 +202,7 @@ async def test_setup_entry_adds_status_sensor() -> None:
         "entities",
     )
 
-    for entity, domain in zip(entities[6:], expected_domains, strict=True):
+    for entity, domain in zip(entities[7:], expected_domains, strict=True):
         assert isinstance(entity, HAInspectorDomainHealthSensor)
         assert entity.unique_id == f"entry-1_{domain}_health"
 
@@ -822,4 +829,115 @@ def test_dependency_investigation_sensor_handles_invalid_findings() -> None:
         "unreferenced_entity_count": 2,
         "unreferenced_entities": [],
         "disabled_automation_count": 0,
+    }
+
+
+def test_remediation_workflow_sensor_without_result() -> None:
+    """Remediation workflow sensor exposes a stable empty state."""
+    from custom_components.ha_inspector.sensor import (
+        HAInspectorRemediationWorkflowSensor,
+    )
+
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorRemediationWorkflowSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 0
+    assert sensor.extra_state_attributes == {
+        "review_required_count": 0,
+        "likely_safe_count": 0,
+        "affected_configuration_count": 0,
+        "removable_reference_count": 0,
+        "review_reference_count": 0,
+        "entities": [],
+    }
+
+
+def test_remediation_workflow_sensor_with_result() -> None:
+    """Remediation workflow sensor exposes compact workflow diagnostics."""
+    from custom_components.ha_inspector.sensor import (
+        HAInspectorRemediationWorkflowSensor,
+    )
+
+    result: dict[str, Any] = {
+        "remediation_workflow": {
+            "affected_entities": 2,
+            "review_required": 1,
+            "likely_safe": 1,
+            "affected_configurations": 3,
+            "removable_references": 1,
+            "review_references": 2,
+            "entities": [
+                {
+                    "entity_id": "sensor.missing",
+                    "action": "review_active_references",
+                    "safety": "review_required",
+                    "confidence": "high",
+                    "reference_count": 2,
+                    "active_reference_count": 2,
+                    "disabled_reference_count": 0,
+                    "affected_configuration_count": 2,
+                    "removable_reference_count": 0,
+                    "review_reference_count": 2,
+                    "projected_reference_count": 2,
+                }
+            ],
+        }
+    }
+
+    hass = SimpleNamespace(
+        data={"ha_inspector": {"last_result": result}}
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorRemediationWorkflowSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 2
+    assert sensor.extra_state_attributes == {
+        "review_required_count": 1,
+        "likely_safe_count": 1,
+        "affected_configuration_count": 3,
+        "removable_reference_count": 1,
+        "review_reference_count": 2,
+        "entities": result["remediation_workflow"]["entities"],
+    }
+
+
+def test_remediation_workflow_sensor_handles_malformed_result() -> None:
+    """Remediation workflow sensor handles malformed workflow data safely."""
+    from custom_components.ha_inspector.sensor import (
+        HAInspectorRemediationWorkflowSensor,
+    )
+
+    hass = SimpleNamespace(
+        data={
+            "ha_inspector": {
+                "last_result": {
+                    "remediation_workflow": "invalid",
+                }
+            }
+        }
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorRemediationWorkflowSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == 0
+    assert sensor.extra_state_attributes == {
+        "review_required_count": 0,
+        "likely_safe_count": 0,
+        "affected_configuration_count": 0,
+        "removable_reference_count": 0,
+        "review_reference_count": 0,
+        "entities": [],
     }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import ModuleType, SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -489,3 +490,65 @@ async def test_run_exposes_dependency_diagnostics() -> None:
         result.dashboard_summary["dependencies"]
         == result.dependency_diagnostics
     )
+
+
+@pytest.mark.asyncio
+async def test_inspector_builds_remediation_workflow_diagnostics() -> None:
+    """Inspector populates remediation workflow diagnostics from entity state."""
+    collector = MagicMock()
+    collector.collector_id = "entities"
+
+    async def collect(_hass: object, context: object) -> None:
+        from custom_components.ha_inspector.engine.entities_state import (
+            AutomationDependencySummary,
+            EntitiesState,
+        )
+
+        context.entities = EntitiesState(  # type: ignore[attr-defined]
+            missing_entity_count=1,
+            missing_entities=["sensor.missing"],
+            automation_dependencies=[
+                AutomationDependencySummary(
+                    entity_id="automation.active",
+                    name="Active",
+                    referenced_entities=["sensor.missing"],
+                    referenced_entity_count=1,
+                ),
+            ],
+        )
+
+    collector.collect = collect
+
+    inspector = Inspector(
+        collectors=[collector],
+        rules=[],
+    )
+
+    hass = MagicMock()
+    hass.config.language = "en"
+
+    result = await inspector.run(hass)
+
+    assert result.remediation_workflow_diagnostics == {
+        "affected_entities": 1,
+        "review_required": 1,
+        "likely_safe": 0,
+        "affected_configurations": 1,
+        "removable_references": 0,
+        "review_references": 1,
+        "entities": [
+            {
+                "entity_id": "sensor.missing",
+                "action": "review_active_references",
+                "safety": "review_required",
+                "confidence": "high",
+                "reference_count": 1,
+                "active_reference_count": 1,
+                "disabled_reference_count": 0,
+                "affected_configuration_count": 1,
+                "removable_reference_count": 0,
+                "review_reference_count": 1,
+                "projected_reference_count": 1,
+            }
+        ],
+    }

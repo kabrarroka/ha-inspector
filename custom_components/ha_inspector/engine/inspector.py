@@ -12,6 +12,9 @@ from .context import InspectionContext
 from .dependency_diagnostics import dependency_diagnostics
 from .i18n import normalize_language
 from .registry import InspectionRegistry
+from .remediation_workflow_diagnostics import (
+    remediation_workflow_diagnostics,
+)
 from .request import InspectionRequest
 from .result import InspectionResult
 from .rule_engine import RuleEngine
@@ -124,6 +127,9 @@ class Inspector:
 
         result.dependency_diagnostics = dependency_diagnostics(
             context.entities
+        )
+        result.remediation_workflow_diagnostics = (
+            remediation_workflow_diagnostics(context.entities)
         )
 
         result.metadata["timings"] = {
