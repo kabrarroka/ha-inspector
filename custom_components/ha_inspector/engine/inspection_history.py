@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from .historical_comparison import (
         HistoricalDomainComparison,
         HistoricalInspectionComparison,
+        HistoricalRemediationComparison,
     )
     from .trends import DomainTrend, HealthChange, ScoreTrend
 
@@ -119,6 +120,20 @@ class InspectionHistory:
             self._entries[-1],
         )
 
+    def latest_remediation_comparison(
+        self,
+    ) -> HistoricalRemediationComparison | None:
+        """Compare remediation lifecycle between latest inspections."""
+        if len(self._entries) < 2:
+            return None
+
+        from .historical_comparison import compare_remediation_history
+
+        return compare_remediation_history(
+            self._entries[-2],
+            self._entries[-1],
+        )
+
     @staticmethod
     def _build_entry(
         result: dict[str, Any],
@@ -139,6 +154,8 @@ class InspectionHistory:
         if not isinstance(domain_health, dict):
             domain_health = {}
 
+        remediation = InspectionHistory._build_remediation_entry(result)
+
         return {
             "started_at": result.get("started_at"),
             "finished_at": result.get("finished_at"),
@@ -149,4 +166,69 @@ class InspectionHistory:
             "summary": deepcopy(result.get("summary", {})),
             "domain_health": deepcopy(domain_health),
             "profile": profile,
+            "remediation": remediation,
         }
+
+    @staticmethod
+    def _build_remediation_entry(
+        result: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Build compact remediation history data."""
+        progress = result.get("remediation_progress", {})
+        if not isinstance(progress, dict):
+            progress = {}
+
+        resolved_items = InspectionHistory._history_items(
+            result.get("resolved_remediation_items")
+        )
+        new_reference_items = InspectionHistory._history_items(
+            result.get("new_remediation_reference_items")
+        )
+
+        return {
+            "tracked_entities": InspectionHistory._history_count(
+                progress.get("tracked_entities")
+            ),
+            "pending": InspectionHistory._history_count(
+                progress.get("pending")
+            ),
+            "in_progress": InspectionHistory._history_count(
+                progress.get("in_progress")
+            ),
+            "resolved": InspectionHistory._history_count(
+                progress.get("resolved")
+            ),
+            "total_actions": InspectionHistory._history_count(
+                progress.get("total_actions")
+            ),
+            "completed_actions": InspectionHistory._history_count(
+                progress.get("completed_actions")
+            ),
+            "remaining_actions": InspectionHistory._history_count(
+                progress.get("remaining_actions")
+            ),
+            "new_references": InspectionHistory._history_count(
+                progress.get("new_references")
+            ),
+            "resolved_items": resolved_items,
+            "new_reference_items": new_reference_items,
+        }
+
+    @staticmethod
+    def _history_count(value: object) -> int:
+        """Normalize one remediation history counter."""
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+        return 0
+
+    @staticmethod
+    def _history_items(value: object) -> list[dict[str, Any]]:
+        """Normalize compact remediation history items."""
+        if not isinstance(value, (list, tuple)):
+            return []
+
+        return [
+            deepcopy(item)
+            for item in value
+            if isinstance(item, dict)
+        ]

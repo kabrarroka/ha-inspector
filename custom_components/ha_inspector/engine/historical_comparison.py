@@ -172,3 +172,161 @@ def _domain_values(
         _valid_int(health.get("score")),
         _valid_str(health.get("status")),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class HistoricalRemediationComparison:
+    """Compare remediation lifecycle between historical inspections."""
+
+    previous_tracked_entities: int | None
+    current_tracked_entities: int | None
+    tracked_entities_delta: int | None
+    previous_pending: int | None
+    current_pending: int | None
+    pending_delta: int | None
+    previous_in_progress: int | None
+    current_in_progress: int | None
+    in_progress_delta: int | None
+    previous_resolved: int | None
+    current_resolved: int | None
+    resolved_delta: int | None
+    previous_completed_actions: int | None
+    current_completed_actions: int | None
+    completed_actions_delta: int | None
+    previous_remaining_actions: int | None
+    current_remaining_actions: int | None
+    remaining_actions_delta: int | None
+    previous_new_references: int | None
+    current_new_references: int | None
+    new_references_delta: int | None
+
+    def as_dict(self) -> dict[str, int | None]:
+        """Return a JSON-serializable representation."""
+        return {
+            "previous_tracked_entities": self.previous_tracked_entities,
+            "current_tracked_entities": self.current_tracked_entities,
+            "tracked_entities_delta": self.tracked_entities_delta,
+            "previous_pending": self.previous_pending,
+            "current_pending": self.current_pending,
+            "pending_delta": self.pending_delta,
+            "previous_in_progress": self.previous_in_progress,
+            "current_in_progress": self.current_in_progress,
+            "in_progress_delta": self.in_progress_delta,
+            "previous_resolved": self.previous_resolved,
+            "current_resolved": self.current_resolved,
+            "resolved_delta": self.resolved_delta,
+            "previous_completed_actions": self.previous_completed_actions,
+            "current_completed_actions": self.current_completed_actions,
+            "completed_actions_delta": self.completed_actions_delta,
+            "previous_remaining_actions": self.previous_remaining_actions,
+            "current_remaining_actions": self.current_remaining_actions,
+            "remaining_actions_delta": self.remaining_actions_delta,
+            "previous_new_references": self.previous_new_references,
+            "current_new_references": self.current_new_references,
+            "new_references_delta": self.new_references_delta,
+        }
+
+
+def compare_remediation_history(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> HistoricalRemediationComparison:
+    """Compare remediation lifecycle between historical entries."""
+    previous_remediation = _remediation_history(previous)
+    current_remediation = _remediation_history(current)
+
+    previous_tracked = _valid_int(
+        previous_remediation.get("tracked_entities")
+    )
+    current_tracked = _valid_int(
+        current_remediation.get("tracked_entities")
+    )
+    previous_pending = _valid_int(
+        previous_remediation.get("pending")
+    )
+    current_pending = _valid_int(
+        current_remediation.get("pending")
+    )
+    previous_in_progress = _valid_int(
+        previous_remediation.get("in_progress")
+    )
+    current_in_progress = _valid_int(
+        current_remediation.get("in_progress")
+    )
+    previous_resolved = _valid_int(
+        previous_remediation.get("resolved")
+    )
+    current_resolved = _valid_int(
+        current_remediation.get("resolved")
+    )
+    previous_completed = _valid_int(
+        previous_remediation.get("completed_actions")
+    )
+    current_completed = _valid_int(
+        current_remediation.get("completed_actions")
+    )
+    previous_remaining = _valid_int(
+        previous_remediation.get("remaining_actions")
+    )
+    current_remaining = _valid_int(
+        current_remediation.get("remaining_actions")
+    )
+    previous_new_references = _valid_int(
+        previous_remediation.get("new_references")
+    )
+    current_new_references = _valid_int(
+        current_remediation.get("new_references")
+    )
+
+    return HistoricalRemediationComparison(
+        previous_tracked_entities=previous_tracked,
+        current_tracked_entities=current_tracked,
+        tracked_entities_delta=_delta(
+            previous_tracked,
+            current_tracked,
+        ),
+        previous_pending=previous_pending,
+        current_pending=current_pending,
+        pending_delta=_delta(
+            previous_pending,
+            current_pending,
+        ),
+        previous_in_progress=previous_in_progress,
+        current_in_progress=current_in_progress,
+        in_progress_delta=_delta(
+            previous_in_progress,
+            current_in_progress,
+        ),
+        previous_resolved=previous_resolved,
+        current_resolved=current_resolved,
+        resolved_delta=_delta(
+            previous_resolved,
+            current_resolved,
+        ),
+        previous_completed_actions=previous_completed,
+        current_completed_actions=current_completed,
+        completed_actions_delta=_delta(
+            previous_completed,
+            current_completed,
+        ),
+        previous_remaining_actions=previous_remaining,
+        current_remaining_actions=current_remaining,
+        remaining_actions_delta=_delta(
+            previous_remaining,
+            current_remaining,
+        ),
+        previous_new_references=previous_new_references,
+        current_new_references=current_new_references,
+        new_references_delta=_delta(
+            previous_new_references,
+            current_new_references,
+        ),
+    )
+
+
+def _remediation_history(
+    entry: dict[str, Any],
+) -> dict[str, Any]:
+    """Return valid remediation history data."""
+    remediation = entry.get("remediation")
+    return remediation if isinstance(remediation, dict) else {}

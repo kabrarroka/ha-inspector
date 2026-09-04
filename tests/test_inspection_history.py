@@ -96,6 +96,18 @@ async def test_add_persists_compact_summary() -> None:
                 }
             },
             "profile": "quick",
+            "remediation": {
+                "tracked_entities": 0,
+                "pending": 0,
+                "in_progress": 0,
+                "resolved": 0,
+                "total_actions": 0,
+                "completed_actions": 0,
+                "remaining_actions": 0,
+                "new_references": 0,
+                "resolved_items": [],
+                "new_reference_items": [],
+            },
         }
     ]
 
@@ -512,3 +524,192 @@ async def test_latest_domain_comparisons_require_two_entries() -> None:
     await history.async_load()
 
     assert history.latest_domain_comparisons() is None
+
+
+@pytest.mark.asyncio
+async def test_add_persists_compact_remediation_history() -> None:
+    """History persists compact remediation lifecycle state."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(return_value=None)
+    history._store.async_save = AsyncMock()
+
+    result = _result()
+    result["remediation_progress"] = {
+        "tracked_entities": 3,
+        "pending": 1,
+        "in_progress": 1,
+        "resolved": 1,
+        "total_actions": 5,
+        "completed_actions": 2,
+        "remaining_actions": 3,
+        "new_references": 1,
+        "entities": [
+            {
+                "entity_id": "sensor.should_not_be_persisted_here",
+                "status": "in_progress",
+            }
+        ],
+    }
+    result["resolved_remediation_items"] = (
+        {
+            "entity_id": "sensor.resolved",
+            "completed_action_count": 2,
+        },
+    )
+    result["new_remediation_reference_items"] = (
+        {
+            "entity_id": "sensor.regressed",
+            "new_reference_count": 1,
+        },
+    )
+
+    await history.async_load()
+    await history.async_add(result)
+
+    remediation = history.entries()[0]["remediation"]
+
+    assert remediation == {
+        "tracked_entities": 3,
+        "pending": 1,
+        "in_progress": 1,
+        "resolved": 1,
+        "total_actions": 5,
+        "completed_actions": 2,
+        "remaining_actions": 3,
+        "new_references": 1,
+        "resolved_items": [
+            {
+                "entity_id": "sensor.resolved",
+                "completed_action_count": 2,
+            }
+        ],
+        "new_reference_items": [
+            {
+                "entity_id": "sensor.regressed",
+                "new_reference_count": 1,
+            }
+        ],
+    }
+    assert "entities" not in remediation
+
+
+@pytest.mark.asyncio
+async def test_add_normalizes_missing_remediation_history() -> None:
+    """History supports inspection results without remediation lifecycle data."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(return_value=None)
+    history._store.async_save = AsyncMock()
+
+    await history.async_load()
+    await history.async_add(_result())
+
+    assert history.entries()[0]["remediation"] == {
+        "tracked_entities": 0,
+        "pending": 0,
+        "in_progress": 0,
+        "resolved": 0,
+        "total_actions": 0,
+        "completed_actions": 0,
+        "remaining_actions": 0,
+        "new_references": 0,
+        "resolved_items": [],
+        "new_reference_items": [],
+    }
+
+
+@pytest.mark.asyncio
+async def test_latest_remediation_comparison_uses_two_most_recent_entries() -> None:
+    """History compares remediation state from the latest two entries."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {
+                    "remediation": {
+                        "tracked_entities": 5,
+                        "pending": 4,
+                        "in_progress": 1,
+                        "resolved": 0,
+                        "completed_actions": 1,
+                        "remaining_actions": 6,
+                        "new_references": 0,
+                    }
+                },
+                {
+                    "remediation": {
+                        "tracked_entities": 4,
+                        "pending": 1,
+                        "in_progress": 1,
+                        "resolved": 2,
+                        "completed_actions": 4,
+                        "remaining_actions": 2,
+                        "new_references": 1,
+                    }
+                },
+            ]
+        }
+    )
+
+    await history.async_load()
+
+    comparison = history.latest_remediation_comparison()
+
+    assert comparison is not None
+    assert comparison.previous_tracked_entities == 5
+    assert comparison.current_tracked_entities == 4
+    assert comparison.tracked_entities_delta == -1
+    assert comparison.previous_resolved == 0
+    assert comparison.current_resolved == 2
+    assert comparison.resolved_delta == 2
+    assert comparison.completed_actions_delta == 3
+    assert comparison.remaining_actions_delta == -4
+    assert comparison.new_references_delta == 1
+
+
+@pytest.mark.asyncio
+async def test_latest_remediation_comparison_requires_two_entries() -> None:
+    """Remediation comparison requires two persisted inspections."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {
+                    "remediation": {
+                        "tracked_entities": 1,
+                        "pending": 1,
+                    }
+                }
+            ]
+        }
+    )
+
+    await history.async_load()
+
+    assert history.latest_remediation_comparison() is None
+
+
+@pytest.mark.asyncio
+async def test_add_normalizes_invalid_remediation_progress() -> None:
+    """History normalizes malformed remediation progress data."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(return_value=None)
+    history._store.async_save = AsyncMock()
+
+    result = _result()
+    result["remediation_progress"] = "invalid"
+
+    await history.async_load()
+    await history.async_add(result)
+
+    assert history.entries()[0]["remediation"] == {
+        "tracked_entities": 0,
+        "pending": 0,
+        "in_progress": 0,
+        "resolved": 0,
+        "total_actions": 0,
+        "completed_actions": 0,
+        "remaining_actions": 0,
+        "new_references": 0,
+        "resolved_items": [],
+        "new_reference_items": [],
+    }
