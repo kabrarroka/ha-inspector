@@ -119,6 +119,17 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Public remediation plan query service
 - [x] Remediation workflow diagnostics in Home Assistant
 
+## Epic M — Dependency remediation lifecycle
+
+- [ ] Persist remediation baselines
+- [ ] Track remediation progress across inspections
+- [ ] Detect resolved remediation items
+- [ ] Detect new references introduced during remediation
+- [ ] Before-and-after remediation history
+- [ ] Remediation lifecycle summaries
+- [ ] Public remediation progress query service
+- [ ] Remediation lifecycle diagnostics in Home Assistant
+
 ## Version direction
 
 ### 0.5 — Engine foundation
@@ -161,3 +172,10 @@ safe cleanup guidance without automatic configuration changes.
 Structured remediation planning, configuration-aware remediation guidance,
 change-impact preview, resolution tracking, and Home Assistant-facing
 remediation workflows without automatic configuration changes.
+
+### 1.6 — Dependency remediation lifecycle
+
+Persistent remediation baselines, cross-inspection progress tracking,
+resolution and regression detection, remediation history, and
+Home Assistant-facing remediation lifecycle diagnostics without automatic
+configuration changes.
