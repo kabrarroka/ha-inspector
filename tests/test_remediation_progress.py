@@ -347,3 +347,107 @@ def test_resolved_remediation_items_empty_when_nothing_resolved() -> None:
     )
 
     assert resolved_remediation_items(progress) == ()
+
+
+def test_new_remediation_reference_items_include_only_new_references() -> None:
+    """New remediation reference items exclude entities without new references."""
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationProgress,
+    )
+    from custom_components.ha_inspector.engine.remediation_progress import (
+        new_remediation_reference_items,
+    )
+
+    progress = (
+        RemediationProgress(
+            entity_id="sensor.pending",
+            status="pending",
+            total_action_count=2,
+            completed_action_count=0,
+            remaining_action_count=2,
+        ),
+        RemediationProgress(
+            entity_id="sensor.regressed",
+            status="in_progress",
+            total_action_count=2,
+            completed_action_count=1,
+            remaining_action_count=1,
+            new_reference_count=2,
+        ),
+        RemediationProgress(
+            entity_id="sensor.resolved",
+            status="resolved",
+            total_action_count=1,
+            completed_action_count=1,
+            remaining_action_count=0,
+        ),
+    )
+
+    assert new_remediation_reference_items(progress) == (
+        {
+            "entity_id": "sensor.regressed",
+            "new_reference_count": 2,
+        },
+    )
+
+
+def test_new_remediation_reference_items_are_stably_ordered() -> None:
+    """New remediation reference items use stable entity-id ordering."""
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationProgress,
+    )
+    from custom_components.ha_inspector.engine.remediation_progress import (
+        new_remediation_reference_items,
+    )
+
+    progress = (
+        RemediationProgress(
+            entity_id="sensor.zeta",
+            status="in_progress",
+            total_action_count=1,
+            completed_action_count=0,
+            remaining_action_count=1,
+            new_reference_count=1,
+        ),
+        RemediationProgress(
+            entity_id="sensor.alpha",
+            status="in_progress",
+            total_action_count=2,
+            completed_action_count=1,
+            remaining_action_count=1,
+            new_reference_count=3,
+        ),
+    )
+
+    assert new_remediation_reference_items(progress) == (
+        {
+            "entity_id": "sensor.alpha",
+            "new_reference_count": 3,
+        },
+        {
+            "entity_id": "sensor.zeta",
+            "new_reference_count": 1,
+        },
+    )
+
+
+def test_new_remediation_reference_items_empty_without_new_references() -> None:
+    """New remediation reference items are empty when nothing was introduced."""
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationProgress,
+    )
+    from custom_components.ha_inspector.engine.remediation_progress import (
+        new_remediation_reference_items,
+    )
+
+    progress = (
+        RemediationProgress(
+            entity_id="sensor.pending",
+            status="pending",
+            total_action_count=1,
+            completed_action_count=0,
+            remaining_action_count=1,
+        ),
+    )
+
+    assert new_remediation_reference_items(progress) == ()
