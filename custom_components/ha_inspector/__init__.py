@@ -284,6 +284,36 @@ async def async_setup(
             suppression=suppression,
         )
 
+        remediation_baselines = domain_data.get(
+            DATA_REMEDIATION_BASELINES
+        )
+        if remediation_baselines is not None:
+            from .engine import remediation_progress
+
+            baselines = remediation_baselines.baselines()
+            progress_result = remediation_progress.build_remediation_progress(
+                baselines,
+                result.remediation_plans,
+            )
+
+            for baseline in progress_result.new_baselines:
+                await remediation_baselines.async_set(baseline)
+                baselines[baseline.entity_id] = baseline
+
+            if progress_result.new_baselines:
+                progress_result = (
+                    remediation_progress.build_remediation_progress(
+                        baselines,
+                        result.remediation_plans,
+                    )
+                )
+
+            result.remediation_progress = (
+                remediation_progress.remediation_progress_diagnostics(
+                    progress_result.progress
+                )
+            )
+
         result.metadata["registry"] = {
             "collectors": list(registry.collector_ids),
             "rules": list(registry.rule_ids),
