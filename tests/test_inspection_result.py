@@ -492,3 +492,56 @@ def test_new_remediation_reference_items_are_serialized() -> None:
             "new_reference_count": 2,
         },
     )
+
+
+def test_remediation_lifecycle_summary_is_serialized() -> None:
+    """Inspection result serializes remediation lifecycle summary."""
+    result = InspectionResult()
+    result.remediation_lifecycle_summary = {
+        "status": "progressing",
+        "tracked_entities": 2,
+        "pending": 0,
+        "in_progress": 1,
+        "resolved": 1,
+        "completed_actions": 1,
+        "remaining_actions": 1,
+        "new_references": 0,
+        "resolved_since_previous": 1,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
+
+    data = result.as_dict()
+
+    assert data["remediation_lifecycle"] == {
+        "status": "progressing",
+        "tracked_entities": 2,
+        "pending": 0,
+        "in_progress": 1,
+        "resolved": 1,
+        "completed_actions": 1,
+        "remaining_actions": 1,
+        "new_references": 0,
+        "resolved_since_previous": 1,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
+
+
+def test_remediation_lifecycle_summary_defaults_to_idle() -> None:
+    """Inspection result has an empty remediation lifecycle summary."""
+    result = InspectionResult()
+
+    assert result.as_dict()["remediation_lifecycle"] == {
+        "status": "idle",
+        "tracked_entities": 0,
+        "pending": 0,
+        "in_progress": 0,
+        "resolved": 0,
+        "completed_actions": 0,
+        "remaining_actions": 0,
+        "new_references": 0,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }

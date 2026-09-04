@@ -99,6 +99,17 @@ async def test_run_service_persists_inspection_history() -> None:
 
     result = MagicMock()
     result.metadata = {}
+    result.remediation_progress = {
+        "tracked_entities": 0,
+        "pending": 0,
+        "in_progress": 0,
+        "resolved": 0,
+        "total_actions": 0,
+        "completed_actions": 0,
+        "remaining_actions": 0,
+        "new_references": 0,
+        "entities": [],
+    }
     result_data = {
         "findings": [],
         "metadata": result.metadata,
@@ -120,6 +131,7 @@ async def test_run_service_persists_inspection_history() -> None:
 
     history = MagicMock()
     history.async_add = AsyncMock()
+    history.remediation_comparison_with.return_value = None
 
     hass = MagicMock()
     hass.data = {
@@ -648,3 +660,132 @@ async def test_run_service_reports_new_remediation_references() -> None:
     )
 
     store.async_set.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_run_service_builds_remediation_lifecycle_summary() -> None:
+    """Run service summarizes remediation lifecycle against prior history."""
+    from custom_components.ha_inspector.const import (
+        DATA_REMEDIATION_BASELINES,
+    )
+    from custom_components.ha_inspector.engine.historical_comparison import (
+        HistoricalRemediationComparison,
+    )
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationProgress,
+    )
+
+    registrations: dict[str, Any] = {}
+
+    inspector = MagicMock()
+    result = MagicMock()
+    result.metadata = {}
+    result.remediation_plans = ()
+
+    result.as_dict.side_effect = lambda: {
+        "remediation_progress": result.remediation_progress,
+        "resolved_remediation_items": result.resolved_remediation_items,
+        "new_remediation_reference_items": (
+            result.new_remediation_reference_items
+        ),
+        "remediation_lifecycle": result.remediation_lifecycle_summary,
+    }
+
+    inspector.run = AsyncMock(return_value=result)
+
+    inspector_type = MagicMock(return_value=inspector)
+    registry = MagicMock()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.services.async_register = MagicMock(
+        side_effect=(
+            lambda domain, service, handler, **kwargs:
+            registrations.__setitem__(
+                service,
+                handler,
+            )
+        )
+    )
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    store = MagicMock()
+    store.baselines.return_value = {}
+    store.async_set = AsyncMock()
+
+    history = MagicMock()
+    history.async_add = AsyncMock()
+    history.remediation_comparison_with.return_value = (
+        HistoricalRemediationComparison(
+            previous_tracked_entities=2,
+            current_tracked_entities=2,
+            tracked_entities_delta=0,
+            previous_pending=2,
+            current_pending=1,
+            pending_delta=-1,
+            previous_in_progress=0,
+            current_in_progress=1,
+            in_progress_delta=1,
+            previous_resolved=0,
+            current_resolved=0,
+            resolved_delta=0,
+            previous_completed_actions=0,
+            current_completed_actions=1,
+            completed_actions_delta=1,
+            previous_remaining_actions=2,
+            current_remaining_actions=1,
+            remaining_actions_delta=-1,
+            previous_new_references=0,
+            current_new_references=0,
+            new_references_delta=0,
+        )
+    )
+
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    domain_data[DATA_REMEDIATION_BASELINES] = store
+    domain_data[DATA_INSPECTION_HISTORY] = history
+
+    with patch(
+        "custom_components.ha_inspector.engine."
+        "remediation_progress.build_remediation_progress"
+    ) as build_progress:
+        build_progress.return_value.progress = (
+            RemediationProgress(
+                entity_id="sensor.missing",
+                status="in_progress",
+                total_action_count=2,
+                completed_action_count=1,
+                remaining_action_count=1,
+                new_reference_count=0,
+            ),
+        )
+        build_progress.return_value.new_baselines = ()
+
+        response = await registrations[SERVICE_RUN](
+            MagicMock(data={})
+        )
+
+    assert response["remediation_lifecycle"] == {
+        "status": "progressing",
+        "tracked_entities": 1,
+        "pending": 0,
+        "in_progress": 1,
+        "resolved": 0,
+        "completed_actions": 1,
+        "remaining_actions": 1,
+        "new_references": 0,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
+
+    history.remediation_comparison_with.assert_called_once()
+    history.async_add.assert_awaited_once()
