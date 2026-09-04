@@ -32,6 +32,13 @@ class RemediationProgressEntityDiagnostics(TypedDict):
     new_reference_count: int
 
 
+class ResolvedRemediationItem(TypedDict):
+    """Represent one resolved remediation item."""
+
+    entity_id: str
+    completed_action_count: int
+
+
 class RemediationProgressDiagnostics(TypedDict):
     """Compact remediation progress diagnostics."""
 
@@ -104,6 +111,20 @@ def remediation_progress_diagnostics(
     }
 
 
+def resolved_remediation_items(
+    progress: Iterable[RemediationProgress],
+) -> tuple[ResolvedRemediationItem, ...]:
+    """Return resolved remediation items in stable entity-id order."""
+    return tuple(
+        {
+            "entity_id": item.entity_id,
+            "completed_action_count": item.completed_action_count,
+        }
+        for item in sorted(progress, key=lambda item: item.entity_id)
+        if item.status == "resolved"
+    )
+
+
 def build_remediation_progress(
     baselines: Mapping[str, RemediationPlan],
     current_plans: Iterable[RemediationPlan],
@@ -138,7 +159,9 @@ __all__ = [
     "RemediationProgressDiagnostics",
     "RemediationProgressEntityDiagnostics",
     "RemediationProgressResult",
+    "ResolvedRemediationItem",
     "build_remediation_progress",
     "empty_remediation_progress_diagnostics",
     "remediation_progress_diagnostics",
+    "resolved_remediation_items",
 ]

@@ -449,6 +449,7 @@ async def test_run_service_reports_resolved_remediation_baseline() -> None:
     result.remediation_plans = ()
     result.as_dict.side_effect = lambda: {
         "remediation_progress": result.remediation_progress,
+        "resolved_remediation_items": result.resolved_remediation_items,
     }
     inspector.run = AsyncMock(return_value=result)
 
@@ -526,5 +527,12 @@ async def test_run_service_reports_resolved_remediation_baseline() -> None:
             }
         ],
     }
+
+    assert response["resolved_remediation_items"] == (
+        {
+            "entity_id": "sensor.missing",
+            "completed_action_count": 1,
+        },
+    )
 
     store.async_set.assert_not_awaited()

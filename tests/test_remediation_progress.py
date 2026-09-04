@@ -246,3 +246,104 @@ def test_empty_progress_diagnostics() -> None:
         "new_references": 0,
         "entities": [],
     }
+
+
+def test_resolved_remediation_items_include_only_resolved_progress() -> None:
+    """Resolved remediation items exclude pending and in-progress entities."""
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationProgress,
+    )
+    from custom_components.ha_inspector.engine.remediation_progress import (
+        resolved_remediation_items,
+    )
+
+    progress = (
+        RemediationProgress(
+            entity_id="sensor.pending",
+            status="pending",
+            total_action_count=2,
+            completed_action_count=0,
+            remaining_action_count=2,
+        ),
+        RemediationProgress(
+            entity_id="sensor.resolved",
+            status="resolved",
+            total_action_count=3,
+            completed_action_count=3,
+            remaining_action_count=0,
+        ),
+        RemediationProgress(
+            entity_id="sensor.active",
+            status="in_progress",
+            total_action_count=2,
+            completed_action_count=1,
+            remaining_action_count=1,
+        ),
+    )
+
+    assert resolved_remediation_items(progress) == (
+        {
+            "entity_id": "sensor.resolved",
+            "completed_action_count": 3,
+        },
+    )
+
+
+def test_resolved_remediation_items_are_stably_ordered() -> None:
+    """Resolved remediation items use stable entity-id ordering."""
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationProgress,
+    )
+    from custom_components.ha_inspector.engine.remediation_progress import (
+        resolved_remediation_items,
+    )
+
+    progress = (
+        RemediationProgress(
+            entity_id="sensor.zeta",
+            status="resolved",
+            total_action_count=1,
+            completed_action_count=1,
+            remaining_action_count=0,
+        ),
+        RemediationProgress(
+            entity_id="sensor.alpha",
+            status="resolved",
+            total_action_count=2,
+            completed_action_count=2,
+            remaining_action_count=0,
+        ),
+    )
+
+    assert resolved_remediation_items(progress) == (
+        {
+            "entity_id": "sensor.alpha",
+            "completed_action_count": 2,
+        },
+        {
+            "entity_id": "sensor.zeta",
+            "completed_action_count": 1,
+        },
+    )
+
+
+def test_resolved_remediation_items_empty_when_nothing_resolved() -> None:
+    """Resolved remediation items are empty when no entity is resolved."""
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationProgress,
+    )
+    from custom_components.ha_inspector.engine.remediation_progress import (
+        resolved_remediation_items,
+    )
+
+    progress = (
+        RemediationProgress(
+            entity_id="sensor.pending",
+            status="pending",
+            total_action_count=1,
+            completed_action_count=0,
+            remaining_action_count=1,
+        ),
+    )
+
+    assert resolved_remediation_items(progress) == ()
