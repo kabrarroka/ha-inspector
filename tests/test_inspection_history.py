@@ -713,3 +713,51 @@ async def test_add_normalizes_invalid_remediation_progress() -> None:
         "resolved_items": [],
         "new_reference_items": [],
     }
+
+
+def test_remediation_comparison_with_current_result() -> None:
+    """History compares its latest remediation state with a current result."""
+    history = InspectionHistory(MagicMock())
+    history._entries = [
+        {
+            "remediation": {
+                "tracked_entities": 2,
+                "pending": 1,
+                "in_progress": 1,
+                "resolved": 0,
+                "completed_actions": 0,
+                "remaining_actions": 2,
+                "new_references": 0,
+            }
+        }
+    ]
+
+    current = {
+        "remediation_progress": {
+            "tracked_entities": 2,
+            "pending": 0,
+            "in_progress": 1,
+            "resolved": 1,
+            "total_actions": 2,
+            "completed_actions": 1,
+            "remaining_actions": 1,
+            "new_references": 0,
+            "entities": [],
+        },
+        "resolved_remediation_items": [],
+        "new_remediation_reference_items": [],
+    }
+
+    comparison = history.remediation_comparison_with(current)
+
+    assert comparison is not None
+    assert comparison.resolved_delta == 1
+    assert comparison.completed_actions_delta == 1
+    assert comparison.remaining_actions_delta == -1
+
+
+def test_remediation_comparison_with_requires_history() -> None:
+    """Current remediation comparison requires a previous inspection."""
+    history = InspectionHistory(MagicMock())
+
+    assert history.remediation_comparison_with({}) is None

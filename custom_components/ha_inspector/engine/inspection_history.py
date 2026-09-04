@@ -134,6 +134,23 @@ class InspectionHistory:
             self._entries[-1],
         )
 
+    def remediation_comparison_with(
+        self,
+        result: dict[str, Any],
+    ) -> HistoricalRemediationComparison | None:
+        """Compare latest persisted remediation state with a current result."""
+        if not self._entries:
+            return None
+
+        from .historical_comparison import compare_remediation_history
+
+        current_entry = self._build_entry(result)
+
+        return compare_remediation_history(
+            self._entries[-1],
+            current_entry,
+        )
+
     @staticmethod
     def _build_entry(
         result: dict[str, Any],

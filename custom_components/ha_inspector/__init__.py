@@ -335,11 +335,29 @@ async def async_setup(
             )
             result.metadata["profile"] = profile_id.strip().lower()
 
+        inspection_history = domain_data.get(DATA_INSPECTION_HISTORY)
+        if inspection_history is not None:
+            from .engine.remediation_lifecycle import (
+                remediation_lifecycle_summary,
+            )
+
+            current_result_data = result.as_dict()
+            remediation_comparison = (
+                inspection_history.remediation_comparison_with(
+                    current_result_data
+                )
+            )
+            result.remediation_lifecycle_summary = (
+                remediation_lifecycle_summary(
+                    result.remediation_progress,
+                    remediation_comparison,
+                )
+            )
+
         result_data = result.as_dict()
 
         domain_data[DATA_LAST_RESULT] = result_data
 
-        inspection_history = domain_data.get(DATA_INSPECTION_HISTORY)
         if inspection_history is not None:
             await inspection_history.async_add(result_data)
         async_dispatcher_send(
