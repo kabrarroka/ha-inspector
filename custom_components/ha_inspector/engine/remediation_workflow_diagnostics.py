@@ -6,6 +6,7 @@ from typing import TypedDict
 
 from .entities_state import EntitiesState
 from .remediation_plans import (
+    RemediationPlan,
     build_remediation_plans,
     classify_remediation_plan,
     preview_remediation_impact,
@@ -54,12 +55,12 @@ def empty_remediation_workflow_diagnostics() -> RemediationWorkflowDiagnostics:
     }
 
 
-def remediation_workflow_diagnostics(
+def build_remediation_workflow_plans(
     entities: EntitiesState,
-) -> RemediationWorkflowDiagnostics:
-    """Build remediation workflow diagnostics for missing entity references."""
+) -> tuple[RemediationPlan, ...]:
+    """Build complete remediation plans for missing entity references."""
     if not entities.missing_entities:
-        return empty_remediation_workflow_diagnostics()
+        return ()
 
     disabled_automation_ids = {
         automation.entity_id
@@ -94,7 +95,15 @@ def remediation_workflow_diagnostics(
         ),
     )
 
-    plans = build_remediation_plans(contexts)
+    return build_remediation_plans(contexts)
+
+
+def remediation_workflow_diagnostics_from_plans(
+    plans: tuple[RemediationPlan, ...],
+) -> RemediationWorkflowDiagnostics:
+    """Build compact remediation workflow diagnostics from complete plans."""
+    if not plans:
+        return empty_remediation_workflow_diagnostics()
 
     entity_diagnostics: list[RemediationWorkflowEntityDiagnostics] = []
     review_required = 0
@@ -158,9 +167,19 @@ def remediation_workflow_diagnostics(
     }
 
 
+def remediation_workflow_diagnostics(
+    entities: EntitiesState,
+) -> RemediationWorkflowDiagnostics:
+    """Build remediation workflow diagnostics for missing entity references."""
+    plans = build_remediation_workflow_plans(entities)
+    return remediation_workflow_diagnostics_from_plans(plans)
+
+
 __all__ = [
     "RemediationWorkflowDiagnostics",
     "RemediationWorkflowEntityDiagnostics",
+    "build_remediation_workflow_plans",
     "empty_remediation_workflow_diagnostics",
     "remediation_workflow_diagnostics",
+    "remediation_workflow_diagnostics_from_plans",
 ]

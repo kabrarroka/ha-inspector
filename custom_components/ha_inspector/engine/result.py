@@ -13,6 +13,11 @@ from .dependency_diagnostics import (
     empty_dependency_diagnostics,
 )
 from .models import Finding
+from .remediation_plans import RemediationPlan
+from .remediation_progress import (
+    RemediationProgressDiagnostics,
+    empty_remediation_progress_diagnostics,
+)
 from .remediation_workflow_diagnostics import (
     RemediationWorkflowDiagnostics,
     empty_remediation_workflow_diagnostics,
@@ -49,6 +54,13 @@ class InspectionResult:
     )
     remediation_workflow_diagnostics: RemediationWorkflowDiagnostics = field(
         default_factory=empty_remediation_workflow_diagnostics
+    )
+    remediation_plans: tuple[RemediationPlan, ...] = field(
+        default_factory=tuple,
+        repr=False,
+    )
+    remediation_progress: RemediationProgressDiagnostics = field(
+        default_factory=empty_remediation_progress_diagnostics
     )
 
     def add_many(self, findings: Iterable[Finding]) -> None:
@@ -230,6 +242,7 @@ class InspectionResult:
             "domain_health": self.domain_health,
             "dashboard_summary": self.dashboard_summary,
             "remediation_workflow": self.remediation_workflow_diagnostics,
+            "remediation_progress": self.remediation_progress,
             "presentation": self.presentation,
             "summary": {
                 severity.label: self.count_by_severity(severity)
