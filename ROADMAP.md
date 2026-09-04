@@ -124,7 +124,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Persist remediation baselines
 - [x] Track remediation progress across inspections
 - [x] Detect resolved remediation items
-- [ ] Detect new references introduced during remediation
+- [x] Detect new references introduced during remediation
 - [ ] Before-and-after remediation history
 - [ ] Remediation lifecycle summaries
 - [ ] Public remediation progress query service

@@ -15,6 +15,7 @@ from .dependency_diagnostics import (
 from .models import Finding
 from .remediation_plans import RemediationPlan
 from .remediation_progress import (
+    NewRemediationReferenceItem,
     RemediationProgressDiagnostics,
     ResolvedRemediationItem,
     empty_remediation_progress_diagnostics,
@@ -66,6 +67,9 @@ class InspectionResult:
     resolved_remediation_items: tuple[ResolvedRemediationItem, ...] = field(
         default_factory=tuple
     )
+    new_remediation_reference_items: tuple[
+        NewRemediationReferenceItem, ...
+    ] = field(default_factory=tuple)
 
     def add_many(self, findings: Iterable[Finding]) -> None:
         """Add multiple findings to the result."""
@@ -248,6 +252,9 @@ class InspectionResult:
             "remediation_workflow": self.remediation_workflow_diagnostics,
             "remediation_progress": self.remediation_progress,
             "resolved_remediation_items": self.resolved_remediation_items,
+            "new_remediation_reference_items": (
+                self.new_remediation_reference_items
+            ),
             "presentation": self.presentation,
             "summary": {
                 severity.label: self.count_by_severity(severity)

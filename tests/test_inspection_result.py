@@ -472,3 +472,23 @@ def test_resolved_remediation_items_are_serialized() -> None:
             "completed_action_count": 2,
         },
     )
+
+
+def test_new_remediation_reference_items_are_serialized() -> None:
+    """New remediation reference items are included in the result document."""
+    result = InspectionResult()
+    result.new_remediation_reference_items = (
+        {
+            "entity_id": "sensor.regressed",
+            "new_reference_count": 2,
+        },
+    )
+
+    document = result.as_dict()
+
+    assert document["new_remediation_reference_items"] == (
+        {
+            "entity_id": "sensor.regressed",
+            "new_reference_count": 2,
+        },
+    )

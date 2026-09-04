@@ -536,3 +536,115 @@ async def test_run_service_reports_resolved_remediation_baseline() -> None:
     )
 
     store.async_set.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_run_service_reports_new_remediation_references() -> None:
+    """Run service reports references introduced after the baseline."""
+    from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationPlan,
+        RemediationStep,
+    )
+
+    registrations: dict[str, Any] = {}
+
+    inspector = MagicMock()
+    result = MagicMock()
+    result.metadata = {}
+
+    baseline = RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.original",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+    current = RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=2,
+        active_reference_count=2,
+        disabled_reference_count=0,
+        steps=(
+            RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.original",
+                status="active",
+                action="review_entity_reference",
+            ),
+            RemediationStep(
+                configuration_type="script",
+                configuration_id="script.new_reference",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    result.remediation_plans = (current,)
+    result.as_dict.side_effect = lambda: {
+        "remediation_progress": result.remediation_progress,
+        "new_remediation_reference_items": (
+            result.new_remediation_reference_items
+        ),
+    }
+    inspector.run = AsyncMock(return_value=result)
+
+    inspector_type = MagicMock(return_value=inspector)
+    registry = MagicMock()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.services.async_register = MagicMock(
+        side_effect=(
+            lambda domain, service, handler, **kwargs:
+            registrations.__setitem__(
+                service,
+                handler,
+            )
+        )
+    )
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    store = MagicMock()
+    store.baselines.return_value = {
+        baseline.entity_id: baseline,
+    }
+    store.async_set = AsyncMock()
+
+    hass.data.setdefault(DOMAIN, {})[
+        DATA_REMEDIATION_BASELINES
+    ] = store
+
+    response = await registrations[SERVICE_RUN](MagicMock(data={}))
+
+    assert response["remediation_progress"]["new_references"] == 1
+    assert response["new_remediation_reference_items"] == (
+        {
+            "entity_id": "sensor.missing",
+            "new_reference_count": 1,
+        },
+    )
+
+    store.async_set.assert_not_awaited()
