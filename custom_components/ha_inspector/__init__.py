@@ -313,6 +313,11 @@ async def async_setup(
                     progress_result.progress
                 )
             )
+            result.resolved_remediation_items = (
+                remediation_progress.resolved_remediation_items(
+                    progress_result.progress
+                )
+            )
 
         result.metadata["registry"] = {
             "collectors": list(registry.collector_ids),

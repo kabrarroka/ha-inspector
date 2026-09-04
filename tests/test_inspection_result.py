@@ -452,3 +452,23 @@ def test_dashboard_summary_exposes_dependency_diagnostics() -> None:
         "low": 0,
         "max_impact_score": 40,
     }
+
+
+def test_resolved_remediation_items_are_serialized() -> None:
+    """Resolved remediation items are included in the result document."""
+    result = InspectionResult()
+    result.resolved_remediation_items = (
+        {
+            "entity_id": "sensor.resolved",
+            "completed_action_count": 2,
+        },
+    )
+
+    document = result.as_dict()
+
+    assert document["resolved_remediation_items"] == (
+        {
+            "entity_id": "sensor.resolved",
+            "completed_action_count": 2,
+        },
+    )
