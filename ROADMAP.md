@@ -125,7 +125,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Track remediation progress across inspections
 - [x] Detect resolved remediation items
 - [x] Detect new references introduced during remediation
-- [ ] Before-and-after remediation history
+- [x] Before-and-after remediation history
 - [ ] Remediation lifecycle summaries
 - [ ] Public remediation progress query service
 - [ ] Remediation lifecycle diagnostics in Home Assistant

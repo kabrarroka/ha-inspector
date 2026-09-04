@@ -238,3 +238,166 @@ def test_historical_domain_comparison_serializes() -> None:
         "previous_status": "good",
         "current_status": "excellent",
     }
+
+
+def test_compare_remediation_history() -> None:
+    from custom_components.ha_inspector.engine.historical_comparison import (
+        HistoricalRemediationComparison,
+        compare_remediation_history,
+    )
+
+    comparison = compare_remediation_history(
+        {
+            "remediation": {
+                "tracked_entities": 4,
+                "pending": 3,
+                "in_progress": 1,
+                "resolved": 0,
+                "completed_actions": 1,
+                "remaining_actions": 5,
+                "new_references": 0,
+            }
+        },
+        {
+            "remediation": {
+                "tracked_entities": 4,
+                "pending": 1,
+                "in_progress": 1,
+                "resolved": 2,
+                "completed_actions": 4,
+                "remaining_actions": 2,
+                "new_references": 1,
+            }
+        },
+    )
+
+    assert comparison == HistoricalRemediationComparison(
+        previous_tracked_entities=4,
+        current_tracked_entities=4,
+        tracked_entities_delta=0,
+        previous_pending=3,
+        current_pending=1,
+        pending_delta=-2,
+        previous_in_progress=1,
+        current_in_progress=1,
+        in_progress_delta=0,
+        previous_resolved=0,
+        current_resolved=2,
+        resolved_delta=2,
+        previous_completed_actions=1,
+        current_completed_actions=4,
+        completed_actions_delta=3,
+        previous_remaining_actions=5,
+        current_remaining_actions=2,
+        remaining_actions_delta=-3,
+        previous_new_references=0,
+        current_new_references=1,
+        new_references_delta=1,
+    )
+
+
+def test_compare_remediation_history_handles_missing_values() -> None:
+    from custom_components.ha_inspector.engine.historical_comparison import (
+        compare_remediation_history,
+    )
+
+    comparison = compare_remediation_history(
+        {},
+        {
+            "remediation": {
+                "tracked_entities": 2,
+                "resolved": 1,
+            }
+        },
+    )
+
+    assert comparison.previous_tracked_entities is None
+    assert comparison.current_tracked_entities == 2
+    assert comparison.tracked_entities_delta is None
+
+    assert comparison.previous_resolved is None
+    assert comparison.current_resolved == 1
+    assert comparison.resolved_delta is None
+
+    assert comparison.previous_pending is None
+    assert comparison.current_pending is None
+
+
+def test_compare_remediation_history_rejects_invalid_values() -> None:
+    from custom_components.ha_inspector.engine.historical_comparison import (
+        compare_remediation_history,
+    )
+
+    comparison = compare_remediation_history(
+        {
+            "remediation": {
+                "tracked_entities": True,
+                "pending": "3",
+                "resolved": 1.5,
+            }
+        },
+        {
+            "remediation": "invalid",
+        },
+    )
+
+    assert comparison.previous_tracked_entities is None
+    assert comparison.current_tracked_entities is None
+    assert comparison.previous_pending is None
+    assert comparison.current_pending is None
+    assert comparison.previous_resolved is None
+    assert comparison.current_resolved is None
+
+
+def test_historical_remediation_comparison_serializes() -> None:
+    from custom_components.ha_inspector.engine.historical_comparison import (
+        HistoricalRemediationComparison,
+    )
+
+    comparison = HistoricalRemediationComparison(
+        previous_tracked_entities=4,
+        current_tracked_entities=3,
+        tracked_entities_delta=-1,
+        previous_pending=2,
+        current_pending=1,
+        pending_delta=-1,
+        previous_in_progress=1,
+        current_in_progress=1,
+        in_progress_delta=0,
+        previous_resolved=1,
+        current_resolved=1,
+        resolved_delta=0,
+        previous_completed_actions=2,
+        current_completed_actions=3,
+        completed_actions_delta=1,
+        previous_remaining_actions=4,
+        current_remaining_actions=2,
+        remaining_actions_delta=-2,
+        previous_new_references=0,
+        current_new_references=1,
+        new_references_delta=1,
+    )
+
+    assert comparison.as_dict() == {
+        "previous_tracked_entities": 4,
+        "current_tracked_entities": 3,
+        "tracked_entities_delta": -1,
+        "previous_pending": 2,
+        "current_pending": 1,
+        "pending_delta": -1,
+        "previous_in_progress": 1,
+        "current_in_progress": 1,
+        "in_progress_delta": 0,
+        "previous_resolved": 1,
+        "current_resolved": 1,
+        "resolved_delta": 0,
+        "previous_completed_actions": 2,
+        "current_completed_actions": 3,
+        "completed_actions_delta": 1,
+        "previous_remaining_actions": 4,
+        "current_remaining_actions": 2,
+        "remaining_actions_delta": -2,
+        "previous_new_references": 0,
+        "current_new_references": 1,
+        "new_references_delta": 1,
+    }
