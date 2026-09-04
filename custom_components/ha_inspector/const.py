@@ -15,5 +15,6 @@ PLATFORMS: Final = (Platform.SENSOR,)
 DATA_LAST_RESULT: Final = "last_result"
 DATA_INSPECTION_HISTORY: Final = "inspection_history"
 DATA_ACKNOWLEDGEMENTS: Final = "acknowledgements"
+DATA_REMEDIATION_BASELINES: Final = "remediation_baselines"
 DATA_RESTART_HISTORY: Final = "restart_history"
 SIGNAL_INSPECTION_FINISHED: Final = f"{DOMAIN}_inspection_finished"

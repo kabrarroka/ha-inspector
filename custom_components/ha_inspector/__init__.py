@@ -20,6 +20,7 @@ from .const import (
     DATA_ACKNOWLEDGEMENTS,
     DATA_INSPECTION_HISTORY,
     DATA_LAST_RESULT,
+    DATA_REMEDIATION_BASELINES,
     DATA_RESTART_HISTORY,
     DOMAIN,
     PLATFORMS,
@@ -746,6 +747,14 @@ async def async_setup_entry(
         await acknowledgements.async_load()
 
         domain_data[DATA_ACKNOWLEDGEMENTS] = acknowledgements
+
+    if DATA_REMEDIATION_BASELINES not in domain_data:
+        from .engine.remediation_baselines import RemediationBaselineStore
+
+        remediation_baselines = RemediationBaselineStore(hass)
+        await remediation_baselines.async_load()
+
+        domain_data[DATA_REMEDIATION_BASELINES] = remediation_baselines
 
     await hass.config_entries.async_forward_entry_setups(
         entry,

@@ -121,7 +121,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 ## Epic M — Dependency remediation lifecycle
 
-- [ ] Persist remediation baselines
+- [x] Persist remediation baselines
 - [ ] Track remediation progress across inspections
 - [ ] Detect resolved remediation items
 - [ ] Detect new references introduced during remediation
