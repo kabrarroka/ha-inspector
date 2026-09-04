@@ -686,3 +686,30 @@ async def test_latest_remediation_comparison_requires_two_entries() -> None:
     await history.async_load()
 
     assert history.latest_remediation_comparison() is None
+
+
+@pytest.mark.asyncio
+async def test_add_normalizes_invalid_remediation_progress() -> None:
+    """History normalizes malformed remediation progress data."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(return_value=None)
+    history._store.async_save = AsyncMock()
+
+    result = _result()
+    result["remediation_progress"] = "invalid"
+
+    await history.async_load()
+    await history.async_add(result)
+
+    assert history.entries()[0]["remediation"] == {
+        "tracked_entities": 0,
+        "pending": 0,
+        "in_progress": 0,
+        "resolved": 0,
+        "total_actions": 0,
+        "completed_actions": 0,
+        "remaining_actions": 0,
+        "new_references": 0,
+        "resolved_items": [],
+        "new_reference_items": [],
+    }
