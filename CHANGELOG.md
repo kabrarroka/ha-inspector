@@ -1,5 +1,52 @@
 # Changelog
 
+## 1.6.0
+
+### Added
+
+- Persistent remediation baselines for dependency remediation tracking.
+- Cross-inspection remediation progress tracking.
+- First-class detection of resolved remediation items.
+- Detection of new dependency references introduced relative to remediation
+  baselines.
+- Before-and-after remediation history and historical lifecycle comparison.
+- Compact remediation lifecycle summaries with `idle`, `active`,
+  `progressing`, `regressed`, and `resolved` states.
+- Public `ha_inspector.remediation_progress` response service for querying the
+  latest remediation progress and lifecycle state.
+- Dedicated `Remediation lifecycle` diagnostic sensor in Home Assistant.
+
+### Changed
+
+- Inspection history now stores compact remediation lifecycle information.
+- Remediation progress is compared against persisted immutable baselines across
+  inspections.
+- Home Assistant-facing remediation diagnostics now expose lifecycle status and
+  compact progress counters.
+- Expanded README documentation for `entity_dependency`, `remediation_plan`,
+  and `remediation_progress`.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.5.0.
+- Remediation lifecycle tracking is non-destructive and never modifies Home
+  Assistant configuration automatically.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 87 source files.
+- 870 tests pass.
+- Python test coverage is 100%.
+- Remediation baselines, cross-inspection progress, resolution and regression
+  detection, historical comparison, lifecycle summaries, the public progress
+  service, and Home Assistant lifecycle diagnostics are covered by automated
+  tests.
+
 ## 1.5.0
 
 ### Added

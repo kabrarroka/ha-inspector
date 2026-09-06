@@ -2,7 +2,7 @@
 
 HA Inspector is a custom integration for Home Assistant that inspects a Home Assistant installation and reports configuration, availability, storage, recorder, integration, and entity-related findings.
 
-Current version: **1.5.0**
+Current version: **1.6.0**
 
 ## Features
 
@@ -174,7 +174,7 @@ response_variable: inspector_info
 Response shape:
 
 ```yaml
-version: 1.4.0
+version: 1.6.0
 api_version: 1
 public_api:
   api_version: 1
@@ -192,6 +192,9 @@ public_api:
     - clear_acknowledgements
     - export_diagnostic_report
     - dependency_diagnostics
+    - entity_dependency
+    - remediation_plan
+    - remediation_progress
 engine: {}
 ```
 
@@ -303,6 +306,69 @@ max_impact_score: 55
 The same compact dependency information is also exposed by the dedicated
 `Dependency health` diagnostic sensor.
 
+### `ha_inspector.entity_dependency`
+
+Returns the current automation, script, and scene references for one entity.
+
+The service distinguishes active and disabled configuration references, reports
+whether the entity currently exists in Home Assistant, and can provide safe
+cleanup guidance for stale references without modifying configuration.
+
+Required field:
+
+- `entity_id`: Entity identifier to investigate.
+
+```yaml
+action: ha_inspector.entity_dependency
+data:
+  entity_id: sensor.example
+response_variable: entity_dependency
+```
+
+### `ha_inspector.remediation_plan`
+
+Returns a non-destructive remediation plan for the current references to one
+entity.
+
+The response includes configuration-aware remediation actions, safety and
+confidence classification, and a before-change impact preview. The service
+never modifies Home Assistant configuration automatically.
+
+Required field:
+
+- `entity_id`: Entity identifier to investigate.
+
+```yaml
+action: ha_inspector.remediation_plan
+data:
+  entity_id: sensor.example
+response_variable: remediation_plan
+```
+
+### `ha_inspector.remediation_progress`
+
+Returns the remediation progress from the most recent inspection together with
+the current remediation lifecycle summary.
+
+The service does not run a new inspection, does not modify persisted remediation
+baselines, and never changes Home Assistant configuration automatically.
+
+```yaml
+action: ha_inspector.remediation_progress
+response_variable: remediation_progress
+```
+
+The response contains:
+
+- aggregate tracked, pending, in-progress, and resolved remediation counts;
+- action completion and remaining-action counts;
+- newly introduced reference counts;
+- per-entity remediation progress;
+- lifecycle status and lifecycle deltas relative to the previous inspection.
+
+The compact lifecycle summary is also exposed by the dedicated
+`Remediation lifecycle` diagnostic sensor.
+
 ### `ha_inspector.export_diagnostic_report`
 
 Returns an exportable diagnostic report built from the most recent inspection.
@@ -377,7 +443,7 @@ HA Inspector exposes public API version **1**.
 
 The stable public contract includes:
 
-- Home Assistant services: `run`, `list_profiles`, `describe_profile`, `info`, `list_acknowledgements`, `acknowledge_finding`, `clear_acknowledgement`, `clear_acknowledgements`, `export_diagnostic_report`, and `dependency_diagnostics`.
+- Home Assistant services: `run`, `list_profiles`, `describe_profile`, `info`, `list_acknowledgements`, `acknowledge_finding`, `clear_acknowledgement`, `clear_acknowledgements`, `export_diagnostic_report`, `dependency_diagnostics`, `entity_dependency`, `remediation_plan`, and `remediation_progress`.
 - `InspectionRequest` for inspection request configuration.
 - `InspectionResult` and its serialized result document.
 - `Finding` and `Severity`.
@@ -456,7 +522,7 @@ GitHub Actions runs Ruff, mypy, and pytest for pushes and pull requests.
 
 HA Inspector is under active development.
 
-Current integration version: **1.5.0**
+Current integration version: **1.6.0**
 
 The project maintains 100% Python test coverage across `custom_components.ha_inspector`.
 
