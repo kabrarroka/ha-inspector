@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.6.1
+
+### Fixed
+
+- Persist the latest public remediation progress and lifecycle state across Home
+  Assistant restarts.
+- Restore `ha_inspector.remediation_progress` from persisted remediation state
+  when no in-memory inspection result is available.
+- Restore the `Remediation lifecycle` diagnostic sensor from persisted state on
+  startup.
+- Keep remediation restart persistence isolated from `DATA_LAST_RESULT`, so
+  unrelated diagnostic sensors do not appear to have a restored inspection.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.6.0.
+- Remediation lifecycle tracking remains non-destructive and never modifies
+  Home Assistant configuration automatically.
+
+### Validation
+
+- Ruff passes.
+- mypy passes across 88 source files.
+- 879 tests pass.
+- Python test coverage is 100%.
+
 ## 1.6.0
 
 ### Added
