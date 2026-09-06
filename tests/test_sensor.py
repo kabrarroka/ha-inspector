@@ -15,6 +15,7 @@ from custom_components.ha_inspector.sensor import (
     HAInspectorDomainHealthSensor,
     HAInspectorFindingsSensor,
     HAInspectorHealthScoreSensor,
+    HAInspectorRemediationLifecycleSensor,
     HAInspectorRemediationWorkflowSensor,
     HAInspectorStatusSensor,
     async_setup_entry,
@@ -166,7 +167,7 @@ async def test_setup_entry_adds_status_sensor() -> None:
     async_add_entities.assert_called_once()
 
     entities = async_add_entities.call_args.args[0]
-    assert len(entities) == 11
+    assert len(entities) == 12
 
     assert isinstance(entities[0], HAInspectorStatusSensor)
     assert entities[0].unique_id == "entry-1_status"
@@ -195,6 +196,12 @@ async def test_setup_entry_adds_status_sensor() -> None:
     )
     assert entities[6].unique_id == "entry-1_remediation_workflow"
 
+    assert isinstance(
+        entities[7],
+        HAInspectorRemediationLifecycleSensor,
+    )
+    assert entities[7].unique_id == "entry-1_remediation_lifecycle"
+
     expected_domains = (
         "storage",
         "system",
@@ -202,7 +209,7 @@ async def test_setup_entry_adds_status_sensor() -> None:
         "entities",
     )
 
-    for entity, domain in zip(entities[7:], expected_domains, strict=True):
+    for entity, domain in zip(entities[8:], expected_domains, strict=True):
         assert isinstance(entity, HAInspectorDomainHealthSensor)
         assert entity.unique_id == f"entry-1_{domain}_health"
 
@@ -830,6 +837,154 @@ def test_dependency_investigation_sensor_handles_invalid_findings() -> None:
         "unreferenced_entities": [],
         "disabled_automation_count": 0,
     }
+
+
+def test_remediation_lifecycle_sensor_without_result() -> None:
+    """Remediation lifecycle sensor exposes a stable idle state."""
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorRemediationLifecycleSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == "idle"
+    assert sensor.extra_state_attributes == {
+        "tracked_entities": 0,
+        "pending": 0,
+        "in_progress": 0,
+        "resolved": 0,
+        "completed_actions": 0,
+        "remaining_actions": 0,
+        "new_references": 0,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
+
+
+def test_remediation_lifecycle_sensor_with_result() -> None:
+    """Remediation lifecycle sensor exposes lifecycle diagnostics."""
+    result: dict[str, Any] = {
+        "remediation_lifecycle": {
+            "status": "progressing",
+            "tracked_entities": 4,
+            "pending": 1,
+            "in_progress": 2,
+            "resolved": 1,
+            "completed_actions": 3,
+            "remaining_actions": 5,
+            "new_references": 1,
+            "resolved_since_previous": 1,
+            "newly_pending_since_previous": 0,
+            "new_references_delta": -1,
+        }
+    }
+
+    hass = SimpleNamespace(
+        data={"ha_inspector": {"last_result": result}}
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorRemediationLifecycleSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == "progressing"
+    assert sensor.extra_state_attributes == {
+        "tracked_entities": 4,
+        "pending": 1,
+        "in_progress": 2,
+        "resolved": 1,
+        "completed_actions": 3,
+        "remaining_actions": 5,
+        "new_references": 1,
+        "resolved_since_previous": 1,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": -1,
+    }
+
+
+def test_remediation_lifecycle_sensor_handles_malformed_result() -> None:
+    """Malformed lifecycle diagnostics fall back to the idle state."""
+    hass = SimpleNamespace(
+        data={
+            "ha_inspector": {
+                "last_result": {
+                    "remediation_lifecycle": "invalid",
+                }
+            }
+        }
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorRemediationLifecycleSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+
+    assert sensor.native_value == "idle"
+    assert sensor.extra_state_attributes == {
+        "tracked_entities": 0,
+        "pending": 0,
+        "in_progress": 0,
+        "resolved": 0,
+        "completed_actions": 0,
+        "remaining_actions": 0,
+        "new_references": 0,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
+
+
+def test_remediation_lifecycle_sensor_handles_finished_inspection() -> None:
+    """Remediation lifecycle sensor updates after an inspection."""
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    sensor = HAInspectorRemediationLifecycleSensor(  # type: ignore[arg-type]
+        hass,
+        entry,
+    )
+    sensor.async_write_ha_state = MagicMock()  # type: ignore[method-assign]
+
+    assert sensor.native_value == "idle"
+
+    sensor._handle_inspection_finished(
+        {
+            "remediation_lifecycle": {
+                "status": "regressed",
+                "tracked_entities": 3,
+                "pending": 1,
+                "in_progress": 1,
+                "resolved": 1,
+                "completed_actions": 2,
+                "remaining_actions": 4,
+                "new_references": 2,
+                "resolved_since_previous": 0,
+                "newly_pending_since_previous": 1,
+                "new_references_delta": 2,
+            }
+        }
+    )
+
+    assert sensor.native_value == "regressed"
+    assert sensor.extra_state_attributes == {
+        "tracked_entities": 3,
+        "pending": 1,
+        "in_progress": 1,
+        "resolved": 1,
+        "completed_actions": 2,
+        "remaining_actions": 4,
+        "new_references": 2,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 1,
+        "new_references_delta": 2,
+    }
+    sensor.async_write_ha_state.assert_called_once()
 
 
 def test_remediation_workflow_sensor_without_result() -> None:
