@@ -107,6 +107,7 @@ async def test_info_service_response(
             "dependency_diagnostics",
             "entity_dependency",
             "remediation_plan",
+            "remediation_progress",
         ],
     }
     assert response["engine"] == {

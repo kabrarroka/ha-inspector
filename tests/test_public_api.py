@@ -40,6 +40,7 @@ def test_public_api_services_are_stable() -> None:
         "dependency_diagnostics",
         "entity_dependency",
         "remediation_plan",
+        "remediation_progress",
     )
 
 
@@ -64,6 +65,7 @@ def test_describe_public_api() -> None:
             "dependency_diagnostics",
             "entity_dependency",
             "remediation_plan",
+            "remediation_progress",
         ],
     }
 
