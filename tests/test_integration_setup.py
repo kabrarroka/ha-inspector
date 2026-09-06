@@ -15,6 +15,7 @@ from custom_components.ha_inspector.const import (
     DATA_ACKNOWLEDGEMENTS,
     DATA_INSPECTION_HISTORY,
     DATA_REMEDIATION_BASELINES,
+    DATA_REMEDIATION_STATE,
     DATA_RESTART_HISTORY,
     DOMAIN,
     PLATFORMS,
@@ -50,6 +51,9 @@ async def test_setup_entry_forwards_platforms() -> None:
     remediation_baselines = MagicMock()
     remediation_baselines.async_load = AsyncMock()
 
+    remediation_state = MagicMock()
+    remediation_state.async_load = AsyncMock()
+
     with (
         patch(
             "custom_components.ha_inspector.engine.restart_history.RestartHistory",
@@ -67,6 +71,10 @@ async def test_setup_entry_forwards_platforms() -> None:
             "custom_components.ha_inspector.engine.remediation_baselines.RemediationBaselineStore",
             return_value=remediation_baselines,
         ),
+        patch(
+            "custom_components.ha_inspector.engine.remediation_state.RemediationStateStore",
+            return_value=remediation_state,
+        ),
     ):
         assert await async_setup_entry(hass, entry) is True
 
@@ -75,6 +83,7 @@ async def test_setup_entry_forwards_platforms() -> None:
     inspection_history.async_load.assert_awaited_once()
     acknowledgements.async_load.assert_awaited_once()
     remediation_baselines.async_load.assert_awaited_once()
+    remediation_state.async_load.assert_awaited_once()
 
     assert hass.data[DOMAIN][DATA_RESTART_HISTORY] is restart_history
     assert hass.data[DOMAIN][DATA_INSPECTION_HISTORY] is inspection_history
@@ -83,6 +92,7 @@ async def test_setup_entry_forwards_platforms() -> None:
         hass.data[DOMAIN][DATA_REMEDIATION_BASELINES]
         is remediation_baselines
     )
+    assert hass.data[DOMAIN][DATA_REMEDIATION_STATE] is remediation_state
 
     hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(
         entry,
@@ -96,6 +106,7 @@ async def test_setup_entry_does_not_initialize_histories_twice() -> None:
     existing_inspection_history = MagicMock()
     existing_acknowledgements = MagicMock()
     existing_remediation_baselines = MagicMock()
+    existing_remediation_state = MagicMock()
 
     hass = MagicMock()
     hass.data = {
@@ -104,6 +115,7 @@ async def test_setup_entry_does_not_initialize_histories_twice() -> None:
             DATA_INSPECTION_HISTORY: existing_inspection_history,
             DATA_ACKNOWLEDGEMENTS: existing_acknowledgements,
             DATA_REMEDIATION_BASELINES: existing_remediation_baselines,
+            DATA_REMEDIATION_STATE: existing_remediation_state,
         }
     }
     hass.config_entries.async_forward_entry_setups = AsyncMock()
@@ -122,6 +134,9 @@ async def test_setup_entry_does_not_initialize_histories_twice() -> None:
         patch(
             "custom_components.ha_inspector.engine.remediation_baselines.RemediationBaselineStore",
         ) as remediation_baseline_store_type,
+        patch(
+            "custom_components.ha_inspector.engine.remediation_state.RemediationStateStore",
+        ) as remediation_state_store_type,
     ):
         assert await async_setup_entry(hass, entry) is True
 
@@ -129,6 +144,7 @@ async def test_setup_entry_does_not_initialize_histories_twice() -> None:
     inspection_history_type.assert_not_called()
     acknowledgement_store_type.assert_not_called()
     remediation_baseline_store_type.assert_not_called()
+    remediation_state_store_type.assert_not_called()
 
 
 @pytest.mark.asyncio
