@@ -13,6 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     DATA_LAST_RESULT,
+    DATA_REMEDIATION_STATE,
     DOMAIN,
     NAME,
     SIGNAL_INSPECTION_FINISHED,
@@ -478,6 +479,23 @@ class HAInspectorRemediationLifecycleSensor(HAInspectorDiagnosticSensor):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the remediation lifecycle sensor."""
         super().__init__(hass, entry, key="remediation_lifecycle")
+
+        if hass.data.get(DOMAIN, {}).get(DATA_LAST_RESULT) is None:
+            remediation_state = hass.data.get(DOMAIN, {}).get(
+                DATA_REMEDIATION_STATE
+            )
+            persisted_state = (
+                remediation_state.state()
+                if remediation_state is not None
+                else None
+            )
+
+            if isinstance(persisted_state, dict):
+                lifecycle = persisted_state.get("lifecycle")
+                if isinstance(lifecycle, dict):
+                    self._update_from_result(
+                        {"remediation_lifecycle": lifecycle}
+                    )
 
     def _update_from_result(
         self,

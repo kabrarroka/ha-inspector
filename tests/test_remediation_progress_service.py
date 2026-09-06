@@ -216,3 +216,64 @@ async def test_remediation_progress_normalizes_malformed_latest_result(
             "new_references_delta": 0,
         },
     }
+
+
+@pytest.mark.asyncio
+async def test_remediation_progress_returns_persisted_state_after_restart(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Persisted remediation state is returned without a last result."""
+    hass, registrations = await _setup_services(monkeypatch)
+
+    progress = {
+        "tracked_entities": 1,
+        "pending": 1,
+        "in_progress": 0,
+        "resolved": 0,
+        "total_actions": 1,
+        "completed_actions": 0,
+        "remaining_actions": 1,
+        "new_references": 0,
+        "entities": [
+            {
+                "entity_id": "sensor.missing",
+                "status": "pending",
+                "total_action_count": 1,
+                "completed_action_count": 0,
+                "remaining_action_count": 1,
+                "new_reference_count": 0,
+            }
+        ],
+    }
+    lifecycle = {
+        "status": "active",
+        "tracked_entities": 1,
+        "pending": 1,
+        "in_progress": 0,
+        "resolved": 0,
+        "completed_actions": 0,
+        "remaining_actions": 1,
+        "new_references": 0,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
+
+    remediation_state = MagicMock()
+    remediation_state.state.return_value = {
+        "progress": progress,
+        "lifecycle": lifecycle,
+    }
+
+    from custom_components.ha_inspector.const import DATA_REMEDIATION_STATE
+
+    hass.data[DOMAIN] = {
+        DATA_REMEDIATION_STATE: remediation_state,
+    }
+
+    response = await registrations[SERVICE_REMEDIATION_PROGRESS](MagicMock())
+
+    assert response == {
+        "progress": progress,
+        "lifecycle": lifecycle,
+    }

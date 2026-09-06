@@ -15,6 +15,7 @@ from custom_components.ha_inspector import (
 from custom_components.ha_inspector.const import (
     DATA_ACKNOWLEDGEMENTS,
     DATA_INSPECTION_HISTORY,
+    DATA_REMEDIATION_STATE,
     DOMAIN,
 )
 
@@ -789,3 +790,101 @@ async def test_run_service_builds_remediation_lifecycle_summary() -> None:
 
     history.remediation_comparison_with.assert_called_once()
     history.async_add.assert_awaited_once()
+
+
+
+@pytest.mark.asyncio
+async def test_run_service_persists_remediation_state() -> None:
+    """Run service persists latest remediation progress and lifecycle."""
+    inspector = MagicMock()
+    inspector.run = AsyncMock()
+
+    result = MagicMock()
+    result.metadata = {}
+
+    progress = {
+        "tracked_entities": 1,
+        "pending": 1,
+        "in_progress": 0,
+        "resolved": 0,
+        "total_actions": 1,
+        "completed_actions": 0,
+        "remaining_actions": 1,
+        "new_references": 0,
+        "entities": [
+            {
+                "entity_id": "sensor.missing",
+                "status": "pending",
+                "total_action_count": 1,
+                "completed_action_count": 0,
+                "remaining_action_count": 1,
+                "new_reference_count": 0,
+            }
+        ],
+    }
+
+    lifecycle = {
+        "status": "active",
+        "tracked_entities": 1,
+        "pending": 1,
+        "in_progress": 0,
+        "resolved": 0,
+        "completed_actions": 0,
+        "remaining_actions": 1,
+        "new_references": 0,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
+
+    result_data = {
+        "findings": [],
+        "metadata": result.metadata,
+        "remediation_progress": progress,
+        "remediation_lifecycle": lifecycle,
+    }
+
+    result.as_dict.return_value = result_data
+    inspector.run.return_value = result
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+
+    remediation_state = MagicMock()
+    remediation_state.async_set = AsyncMock()
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_REMEDIATION_STATE: remediation_state,
+        }
+    }
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    registrations = {
+        call.args[1]: call.args[2]
+        for call in hass.services.async_register.call_args_list
+        if call.args[0] == DOMAIN
+    }
+
+    service_call = MagicMock()
+    service_call.data = {}
+
+    response = await registrations["run"](service_call)
+
+    remediation_state.async_set.assert_awaited_once_with(
+        {
+            "progress": progress,
+            "lifecycle": lifecycle,
+        }
+    )
+    assert response is result_data

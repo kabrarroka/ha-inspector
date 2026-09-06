@@ -21,6 +21,7 @@ from .const import (
     DATA_INSPECTION_HISTORY,
     DATA_LAST_RESULT,
     DATA_REMEDIATION_BASELINES,
+    DATA_REMEDIATION_STATE,
     DATA_RESTART_HISTORY,
     DOMAIN,
     PLATFORMS,
@@ -360,6 +361,15 @@ async def async_setup(
         result_data = result.as_dict()
 
         domain_data[DATA_LAST_RESULT] = result_data
+
+        remediation_state = domain_data.get(DATA_REMEDIATION_STATE)
+        if remediation_state is not None:
+            await remediation_state.async_set(
+                {
+                    "progress": result_data["remediation_progress"],
+                    "lifecycle": result_data["remediation_lifecycle"],
+                }
+            )
 
         if inspection_history is not None:
             await inspection_history.async_add(result_data)
@@ -760,7 +770,8 @@ async def async_setup(
             empty_remediation_progress_diagnostics,
         )
 
-        result = hass.data.setdefault(DOMAIN, {}).get(DATA_LAST_RESULT)
+        domain_data = hass.data.setdefault(DOMAIN, {})
+        result = domain_data.get(DATA_LAST_RESULT)
 
         progress = (
             result.get("remediation_progress")
@@ -772,6 +783,21 @@ async def async_setup(
             if isinstance(result, Mapping)
             else None
         )
+
+        if not isinstance(progress, Mapping) or not isinstance(
+            lifecycle,
+            Mapping,
+        ):
+            remediation_state = domain_data.get(DATA_REMEDIATION_STATE)
+            persisted_state = (
+                remediation_state.state()
+                if remediation_state is not None
+                else None
+            )
+
+            if isinstance(persisted_state, Mapping):
+                progress = persisted_state.get("progress")
+                lifecycle = persisted_state.get("lifecycle")
 
         return {
             "progress": (
@@ -863,6 +889,14 @@ async def async_setup_entry(
         await remediation_baselines.async_load()
 
         domain_data[DATA_REMEDIATION_BASELINES] = remediation_baselines
+
+    if DATA_REMEDIATION_STATE not in domain_data:
+        from .engine.remediation_state import RemediationStateStore
+
+        remediation_state = RemediationStateStore(hass)
+        await remediation_state.async_load()
+
+        domain_data[DATA_REMEDIATION_STATE] = remediation_state
 
     await hass.config_entries.async_forward_entry_setups(
         entry,

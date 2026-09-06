@@ -1133,3 +1133,57 @@ def test_remediation_workflow_sensor_handles_invalid_entities() -> None:
         "review_reference_count": 1,
         "entities": [],
     }
+
+
+def test_remediation_lifecycle_sensor_restores_persisted_state() -> None:
+    """Remediation lifecycle sensor restores persisted state on startup."""
+    from custom_components.ha_inspector.const import (
+        DATA_REMEDIATION_STATE,
+        DOMAIN,
+    )
+
+    hass = MagicMock()
+    entry = MagicMock()
+    entry.entry_id = "entry"
+
+    lifecycle = {
+        "status": "active",
+        "tracked_entities": 4,
+        "pending": 4,
+        "in_progress": 0,
+        "resolved": 0,
+        "completed_actions": 0,
+        "remaining_actions": 4,
+        "new_references": 0,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
+
+    remediation_state = MagicMock()
+    remediation_state.state.return_value = {
+        "progress": {},
+        "lifecycle": lifecycle,
+    }
+
+    hass.data = {
+        DOMAIN: {
+            DATA_REMEDIATION_STATE: remediation_state,
+        }
+    }
+
+    sensor = HAInspectorRemediationLifecycleSensor(hass, entry)
+
+    assert sensor.native_value == "active"
+    assert sensor.extra_state_attributes == {
+        "tracked_entities": 4,
+        "pending": 4,
+        "in_progress": 0,
+        "resolved": 0,
+        "completed_actions": 0,
+        "remaining_actions": 4,
+        "new_references": 0,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
