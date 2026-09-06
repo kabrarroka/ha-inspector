@@ -181,3 +181,13 @@ remediation_plan:
         text:
   response:
     optional: false
+remediation_progress:
+  name: Progreso de remediación
+  description: >
+    Devuelve el progreso de remediación de la última inspección junto con
+    el resumen actual de su ciclo de vida. La consulta no ejecuta una nueva
+    inspección, no modifica los baselines de remediación y no realiza cambios
+    automáticos en la configuración de Home Assistant.
+  fields: {}
+  response:
+    optional: false

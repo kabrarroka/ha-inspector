@@ -55,6 +55,7 @@ SERVICE_EXPORT_DIAGNOSTIC_REPORT = "export_diagnostic_report"
 SERVICE_DEPENDENCY_DIAGNOSTICS = "dependency_diagnostics"
 SERVICE_ENTITY_DEPENDENCY = "entity_dependency"
 SERVICE_REMEDIATION_PLAN = "remediation_plan"
+SERVICE_REMEDIATION_PROGRESS = "remediation_progress"
 
 API_VERSION = PUBLIC_API_VERSION
 
@@ -121,6 +122,8 @@ SERVICE_REMEDIATION_PLAN_SCHEMA = vol.Schema(
         vol.Required("entity_id"): str,
     }
 )
+
+SERVICE_REMEDIATION_PROGRESS_SCHEMA = vol.Schema({})
 
 
 def _load_engine() -> tuple[
@@ -741,6 +744,53 @@ async def async_setup(
         SERVICE_REMEDIATION_PLAN,
         async_handle_remediation_plan,
         schema=SERVICE_REMEDIATION_PLAN_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def async_handle_remediation_progress(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return remediation progress from the latest inspection."""
+        del call
+
+        from .engine.remediation_lifecycle import (
+            empty_remediation_lifecycle_summary,
+        )
+        from .engine.remediation_progress import (
+            empty_remediation_progress_diagnostics,
+        )
+
+        result = hass.data.setdefault(DOMAIN, {}).get(DATA_LAST_RESULT)
+
+        progress = (
+            result.get("remediation_progress")
+            if isinstance(result, Mapping)
+            else None
+        )
+        lifecycle = (
+            result.get("remediation_lifecycle")
+            if isinstance(result, Mapping)
+            else None
+        )
+
+        return {
+            "progress": (
+                dict(progress)
+                if isinstance(progress, Mapping)
+                else dict(empty_remediation_progress_diagnostics())
+            ),
+            "lifecycle": (
+                dict(lifecycle)
+                if isinstance(lifecycle, Mapping)
+                else dict(empty_remediation_lifecycle_summary())
+            ),
+        }
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMEDIATION_PROGRESS,
+        async_handle_remediation_progress,
+        schema=SERVICE_REMEDIATION_PROGRESS_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 
