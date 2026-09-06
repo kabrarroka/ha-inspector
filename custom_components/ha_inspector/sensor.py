@@ -47,6 +47,7 @@ async def async_setup_entry(
             HAInspectorDependencyHealthSensor(hass, entry),
             HAInspectorDependencyInvestigationSensor(hass, entry),
             HAInspectorRemediationWorkflowSensor(hass, entry),
+            HAInspectorRemediationLifecycleSensor(hass, entry),
             HAInspectorDomainHealthSensor(hass, entry, domain="storage"),
             HAInspectorDomainHealthSensor(hass, entry, domain="system"),
             HAInspectorDomainHealthSensor(
@@ -465,6 +466,52 @@ class HAInspectorRemediationWorkflowSensor(HAInspectorDiagnosticSensor):
                 0,
             ),
             "entities": entities,
+        }
+
+
+class HAInspectorRemediationLifecycleSensor(HAInspectorDiagnosticSensor):
+    """Expose remediation lifecycle diagnostics."""
+
+    _attr_name = "Remediation lifecycle"
+    _attr_icon = "mdi:timeline-check-outline"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the remediation lifecycle sensor."""
+        super().__init__(hass, entry, key="remediation_lifecycle")
+
+    def _update_from_result(
+        self,
+        result: dict[str, Any] | None,
+    ) -> None:
+        """Update remediation lifecycle diagnostics."""
+        lifecycle: dict[str, Any] = {}
+
+        if result:
+            candidate = result.get("remediation_lifecycle", {})
+            if isinstance(candidate, dict):
+                lifecycle = candidate
+
+        self._attr_native_value = lifecycle.get("status", "idle")
+        self._attr_extra_state_attributes = {
+            "tracked_entities": lifecycle.get("tracked_entities", 0),
+            "pending": lifecycle.get("pending", 0),
+            "in_progress": lifecycle.get("in_progress", 0),
+            "resolved": lifecycle.get("resolved", 0),
+            "completed_actions": lifecycle.get("completed_actions", 0),
+            "remaining_actions": lifecycle.get("remaining_actions", 0),
+            "new_references": lifecycle.get("new_references", 0),
+            "resolved_since_previous": lifecycle.get(
+                "resolved_since_previous",
+                0,
+            ),
+            "newly_pending_since_previous": lifecycle.get(
+                "newly_pending_since_previous",
+                0,
+            ),
+            "new_references_delta": lifecycle.get(
+                "new_references_delta",
+                0,
+            ),
         }
 
 
