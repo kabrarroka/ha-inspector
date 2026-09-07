@@ -130,6 +130,17 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Public remediation progress query service
 - [x] Remediation lifecycle diagnostics in Home Assistant
 
+## Epic N — Dependency remediation observability
+
+- [ ] Remediation age tracking
+- [ ] Stalled remediation detection
+- [ ] Remediation urgency classification
+- [ ] Per-entity remediation age and status summaries
+- [ ] Remediation lifecycle trend analytics
+- [ ] Remediation regression counters
+- [ ] Dashboard-oriented remediation summary
+- [ ] Public remediation status query service
+
 ## Version direction
 
 ### 0.5 — Engine foundation
@@ -179,3 +190,10 @@ Persistent remediation baselines, cross-inspection progress tracking,
 resolution and regression detection, remediation history, and
 Home Assistant-facing remediation lifecycle diagnostics without automatic
 configuration changes.
+
+### 1.7 — Dependency remediation observability
+
+Remediation aging, stalled-work detection, urgency classification,
+lifecycle trend analytics, regression tracking, and richer Home
+Assistant-facing remediation monitoring without automatic configuration
+changes.
