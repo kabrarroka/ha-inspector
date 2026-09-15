@@ -70,7 +70,10 @@ async def test_restart_history_prunes_old_entries() -> None:
 async def test_restart_history_counts_all_starts_after_baseline_window() -> None:
     now = datetime(2026, 8, 19, 8, 0, tzinfo=UTC)
 
-    history = RestartHistory(MagicMock())
+    history = RestartHistory(
+        MagicMock(),
+        clock=lambda: now,
+    )
     history._store.async_load = AsyncMock(
         return_value={
             "starts": [
