@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Final
 
@@ -18,13 +19,19 @@ _RETENTION_DAYS: Final = 30
 class RestartHistory:
     """Store recent Home Assistant start timestamps."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        *,
+        clock: Callable[[], datetime] | None = None,
+    ) -> None:
         """Initialize restart history."""
         self._store = Store[dict[str, list[str]]](
             hass,
             _STORAGE_VERSION,
             _STORAGE_KEY,
         )
+        self._clock = clock or (lambda: datetime.now(UTC))
         self._starts: list[datetime] = []
 
     async def async_load(self) -> None:
@@ -49,7 +56,7 @@ class RestartHistory:
             starts.append(parsed.astimezone(UTC))
 
         self._starts = sorted(starts)
-        self._prune(datetime.now(UTC))
+        self._prune(self._clock())
 
     async def async_record_start(
         self,
@@ -57,7 +64,7 @@ class RestartHistory:
     ) -> None:
         """Record the current Home Assistant start."""
         if now is None:
-            now = datetime.now(UTC)
+            now = self._clock()
 
         if now.tzinfo is None:
             now = now.replace(tzinfo=UTC)
@@ -82,7 +89,7 @@ class RestartHistory:
     ) -> tuple[int, int]:
         """Return restart counts for the last 24 hours and 7 days."""
         if now is None:
-            now = datetime.now(UTC)
+            now = self._clock()
 
         if now.tzinfo is None:
             now = now.replace(tzinfo=UTC)
