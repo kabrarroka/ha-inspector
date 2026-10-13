@@ -369,6 +369,45 @@ The response contains:
 The compact lifecycle summary is also exposed by the dedicated
 `Remediation lifecycle` diagnostic sensor.
 
+#### Per-entity remediation summaries
+
+The `ha_inspector.run` response includes
+`remediation_entity_summaries`, with one summary per tracked entity.
+
+Each summary provides:
+
+- `entity_id`: affected Home Assistant entity;
+- `status`: current remediation progress status;
+- `age_seconds`: seconds elapsed since baseline creation,
+  or `null` when unavailable;
+- `stalled`: whether remediation is considered stalled;
+- `urgency`: `none`, `low`, `medium`, or `high`;
+- `total_action_count`: original baseline actions;
+- `completed_action_count`: completed baseline actions;
+- `remaining_action_count`: pending baseline actions;
+- `new_reference_count`: references added after baseline creation.
+
+Example response fragment:
+
+~~~yaml
+remediation_entity_summaries:
+  - entity_id: sensor.example
+    status: in_progress
+    age_seconds: 864000
+    stalled: true
+    urgency: high
+    total_action_count: 1
+    completed_action_count: 0
+    remaining_action_count: 1
+    new_reference_count: 1
+~~~
+
+The default stalled-remediation threshold is seven days.
+New references are counted separately from pending baseline actions.
+
+These summaries are informational and do not automatically modify
+Home Assistant configuration.
+
 ### `ha_inspector.export_diagnostic_report`
 
 Returns an exportable diagnostic report built from the most recent inspection.

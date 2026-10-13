@@ -545,3 +545,46 @@ def test_remediation_lifecycle_summary_defaults_to_idle() -> None:
         "newly_pending_since_previous": 0,
         "new_references_delta": 0,
     }
+
+
+def test_remediation_entity_summaries_default_to_empty() -> None:
+    """Inspection results expose empty per-entity remediation summaries."""
+    result = InspectionResult()
+
+    assert result.remediation_entity_summaries == ()
+    assert result.as_dict()["remediation_entity_summaries"] == ()
+
+
+def test_remediation_entity_summaries_are_serialized() -> None:
+    """Inspection results serialize per-entity remediation summaries."""
+    result = InspectionResult()
+
+    result.remediation_entity_summaries = (
+        {
+            "entity_id": "sensor.example",
+            "status": "in_progress",
+            "age_seconds": 864000.0,
+            "stalled": True,
+            "urgency": "medium",
+            "total_action_count": 5,
+            "completed_action_count": 2,
+            "remaining_action_count": 3,
+            "new_reference_count": 0,
+        },
+    )
+
+    document = result.as_dict()
+
+    assert document["remediation_entity_summaries"] == (
+        {
+            "entity_id": "sensor.example",
+            "status": "in_progress",
+            "age_seconds": 864000.0,
+            "stalled": True,
+            "urgency": "medium",
+            "total_action_count": 5,
+            "completed_action_count": 2,
+            "remaining_action_count": 3,
+            "new_reference_count": 0,
+        },
+    )
