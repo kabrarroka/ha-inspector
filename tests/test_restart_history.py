@@ -14,7 +14,7 @@ from custom_components.ha_inspector.engine.restart_history import (
 async def test_restart_history_loads_and_counts(monkeypatch) -> None:
     now = datetime(2026, 8, 19, 8, 0, tzinfo=UTC)
 
-    history = RestartHistory(MagicMock())
+    history = RestartHistory(MagicMock(), clock=lambda: now)
 
     history._store.async_load = AsyncMock(
         return_value={
@@ -35,7 +35,7 @@ async def test_restart_history_loads_and_counts(monkeypatch) -> None:
 async def test_restart_history_records_and_saves() -> None:
     now = datetime(2026, 8, 19, 8, 0, tzinfo=UTC)
 
-    history = RestartHistory(MagicMock())
+    history = RestartHistory(MagicMock(), clock=lambda: now)
     history._store.async_load = AsyncMock(return_value=None)
     history._store.async_save = AsyncMock()
 
@@ -50,7 +50,7 @@ async def test_restart_history_records_and_saves() -> None:
 async def test_restart_history_prunes_old_entries() -> None:
     now = datetime(2026, 8, 19, 8, 0, tzinfo=UTC)
 
-    history = RestartHistory(MagicMock())
+    history = RestartHistory(MagicMock(), clock=lambda: now)
     history._store.async_load = AsyncMock(
         return_value={
             "starts": [
