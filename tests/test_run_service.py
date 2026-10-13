@@ -81,6 +81,14 @@ async def test_run_service_executes_inspection_with_profile() -> None:
         "rules": ["CORE_VERSION", "UNAVAILABLE_ENTITIES"],
     }
     assert result.metadata["profile"] == "quick"
+
+    from custom_components.ha_inspector.engine.inspection_scope import (
+        inspection_scope,
+    )
+
+    request = inspector.run.await_args.kwargs["request"]
+    assert result.metadata["inspection_scope"] == inspection_scope(request)
+
     assert response == {
         "findings": [],
         "metadata": result.metadata,
@@ -119,7 +127,11 @@ async def test_run_service_persists_inspection_history() -> None:
             "status": "excellent",
         },
     }
-    result.as_dict.return_value = result_data
+    result.as_dict.side_effect = lambda: {
+        **result_data,
+        "remediation_progress": result.remediation_progress,
+        "remediation_trend": result.remediation_trend.as_dict(),
+    }
     inspector.run.return_value = result
 
     inspector_type = MagicMock(return_value=inspector)
@@ -133,6 +145,13 @@ async def test_run_service_persists_inspection_history() -> None:
     history = MagicMock()
     history.async_add = AsyncMock()
     history.remediation_comparison_with.return_value = None
+
+    from custom_components.ha_inspector.engine.remediation_trends import (
+        remediation_lifecycle_trend,
+    )
+
+    expected_trend = remediation_lifecycle_trend([])
+    history.remediation_trend_with.return_value = expected_trend
 
     hass = MagicMock()
     hass.data = {
@@ -157,9 +176,26 @@ async def test_run_service_persists_inspection_history() -> None:
 
     response = await registrations["run"](service_call)
 
-    history.async_add.assert_awaited_once_with(result_data)
-    assert response is result_data
+    history.remediation_trend_with.assert_called_once()
+    current_result = history.remediation_trend_with.call_args.args[0]
+    assert current_result["remediation_progress"] == result.remediation_progress
 
+    assert response["remediation_trend"] == expected_trend.as_dict()
+    assert result.remediation_trend is expected_trend
+
+    history.async_add.assert_awaited_once_with(response)
+    assert history.remediation_trend_with.call_args.args[0] is not response
+
+    assert response["metadata"] is result.metadata
+
+    from custom_components.ha_inspector.engine.inspection_scope import (
+        inspection_scope,
+    )
+
+    request = inspector.run.await_args.kwargs["request"]
+    assert response["metadata"]["inspection_scope"] == inspection_scope(request)
+    assert "profile" not in response["metadata"]
+    assert current_result["metadata"]["inspection_scope"] == inspection_scope(request)
 
 
 @pytest.mark.asyncio
@@ -724,30 +760,28 @@ async def test_run_service_builds_remediation_lifecycle_summary() -> None:
 
     history = MagicMock()
     history.async_add = AsyncMock()
-    history.remediation_comparison_with.return_value = (
-        HistoricalRemediationComparison(
-            previous_tracked_entities=2,
-            current_tracked_entities=2,
-            tracked_entities_delta=0,
-            previous_pending=2,
-            current_pending=1,
-            pending_delta=-1,
-            previous_in_progress=0,
-            current_in_progress=1,
-            in_progress_delta=1,
-            previous_resolved=0,
-            current_resolved=0,
-            resolved_delta=0,
-            previous_completed_actions=0,
-            current_completed_actions=1,
-            completed_actions_delta=1,
-            previous_remaining_actions=2,
-            current_remaining_actions=1,
-            remaining_actions_delta=-1,
-            previous_new_references=0,
-            current_new_references=0,
-            new_references_delta=0,
-        )
+    history.remediation_comparison_with.return_value = HistoricalRemediationComparison(
+        previous_tracked_entities=2,
+        current_tracked_entities=2,
+        tracked_entities_delta=0,
+        previous_pending=2,
+        current_pending=1,
+        pending_delta=-1,
+        previous_in_progress=0,
+        current_in_progress=1,
+        in_progress_delta=1,
+        previous_resolved=0,
+        current_resolved=0,
+        resolved_delta=0,
+        previous_completed_actions=0,
+        current_completed_actions=1,
+        completed_actions_delta=1,
+        previous_remaining_actions=2,
+        current_remaining_actions=1,
+        remaining_actions_delta=-1,
+        previous_new_references=0,
+        current_new_references=0,
+        new_references_delta=0,
     )
 
     domain_data = hass.data.setdefault(DOMAIN, {})

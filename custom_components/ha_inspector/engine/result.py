@@ -27,6 +27,10 @@ from .remediation_progress import (
     ResolvedRemediationItem,
     empty_remediation_progress_diagnostics,
 )
+from .remediation_trends import (
+    RemediationLifecycleTrend,
+    remediation_lifecycle_trend,
+)
 from .remediation_workflow_diagnostics import (
     RemediationWorkflowDiagnostics,
     empty_remediation_workflow_diagnostics,
@@ -83,6 +87,9 @@ class InspectionResult:
     remediation_lifecycle_summary: RemediationLifecycleSummary = field(
         default_factory=empty_remediation_lifecycle_summary
     )
+    remediation_trend: RemediationLifecycleTrend = field(
+        default_factory=lambda: remediation_lifecycle_trend([])
+    )
 
     def add_many(self, findings: Iterable[Finding]) -> None:
         """Add multiple findings to the result."""
@@ -99,15 +106,11 @@ class InspectionResult:
         findings_list = list(findings)
 
         self.checks_executed += 1
-        self.category_checks[category] = (
-            self.category_checks.get(category, 0) + 1
-        )
-        self.category_findings[category] = (
-            self.category_findings.get(category, 0) + len(findings_list)
-        )
-        self.category_findings_items.setdefault(category, []).extend(
-            findings_list
-        )
+        self.category_checks[category] = self.category_checks.get(category, 0) + 1
+        self.category_findings[category] = self.category_findings.get(
+            category, 0
+        ) + len(findings_list)
+        self.category_findings_items.setdefault(category, []).extend(findings_list)
 
         penalty = sum(
             penalty_for_finding(
@@ -272,6 +275,7 @@ class InspectionResult:
                 self.remediation_entity_summaries
             ),
             "remediation_lifecycle": self.remediation_lifecycle_summary,
+            "remediation_trend": self.remediation_trend.as_dict(),
             "presentation": self.presentation,
             "summary": {
                 severity.label: self.count_by_severity(severity)
