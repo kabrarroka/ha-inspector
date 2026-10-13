@@ -458,6 +458,55 @@ The report contains a controlled operational subset rather than the unfiltered
 diagnostic context.
 
 
+### Remediation lifecycle trends
+
+HA Inspector tracks remediation lifecycle trends across comparable
+inspections.
+
+Each `ha_inspector.run` response includes a `remediation_trend` object
+with the following fields:
+
+- `direction`: `improving`, `stable`, `declining`, or `insufficient_data`;
+- `samples`: number of comparable inspections used;
+- `pending_delta`: change in pending remediations;
+- `in_progress_delta`: change in remediations in progress;
+- `resolved_delta`: change in resolved remediations;
+- `completed_actions_delta`: change in completed remediation actions;
+- `remaining_actions_delta`: change in remaining remediation actions;
+- `new_references_delta`: change in newly introduced references.
+
+The direction is determined by comparing the first and last valid
+inspection samples:
+
+- `declining`: remaining actions or new references increased;
+- `improving`: remaining actions decreased without an increase in new
+  references;
+- `stable`: neither condition applies;
+- `insufficient_data`: fewer than two comparable samples are available.
+
+#### Comparable inspection scopes
+
+Each inspection result includes `metadata.inspection_scope`, a
+deterministic identity derived from the effective rule-selection filters.
+
+Only inspections with matching `inspection_scope` values are compared.
+This prevents misleading trends when different inspection profiles or
+rule filters are used.
+
+Equivalent effective configurations share the same scope, even when
+one inspection uses the default configuration and another explicitly
+selects the `full` profile.
+
+Output options such as language and diagnostic inclusion do not affect
+the inspection scope.
+
+The compact inspection history persists `inspection_scope` for future
+comparisons. Legacy history entries without this field remain stored,
+but are excluded from remediation lifecycle trend calculations.
+
+At least two comparable inspection samples are required to establish
+a remediation trend.
+
 ## Built-in profiles
 
 HA Inspector currently provides ten inspection profiles.

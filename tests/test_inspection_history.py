@@ -96,6 +96,7 @@ async def test_add_persists_compact_summary() -> None:
                 }
             },
             "profile": "quick",
+            "inspection_scope": None,
             "remediation": {
                 "tracked_entities": 0,
                 "pending": 0,

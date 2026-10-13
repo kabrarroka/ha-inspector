@@ -29,6 +29,7 @@ from .const import (
     SIGNAL_INSPECTION_FINISHED,
     VERSION,
 )
+from .engine.inspection_scope import inspection_scope
 from .engine.profiles import (
     InspectionProfileError,
     create_profile_request,
@@ -163,10 +164,7 @@ def _profile_definition(
 
     mapping_profile_id = value.get("id")
 
-    if (
-        not isinstance(mapping_profile_id, str)
-        or not mapping_profile_id.strip()
-    ):
+    if not isinstance(mapping_profile_id, str) or not mapping_profile_id.strip():
         raise InspectionProfileError(
             "Inspection profile mapping must contain a non-empty 'id'"
         )
@@ -309,11 +307,9 @@ async def async_setup(
                 baselines[baseline.entity_id] = baseline
 
             if progress_result.new_baselines:
-                progress_result = (
-                    remediation_progress.build_remediation_progress(
-                        baselines,
-                        result.remediation_plans,
-                    )
+                progress_result = remediation_progress.build_remediation_progress(
+                    baselines,
+                    result.remediation_plans,
                 )
 
             result.remediation_progress = (
@@ -331,11 +327,9 @@ async def async_setup(
                 for item in progress_result.progress
             }
 
-            result.remediation_entity_summaries = (
-                remediation_entity_summaries(
-                    progress_result.progress,
-                    remediation_ages,
-                )
+            result.remediation_entity_summaries = remediation_entity_summaries(
+                progress_result.progress,
+                remediation_ages,
             )
             result.resolved_remediation_items = (
                 remediation_progress.resolved_remediation_items(
@@ -347,6 +341,8 @@ async def async_setup(
                     progress_result.progress
                 )
             )
+
+        result.metadata["inspection_scope"] = inspection_scope(request)
 
         result.metadata["registry"] = {
             "collectors": list(registry.collector_ids),
@@ -366,16 +362,16 @@ async def async_setup(
             )
 
             current_result_data = result.as_dict()
-            remediation_comparison = (
-                inspection_history.remediation_comparison_with(
-                    current_result_data
-                )
+            remediation_comparison = inspection_history.remediation_comparison_with(
+                current_result_data
             )
-            result.remediation_lifecycle_summary = (
-                remediation_lifecycle_summary(
-                    result.remediation_progress,
-                    remediation_comparison,
-                )
+            result.remediation_lifecycle_summary = remediation_lifecycle_summary(
+                result.remediation_progress,
+                remediation_comparison,
+            )
+
+            result.remediation_trend = inspection_history.remediation_trend_with(
+                current_result_data
             )
 
         result_data = result.as_dict()
@@ -624,10 +620,10 @@ async def async_setup(
         context = build_live_stale_reference_context(hass, entity_id)
         impact = build_entity_dependency_impact_summary(context)
 
-        exists = any(
-            entry.entity_id == entity_id
-            for entry in registry.entities.values()
-        ) or hass.states.get(entity_id) is not None
+        exists = (
+            any(entry.entity_id == entity_id for entry in registry.entities.values())
+            or hass.states.get(entity_id) is not None
+        )
 
         cleanup_recommendation = None
 
@@ -703,10 +699,10 @@ async def async_setup(
         entity_id = str(call.data["entity_id"])
         registry = er.async_get(hass)
 
-        exists = any(
-            entry.entity_id == entity_id
-            for entry in registry.entities.values()
-        ) or hass.states.get(entity_id) is not None
+        exists = (
+            any(entry.entity_id == entity_id for entry in registry.entities.values())
+            or hass.states.get(entity_id) is not None
+        )
 
         if exists:
             return {

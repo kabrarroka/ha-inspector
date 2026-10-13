@@ -15,6 +15,7 @@ if TYPE_CHECKING:
         HistoricalInspectionComparison,
         HistoricalRemediationComparison,
     )
+    from .remediation_trends import RemediationLifecycleTrend
     from .trends import DomainTrend, HealthChange, ScoreTrend
 
 _STORAGE_VERSION: Final = 1
@@ -73,6 +74,23 @@ class InspectionHistory:
     def entries(self) -> list[dict[str, Any]]:
         """Return persisted inspection summaries."""
         return deepcopy(self._entries)
+
+    def remediation_trend(self) -> RemediationLifecycleTrend:
+        """Return remediation lifecycle trends for persisted inspections."""
+        from .remediation_trends import remediation_lifecycle_trend
+
+        return remediation_lifecycle_trend(self._entries)
+
+    def remediation_trend_with(
+        self,
+        result: dict[str, Any],
+    ) -> RemediationLifecycleTrend:
+        """Calculate remediation trends including an unpersisted result."""
+        from .remediation_trends import remediation_lifecycle_trend
+
+        current_entry = self._build_entry(result)
+
+        return remediation_lifecycle_trend([*self._entries, current_entry])
 
     def score_trend(self) -> ScoreTrend:
         """Return the health-score trend for persisted inspections."""
@@ -157,11 +175,13 @@ class InspectionHistory:
     ) -> dict[str, Any]:
         """Build a compact history entry from an inspection result."""
         metadata = result.get("metadata", {})
-        profile = (
-            metadata.get("profile")
-            if isinstance(metadata, dict)
-            else None
+        profile = metadata.get("profile") if isinstance(metadata, dict) else None
+
+        inspection_scope = (
+            metadata.get("inspection_scope") if isinstance(metadata, dict) else None
         )
+        if not isinstance(inspection_scope, str) or not inspection_scope:
+            inspection_scope = None
 
         dashboard_summary = result.get("dashboard_summary", {})
         if not isinstance(dashboard_summary, dict):
@@ -183,6 +203,7 @@ class InspectionHistory:
             "summary": deepcopy(result.get("summary", {})),
             "domain_health": deepcopy(domain_health),
             "profile": profile,
+            "inspection_scope": inspection_scope,
             "remediation": remediation,
         }
 
