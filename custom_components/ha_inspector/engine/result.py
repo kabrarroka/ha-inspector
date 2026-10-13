@@ -13,6 +13,9 @@ from .dependency_diagnostics import (
     empty_dependency_diagnostics,
 )
 from .models import Finding
+from .remediation_entity_summary import (
+    RemediationEntitySummary,
+)
 from .remediation_lifecycle import (
     RemediationLifecycleSummary,
     empty_remediation_lifecycle_summary,
@@ -73,6 +76,9 @@ class InspectionResult:
     )
     new_remediation_reference_items: tuple[
         NewRemediationReferenceItem, ...
+    ] = field(default_factory=tuple)
+    remediation_entity_summaries: tuple[
+        RemediationEntitySummary, ...
     ] = field(default_factory=tuple)
     remediation_lifecycle_summary: RemediationLifecycleSummary = field(
         default_factory=empty_remediation_lifecycle_summary
@@ -261,6 +267,9 @@ class InspectionResult:
             "resolved_remediation_items": self.resolved_remediation_items,
             "new_remediation_reference_items": (
                 self.new_remediation_reference_items
+            ),
+            "remediation_entity_summaries": (
+                self.remediation_entity_summaries
             ),
             "remediation_lifecycle": self.remediation_lifecycle_summary,
             "presentation": self.presentation,

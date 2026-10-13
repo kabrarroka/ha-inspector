@@ -135,7 +135,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Remediation age tracking
 - [x] Stalled remediation detection
 - [x] Remediation urgency classification
-- [ ] Per-entity remediation age and status summaries
+- [x] Per-entity remediation age and status summaries
 - [ ] Remediation lifecycle trend analytics
 - [ ] Remediation regression counters
 - [ ] Dashboard-oriented remediation summary

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from time import time
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -35,6 +36,9 @@ from .engine.profiles import (
 from .engine.public_api import (
     PUBLIC_API_VERSION,
     describe_public_api,
+)
+from .engine.remediation_entity_summary import (
+    remediation_entity_summaries,
 )
 from .engine.request import InspectionRequest
 
@@ -315,6 +319,22 @@ async def async_setup(
             result.remediation_progress = (
                 remediation_progress.remediation_progress_diagnostics(
                     progress_result.progress
+                )
+            )
+
+            remediation_now = time()
+            remediation_ages = {
+                item.entity_id: remediation_baselines.age_seconds(
+                    item.entity_id,
+                    now=remediation_now,
+                )
+                for item in progress_result.progress
+            }
+
+            result.remediation_entity_summaries = (
+                remediation_entity_summaries(
+                    progress_result.progress,
+                    remediation_ages,
                 )
             )
             result.resolved_remediation_items = (

@@ -888,3 +888,424 @@ async def test_run_service_persists_remediation_state() -> None:
         }
     )
     assert response is result_data
+
+
+@pytest.mark.asyncio
+async def test_run_service_exposes_existing_remediation_entity_summary() -> None:
+    """Run service exposes persisted baseline age and remediation urgency."""
+    from time import time
+
+    from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
+    from custom_components.ha_inspector.engine.remediation_baselines import (
+        RemediationBaselineStore,
+    )
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationPlan,
+        RemediationStep,
+    )
+    from custom_components.ha_inspector.engine.result import InspectionResult
+
+    registrations: dict[str, Any] = {}
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.services.async_register = MagicMock(
+        side_effect=lambda domain, service, handler, **kwargs: (
+            registrations.__setitem__(service, handler)
+        )
+    )
+
+    baseline = RemediationPlan(
+        entity_id="sensor.missing",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.example",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    store = RemediationBaselineStore(
+        hass,
+        clock=lambda: time() - 10 * 86400,
+    )
+    store._store.async_load = AsyncMock(return_value=None)
+    store._store.async_save = AsyncMock()
+
+    await store.async_load()
+    await store.async_set(baseline)
+
+    result = InspectionResult()
+    result.remediation_plans = (baseline,)
+
+    inspector = MagicMock()
+    inspector.run = AsyncMock(return_value=result)
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    hass.data.setdefault(DOMAIN, {})[
+        DATA_REMEDIATION_BASELINES
+    ] = store
+
+    response = await registrations[SERVICE_RUN](MagicMock(data={}))
+
+    summaries = response["remediation_entity_summaries"]
+
+    assert len(summaries) == 1
+
+    summary = summaries[0]
+
+    assert summary["entity_id"] == "sensor.missing"
+    assert summary["status"] == "pending"
+    assert summary["stalled"] is True
+    assert summary["urgency"] == "medium"
+    assert summary["new_reference_count"] == 0
+    assert summary["total_action_count"] == 1
+    assert summary["completed_action_count"] == 0
+    assert summary["remaining_action_count"] == 1
+
+    assert summary["age_seconds"] is not None
+    assert 10 * 86400 <= summary["age_seconds"] < 10 * 86400 + 60
+
+
+@pytest.mark.asyncio
+async def test_run_service_exposes_new_remediation_entity_summary() -> None:
+    """New remediation baselines receive an initial age and urgency."""
+    from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
+    from custom_components.ha_inspector.engine.remediation_baselines import (
+        RemediationBaselineStore,
+    )
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationPlan,
+        RemediationStep,
+    )
+    from custom_components.ha_inspector.engine.result import InspectionResult
+
+    registrations: dict[str, Any] = {}
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.services.async_register = MagicMock(
+        side_effect=lambda domain, service, handler, **kwargs: (
+            registrations.__setitem__(service, handler)
+        )
+    )
+
+    plan = RemediationPlan(
+        entity_id="sensor.new",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.example",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    store = RemediationBaselineStore(hass)
+    store._store.async_load = AsyncMock(return_value=None)
+    store._store.async_save = AsyncMock()
+
+    await store.async_load()
+
+    result = InspectionResult()
+    result.remediation_plans = (plan,)
+
+    inspector = MagicMock()
+    inspector.run = AsyncMock(return_value=result)
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    hass.data.setdefault(DOMAIN, {})[
+        DATA_REMEDIATION_BASELINES
+    ] = store
+
+    response = await registrations[SERVICE_RUN](MagicMock(data={}))
+
+    summaries = response["remediation_entity_summaries"]
+
+    assert len(summaries) == 1
+
+    summary = summaries[0]
+
+    assert summary["entity_id"] == "sensor.new"
+    assert summary["status"] == "pending"
+    assert summary["stalled"] is False
+    assert summary["urgency"] == "low"
+    assert summary["total_action_count"] == 1
+    assert summary["completed_action_count"] == 0
+    assert summary["remaining_action_count"] == 1
+    assert summary["new_reference_count"] == 0
+
+    assert summary["age_seconds"] is not None
+    assert 0 <= summary["age_seconds"] < 60
+
+    assert store.get("sensor.new") == plan
+    store._store.async_save.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_run_service_exposes_resolved_remediation_entity_summary() -> None:
+    """Resolved remediation retains baseline age without urgency."""
+    from time import time
+
+    from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
+    from custom_components.ha_inspector.engine.remediation_baselines import (
+        RemediationBaselineStore,
+    )
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationPlan,
+        RemediationStep,
+    )
+    from custom_components.ha_inspector.engine.result import InspectionResult
+
+    registrations: dict[str, Any] = {}
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.services.async_register = MagicMock(
+        side_effect=lambda domain, service, handler, **kwargs: (
+            registrations.__setitem__(service, handler)
+        )
+    )
+
+    baseline = RemediationPlan(
+        entity_id="sensor.resolved",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity was referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.example",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    store = RemediationBaselineStore(
+        hass,
+        clock=lambda: time() - 10 * 86400,
+    )
+    store._store.async_load = AsyncMock(return_value=None)
+    store._store.async_save = AsyncMock()
+
+    await store.async_load()
+    await store.async_set(baseline)
+    store._store.async_save.reset_mock()
+
+    result = InspectionResult()
+    result.remediation_plans = ()
+
+    inspector = MagicMock()
+    inspector.run = AsyncMock(return_value=result)
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    hass.data.setdefault(DOMAIN, {})[
+        DATA_REMEDIATION_BASELINES
+    ] = store
+
+    response = await registrations[SERVICE_RUN](MagicMock(data={}))
+
+    summaries = response["remediation_entity_summaries"]
+
+    assert len(summaries) == 1
+
+    summary = summaries[0]
+
+    assert summary["entity_id"] == "sensor.resolved"
+    assert summary["status"] == "resolved"
+    assert summary["stalled"] is False
+    assert summary["urgency"] == "none"
+    assert summary["total_action_count"] == 1
+    assert summary["completed_action_count"] == 1
+    assert summary["remaining_action_count"] == 0
+    assert summary["new_reference_count"] == 0
+
+    assert summary["age_seconds"] is not None
+    assert 10 * 86400 <= summary["age_seconds"] < 10 * 86400 + 60
+
+    assert store.get("sensor.resolved") == baseline
+    store._store.async_save.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_run_service_exposes_high_urgency_for_new_references() -> None:
+    """Stalled remediation with new references has high urgency."""
+    from time import time
+
+    from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
+    from custom_components.ha_inspector.engine.remediation_baselines import (
+        RemediationBaselineStore,
+    )
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationPlan,
+        RemediationStep,
+    )
+    from custom_components.ha_inspector.engine.result import InspectionResult
+
+    registrations: dict[str, Any] = {}
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.services.async_register = MagicMock(
+        side_effect=lambda domain, service, handler, **kwargs: (
+            registrations.__setitem__(service, handler)
+        )
+    )
+
+    baseline = RemediationPlan(
+        entity_id="sensor.regressed",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity is referenced by active configuration",
+        reference_count=1,
+        active_reference_count=1,
+        disabled_reference_count=0,
+        steps=(
+            RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.original",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    current = RemediationPlan(
+        entity_id="sensor.regressed",
+        action="review_active_references",
+        safety="review_required",
+        reason="Entity has acquired another active reference",
+        reference_count=2,
+        active_reference_count=2,
+        disabled_reference_count=0,
+        steps=(
+            RemediationStep(
+                configuration_type="automation",
+                configuration_id="automation.original",
+                status="active",
+                action="review_entity_reference",
+            ),
+            RemediationStep(
+                configuration_type="script",
+                configuration_id="script.new_reference",
+                status="active",
+                action="review_entity_reference",
+            ),
+        ),
+    )
+
+    store = RemediationBaselineStore(
+        hass,
+        clock=lambda: time() - 10 * 86400,
+    )
+    store._store.async_load = AsyncMock(return_value=None)
+    store._store.async_save = AsyncMock()
+
+    await store.async_load()
+    await store.async_set(baseline)
+    store._store.async_save.reset_mock()
+
+    result = InspectionResult()
+    result.remediation_plans = (current,)
+
+    inspector = MagicMock()
+    inspector.run = AsyncMock(return_value=result)
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    hass.data.setdefault(DOMAIN, {})[
+        DATA_REMEDIATION_BASELINES
+    ] = store
+
+    response = await registrations[SERVICE_RUN](MagicMock(data={}))
+
+    summaries = response["remediation_entity_summaries"]
+
+    assert len(summaries) == 1
+
+    summary = summaries[0]
+
+    assert summary["entity_id"] == "sensor.regressed"
+    assert summary["status"] == "in_progress"
+    assert summary["stalled"] is True
+    assert summary["urgency"] == "high"
+    assert summary["new_reference_count"] == 1
+    assert summary["total_action_count"] == 1
+    assert summary["completed_action_count"] == 0
+    assert summary["remaining_action_count"] == 1
+
+    assert summary["age_seconds"] is not None
+    assert 10 * 86400 <= summary["age_seconds"] < 10 * 86400 + 60
+
+    assert store.get("sensor.regressed") == baseline
+    store._store.async_save.assert_not_awaited()
