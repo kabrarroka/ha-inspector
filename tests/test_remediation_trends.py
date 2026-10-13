@@ -128,6 +128,24 @@ def test_trend_serializes() -> None:
     }
 
 
+def test_trend_ignores_non_dict_remediation_entries() -> None:
+    """Entries without remediation dictionaries must be ignored."""
+    invalid = _entry()
+    invalid["remediation"] = None
+
+    trend = remediation_lifecycle_trend(
+        [
+            invalid,
+            _entry(remaining_actions=4),
+            _entry(remaining_actions=2),
+        ]
+    )
+
+    assert trend.direction == "improving"
+    assert trend.samples == 2
+    assert trend.remaining_actions_delta == -2
+
+
 def test_trend_ignores_invalid_remediation_entries() -> None:
     """Invalid remediation counters must not contribute samples."""
     negative = _entry(remaining_actions=-1)
