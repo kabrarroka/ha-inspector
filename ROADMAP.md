@@ -133,7 +133,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 ## Epic N — Dependency remediation observability
 
 - [x] Remediation age tracking
-- [ ] Stalled remediation detection
+- [x] Stalled remediation detection
 - [ ] Remediation urgency classification
 - [ ] Per-entity remediation age and status summaries
 - [ ] Remediation lifecycle trend analytics
