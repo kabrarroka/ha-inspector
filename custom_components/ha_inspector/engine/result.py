@@ -13,6 +13,10 @@ from .dependency_diagnostics import (
     empty_dependency_diagnostics,
 )
 from .models import Finding
+from .remediation_dashboard import (
+    RemediationDashboardSummary,
+    remediation_dashboard_summary,
+)
 from .remediation_entity_summary import (
     RemediationEntitySummary,
 )
@@ -209,6 +213,15 @@ class InspectionResult:
         }
 
     @property
+    def remediation_dashboard_summary(self) -> RemediationDashboardSummary:
+        """Return compact remediation information for dashboards."""
+        return remediation_dashboard_summary(
+            self.remediation_lifecycle_summary,
+            self.remediation_entity_summaries,
+            self.remediation_trend,
+        )
+
+    @property
     def presentation(self) -> list[dict[str, Any]]:
         """Return findings grouped and ordered for presentation."""
         severity_order = {
@@ -276,6 +289,9 @@ class InspectionResult:
             ),
             "remediation_lifecycle": self.remediation_lifecycle_summary,
             "remediation_trend": self.remediation_trend.as_dict(),
+            "remediation_dashboard_summary": (
+                self.remediation_dashboard_summary
+            ),
             "presentation": self.presentation,
             "summary": {
                 severity.label: self.count_by_severity(severity)
