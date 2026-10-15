@@ -125,6 +125,9 @@ def test_trend_serializes() -> None:
         "completed_actions_delta": 0,
         "remaining_actions_delta": -2,
         "new_references_delta": 0,
+        "regression_count": 0,
+        "remaining_actions_regression_count": 0,
+        "new_references_regression_count": 0,
     }
 
 
