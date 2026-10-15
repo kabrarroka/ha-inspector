@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.7.0
+
+### Added
+
+- Remediation age tracking across inspections.
+- Stalled remediation detection.
+- Remediation urgency classification.
+- Per-entity remediation age and status summaries.
+- Remediation lifecycle trend analytics.
+- Remediation regression counters.
+- Dashboard-oriented remediation summary.
+- Public `ha_inspector.remediation_status` response service for querying
+  general and per-entity remediation status.
+
+### Changed
+
+- Expanded remediation diagnostics with age, urgency, stalled-work,
+  lifecycle trends, and regression information.
+- Improved Home Assistant-facing remediation monitoring and dashboard
+  summaries.
+- Added read-only remediation status queries using the latest inspection
+  result or persisted remediation state.
+- Expanded README documentation for the public remediation status service.
+
+### Compatibility
+
+- Public API remains version 1.
+- Capabilities schema remains version 1.
+- Inspection result schema remains version 2.
+- Diagnostic report schema remains version 1.
+- No configuration-entry migration is required from 1.6.1.
+- Remediation monitoring remains non-destructive and never modifies
+  Home Assistant configuration automatically.
+
+### Validation
+
+- Ruff passes.
+- Mypy passes across 94 source files.
+- 1028 tests pass.
+- Python test coverage is 100%.
+
 ## 1.6.1
 
 ### Fixed
