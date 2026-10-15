@@ -62,6 +62,7 @@ SERVICE_DEPENDENCY_DIAGNOSTICS = "dependency_diagnostics"
 SERVICE_ENTITY_DEPENDENCY = "entity_dependency"
 SERVICE_REMEDIATION_PLAN = "remediation_plan"
 SERVICE_REMEDIATION_PROGRESS = "remediation_progress"
+SERVICE_REMEDIATION_STATUS = "remediation_status"
 
 API_VERSION = PUBLIC_API_VERSION
 
@@ -130,6 +131,11 @@ SERVICE_REMEDIATION_PLAN_SCHEMA = vol.Schema(
 )
 
 SERVICE_REMEDIATION_PROGRESS_SCHEMA = vol.Schema({})
+SERVICE_REMEDIATION_STATUS_SCHEMA = vol.Schema(
+    {
+        vol.Optional("entity_id"): str,
+    }
+)
 
 
 def _load_engine() -> tuple[
@@ -833,6 +839,120 @@ async def async_setup(
         SERVICE_REMEDIATION_PROGRESS,
         async_handle_remediation_progress,
         schema=SERVICE_REMEDIATION_PROGRESS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def async_handle_remediation_status(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Return the latest or persisted remediation status."""
+        from copy import deepcopy
+
+        entity_id = call.data.get("entity_id")
+
+        domain_data = hass.data.setdefault(DOMAIN, {})
+        result = domain_data.get(DATA_LAST_RESULT)
+
+        if isinstance(result, Mapping):
+            dashboard = result.get("remediation_dashboard_summary")
+            entities = result.get("remediation_entity_summaries")
+
+            if isinstance(dashboard, Mapping) and isinstance(
+                entities, (list, tuple)
+            ):
+                if entity_id is not None:
+                    for entity in entities:
+                        if (
+                            isinstance(entity, Mapping)
+                            and entity.get("entity_id") == entity_id
+                        ):
+                            return {
+                                "status": "available",
+                                "source": "latest_inspection",
+                                "entity": deepcopy(dict(entity)),
+                            }
+
+                    return {
+                        "status": "not_found",
+                        "source": "latest_inspection",
+                        "entity": None,
+                    }
+
+                return {
+                    "status": "available",
+                    "source": "latest_inspection",
+                    "dashboard": deepcopy(dict(dashboard)),
+                    "entities": deepcopy(list(entities)),
+                }
+
+        remediation_state = domain_data.get(DATA_REMEDIATION_STATE)
+
+        if remediation_state is not None:
+            stored_state = remediation_state.state()
+
+            if isinstance(stored_state, Mapping):
+                progress = stored_state.get("progress")
+                lifecycle = stored_state.get("lifecycle")
+
+                if isinstance(progress, Mapping) and isinstance(
+                    lifecycle, Mapping
+                ):
+                    if entity_id is not None:
+                        persisted_entities = progress.get("entities")
+
+                        if isinstance(persisted_entities, (list, tuple)):
+                            for entity in persisted_entities:
+                                if (
+                                    isinstance(entity, Mapping)
+                                    and entity.get("entity_id") == entity_id
+                                ):
+                                    return {
+                                        "status": "available",
+                                        "source": "persisted_state",
+                                        "entity": deepcopy(dict(entity)),
+                                    }
+
+                        if not isinstance(persisted_entities, (list, tuple)):
+                            return {
+                                "status": "unavailable",
+                                "source": "persisted_state",
+                                "entity": None,
+                            }
+
+                        return {
+                            "status": "not_found",
+                            "source": "persisted_state",
+                            "entity": None,
+                        }
+
+                    return {
+                        "status": "available",
+                        "source": "persisted_state",
+                        "dashboard": None,
+                        "entities": [],
+                        "progress": deepcopy(dict(progress)),
+                        "lifecycle": deepcopy(dict(lifecycle)),
+                    }
+
+        if entity_id is not None:
+            return {
+                "status": "unavailable",
+                "source": "none",
+                "entity": None,
+            }
+
+        return {
+            "status": "unavailable",
+            "source": "none",
+            "dashboard": None,
+            "entities": [],
+        }
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMEDIATION_STATUS,
+        async_handle_remediation_status,
+        schema=SERVICE_REMEDIATION_STATUS_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 
