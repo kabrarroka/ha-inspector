@@ -34,6 +34,9 @@ def test_result_serializes_default_remediation_trend() -> None:
         "completed_actions_delta": None,
         "remaining_actions_delta": None,
         "new_references_delta": None,
+        "regression_count": 0,
+        "remaining_actions_regression_count": 0,
+        "new_references_regression_count": 0,
     }
 
 

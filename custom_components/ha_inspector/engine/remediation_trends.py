@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 from typing import Any
 
 from .trends import TrendDirection
@@ -29,6 +30,9 @@ class RemediationLifecycleTrend:
     completed_actions_delta: int | None
     remaining_actions_delta: int | None
     new_references_delta: int | None
+    regression_count: int
+    remaining_actions_regression_count: int
+    new_references_regression_count: int
 
     def as_dict(self) -> dict[str, int | str | None]:
         """Return a JSON-serializable trend summary."""
@@ -41,6 +45,13 @@ class RemediationLifecycleTrend:
             "completed_actions_delta": self.completed_actions_delta,
             "remaining_actions_delta": self.remaining_actions_delta,
             "new_references_delta": self.new_references_delta,
+            "regression_count": self.regression_count,
+            "remaining_actions_regression_count": (
+                self.remaining_actions_regression_count
+            ),
+            "new_references_regression_count": (
+                self.new_references_regression_count
+            ),
         }
 
 
@@ -91,6 +102,29 @@ def remediation_lifecycle_trend(
 
     samples = len(valid_entries)
 
+    remaining_regressions = 0
+    reference_regressions = 0
+    total_regressions = 0
+
+    for previous, current in pairwise(valid_entries):
+        remaining_increased = (
+            current["remaining_actions"]
+            > previous["remaining_actions"]
+        )
+        references_increased = (
+            current["new_references"]
+            > previous["new_references"]
+        )
+
+        if remaining_increased:
+            remaining_regressions += 1
+
+        if references_increased:
+            reference_regressions += 1
+
+        if remaining_increased or references_increased:
+            total_regressions += 1
+
     deltas: dict[str, int | None] = {field: None for field in _REMEDIATION_FIELDS}
 
     if samples < 2:
@@ -124,6 +158,9 @@ def remediation_lifecycle_trend(
         completed_actions_delta=deltas["completed_actions"],
         remaining_actions_delta=deltas["remaining_actions"],
         new_references_delta=deltas["new_references"],
+        regression_count=total_regressions,
+        remaining_actions_regression_count=remaining_regressions,
+        new_references_regression_count=reference_regressions,
     )
 
 

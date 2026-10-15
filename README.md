@@ -473,7 +473,12 @@ with the following fields:
 - `resolved_delta`: change in resolved remediations;
 - `completed_actions_delta`: change in completed remediation actions;
 - `remaining_actions_delta`: change in remaining remediation actions;
-- `new_references_delta`: change in newly introduced references.
+- `new_references_delta`: change in newly introduced references;
+- `regression_count`: number of transitions with at least one regression;
+- `remaining_actions_regression_count`: number of transitions where
+  remaining remediation actions increased;
+- `new_references_regression_count`: number of transitions where
+  newly introduced references increased.
 
 The direction is determined by comparing the first and last valid
 inspection samples:
@@ -483,6 +488,32 @@ inspection samples:
   references;
 - `stable`: neither condition applies;
 - `insufficient_data`: fewer than two comparable samples are available.
+
+#### Remediation regression counters
+
+Regression counters track increases between consecutive valid,
+comparable inspection samples.
+
+A regression occurs when either:
+
+- `remaining_actions` increases compared with the previous sample;
+- `new_references` increases compared with the previous sample.
+
+The overall `regression_count` increases once per transition, even
+when both metrics increase simultaneously.
+
+The two specific counters independently track increases in their
+respective metrics.
+
+Only valid inspection samples with matching inspection scopes are
+considered. Invalid or unrelated history entries are excluded.
+
+All three counters are zero when fewer than two comparable samples
+are available.
+
+Regression counters describe historical transitions and complement
+the overall lifecycle trend direction. They do not change the
+existing direction classification or the persisted history format.
 
 #### Comparable inspection scopes
 
