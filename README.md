@@ -195,6 +195,7 @@ public_api:
     - entity_dependency
     - remediation_plan
     - remediation_progress
+    - remediation_status
 engine: {}
 ```
 
@@ -538,6 +539,52 @@ but are excluded from remediation lifecycle trend calculations.
 At least two comparable inspection samples are required to establish
 a remediation trend.
 
+### `ha_inspector.remediation_status`
+
+Returns the latest available remediation status without running a new
+inspection or modifying Home Assistant configuration.
+
+The optional `entity_id` field selects an individual entity. Without it,
+the service returns the general remediation status.
+
+General query:
+
+```yaml
+action: ha_inspector.remediation_status
+response_variable: remediation_status
+```
+
+Individual entity query:
+
+```yaml
+action: ha_inspector.remediation_status
+data:
+  entity_id: sensor.example
+response_variable: remediation_status
+```
+
+The response includes:
+
+- `status`: `available`, `not_found`, or `unavailable`.
+- `source`: `latest_inspection`, `persisted_state`, or `none`.
+- `dashboard` and `entities` for general queries.
+- `entity` for individual queries.
+
+When a valid latest inspection exists, the service returns the dashboard
+summary and enriched per-entity remediation diagnostics.
+
+Otherwise, it falls back to persisted remediation progress and lifecycle
+data. General queries return `progress` and `lifecycle`, with
+`dashboard: null` and `entities: []`.
+
+Individual persisted queries return basic per-entity progress without
+calculated ages, urgency classifications, or stalled-remediation diagnostics.
+
+A missing entity returns `not_found` when an entity collection is available.
+Missing or incomplete data returns `unavailable`.
+
+The service is read-only and never modifies remediation baselines.
+
 ## Built-in profiles
 
 HA Inspector currently provides ten inspection profiles.
@@ -562,7 +609,7 @@ HA Inspector exposes public API version **1**.
 
 The stable public contract includes:
 
-- Home Assistant services: `run`, `list_profiles`, `describe_profile`, `info`, `list_acknowledgements`, `acknowledge_finding`, `clear_acknowledgement`, `clear_acknowledgements`, `export_diagnostic_report`, `dependency_diagnostics`, `entity_dependency`, `remediation_plan`, and `remediation_progress`.
+- Home Assistant services: `run`, `list_profiles`, `describe_profile`, `info`, `list_acknowledgements`, `acknowledge_finding`, `clear_acknowledgement`, `clear_acknowledgements`, `export_diagnostic_report`, `dependency_diagnostics`, `entity_dependency`, `remediation_plan`, `remediation_progress`, and `remediation_status`.
 - `InspectionRequest` for inspection request configuration.
 - `InspectionResult` and its serialized result document.
 - `Finding` and `Severity`.

@@ -191,3 +191,25 @@ remediation_progress:
   fields: {}
   response:
     optional: false
+remediation_status:
+  name: Estado de remediación
+  description: >
+    Consulta el estado general de las remediaciones o el estado de una
+    entidad concreta. Utiliza los resultados de la última inspección
+    disponible y, si no existen, recupera la información básica del
+    estado persistido. No ejecuta nuevas inspecciones, no modifica los
+    baselines de remediación y no realiza cambios en Home Assistant.
+    La respuesta incluye el estado de disponibilidad y el origen de
+    los datos. Los diagnósticos enriquecidos solo están disponibles
+    cuando existe una última inspección válida.
+  fields:
+    entity_id:
+      name: Entidad
+      description: >
+        Identificador de la entidad que se desea consultar.
+        Si se omite, se devuelve el estado general de remediación.
+      required: false
+      selector:
+        entity:
+  response:
+    optional: false

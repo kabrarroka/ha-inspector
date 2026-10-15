@@ -138,8 +138,8 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Per-entity remediation age and status summaries
 - [x] Remediation lifecycle trend analytics
 - [x] Remediation regression counters
-- [ ] Dashboard-oriented remediation summary
-- [ ] Public remediation status query service
+- [x] Dashboard-oriented remediation summary
+- [x] Public remediation status query service
 
 ## Version direction
 
