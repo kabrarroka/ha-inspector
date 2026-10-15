@@ -588,3 +588,94 @@ def test_remediation_entity_summaries_are_serialized() -> None:
             "new_reference_count": 0,
         },
     )
+
+
+def test_empty_result_serializes_remediation_dashboard() -> None:
+    """An empty inspection exposes an idle remediation dashboard."""
+    result = InspectionResult()
+
+    payload = result.as_dict()
+    dashboard = payload["remediation_dashboard_summary"]
+
+    assert dashboard["status"] == "idle"
+    assert dashboard["tracked_entities"] == 0
+    assert dashboard["stalled_entities"] == 0
+    assert dashboard["high_urgency_entities"] == 0
+    assert dashboard["oldest_active_age_seconds"] is None
+    assert dashboard["trend"] == "insufficient_data"
+    assert dashboard["regression_count"] == 0
+
+
+def test_result_serializes_remediation_dashboard_values() -> None:
+    """Dashboard serialization reflects existing remediation diagnostics."""
+    from custom_components.ha_inspector.engine.remediation_entity_summary import (
+        remediation_entity_summaries,
+    )
+    from custom_components.ha_inspector.engine.remediation_plans import (
+        RemediationProgress,
+    )
+
+    result = InspectionResult()
+
+    result.remediation_lifecycle_summary = {
+        "status": "active",
+        "tracked_entities": 2,
+        "pending": 1,
+        "in_progress": 1,
+        "resolved": 0,
+        "completed_actions": 3,
+        "remaining_actions": 2,
+        "new_references": 1,
+        "resolved_since_previous": 0,
+        "newly_pending_since_previous": 0,
+        "new_references_delta": 0,
+    }
+
+    progress = (
+        RemediationProgress(
+            entity_id="sensor.pending",
+            status="pending",
+            total_action_count=2,
+            completed_action_count=0,
+            remaining_action_count=2,
+            new_reference_count=1,
+        ),
+        RemediationProgress(
+            entity_id="sensor.active",
+            status="in_progress",
+            total_action_count=3,
+            completed_action_count=2,
+            remaining_action_count=1,
+            new_reference_count=0,
+        ),
+    )
+
+    from custom_components.ha_inspector.engine.remediation_stalled import (
+        DEFAULT_STALLED_THRESHOLD_SECONDS,
+    )
+
+    stalled_age = DEFAULT_STALLED_THRESHOLD_SECONDS + 1
+
+    result.remediation_entity_summaries = remediation_entity_summaries(
+        progress,
+        {
+            "sensor.pending": stalled_age,
+            "sensor.active": 100.0,
+        },
+    )
+
+    payload = result.as_dict()
+    dashboard = payload["remediation_dashboard_summary"]
+
+    assert dashboard["status"] == "active"
+    assert dashboard["tracked_entities"] == 2
+    assert dashboard["pending"] == 1
+    assert dashboard["in_progress"] == 1
+    assert dashboard["completed_actions"] == 3
+    assert dashboard["remaining_actions"] == 2
+    assert dashboard["new_references"] == 1
+    assert dashboard["stalled_entities"] == 1
+    assert dashboard["high_urgency_entities"] == 1
+    assert dashboard["oldest_active_age_seconds"] == stalled_age
+    assert dashboard["trend"] == "insufficient_data"
+    assert dashboard["regression_count"] == 0
