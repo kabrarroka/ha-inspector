@@ -141,6 +141,17 @@ Home Assistant evolves and new diagnostic needs are identified.
 - [x] Dashboard-oriented remediation summary
 - [x] Public remediation status query service
 
+## Epic O — Automated inspection and proactive monitoring
+
+- [ ] Configurable periodic inspection scheduling
+- [ ] Event-triggered automatic inspections
+- [ ] Detection of new findings between inspections
+- [ ] Classification and prioritization of actionable changes
+- [ ] Configurable notifications for important findings
+- [ ] Notification deduplication and cooldown
+- [ ] Proactive monitoring dashboard summary
+- [ ] Public proactive monitoring status query service
+
 ## Version direction
 
 ### 0.5 — Engine foundation
@@ -197,3 +208,11 @@ Remediation aging, stalled-work detection, urgency classification,
 lifecycle trend analytics, regression tracking, and richer Home
 Assistant-facing remediation monitoring without automatic configuration
 changes.
+
+### 1.8 — Automated inspection and proactive monitoring
+
+Configurable periodic and event-triggered inspections, proactive detection
+of new findings, actionable change prioritization, configurable
+notifications with deduplication and cooldown, dashboard-oriented
+monitoring summaries, and public monitoring status queries without
+automatic configuration changes.
