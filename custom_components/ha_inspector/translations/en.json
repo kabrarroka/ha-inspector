@@ -10,5 +10,20 @@
         "description": "Create the initial configuration entry for HA Inspector."
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure periodic inspections",
+        "data": {
+          "periodic_inspection_enabled": "Enable periodic inspections",
+          "periodic_inspection_interval": "Inspection interval (minutes)",
+          "periodic_inspection_profile": "Inspection profile"
+        }
+      }
+    },
+    "error": {
+      "invalid_options": "The provided options are invalid. Check the interval and profile."
+    }
   }
 }

@@ -20,7 +20,6 @@ from custom_components.ha_inspector.const import (
 )
 
 
-@pytest.mark.asyncio
 async def test_run_service_executes_inspection_with_profile() -> None:
     inspector = MagicMock()
     inspector.run = AsyncMock()
@@ -100,7 +99,6 @@ def test_run_service_schema_rejects_unknown_fields() -> None:
     with pytest.raises(vol.MultipleInvalid):
         SERVICE_RUN_SCHEMA({"unexpected": True})
 
-@pytest.mark.asyncio
 async def test_run_service_persists_inspection_history() -> None:
     """Run service stores a compact inspection history entry."""
     inspector = MagicMock()
@@ -198,7 +196,6 @@ async def test_run_service_persists_inspection_history() -> None:
     assert current_result["metadata"]["inspection_scope"] == inspection_scope(request)
 
 
-@pytest.mark.asyncio
 async def test_run_service_applies_persisted_acknowledgements() -> None:
     """Run service converts persisted acknowledgements into suppression."""
     inspector = MagicMock()
@@ -267,7 +264,6 @@ async def test_run_service_applies_persisted_acknowledgements() -> None:
     )
 
 
-@pytest.mark.asyncio
 async def test_run_service_without_acknowledgement_store_uses_no_suppression() -> None:
     """Run service remains backward compatible without persisted state."""
     inspector = MagicMock()
@@ -311,7 +307,6 @@ async def test_run_service_without_acknowledgement_store_uses_no_suppression() -
     assert inspector.run.await_args.kwargs["suppression"] is None
 
 
-@pytest.mark.asyncio
 async def test_run_service_captures_new_remediation_baselines() -> None:
     """Run service persists remediation baselines for newly affected entities."""
     from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
@@ -418,7 +413,6 @@ async def test_run_service_captures_new_remediation_baselines() -> None:
     store.async_set.assert_awaited_once_with(plan)
 
 
-@pytest.mark.asyncio
 async def test_run_service_does_not_replace_existing_remediation_baseline() -> None:
     """Run service preserves an existing remediation baseline."""
     from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
@@ -481,7 +475,6 @@ async def test_run_service_does_not_replace_existing_remediation_baseline() -> N
     store.async_set.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_run_service_reports_resolved_remediation_baseline() -> None:
     """Run service reports a baseline as resolved when its plan disappears."""
     from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
@@ -587,7 +580,6 @@ async def test_run_service_reports_resolved_remediation_baseline() -> None:
     store.async_set.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_run_service_reports_new_remediation_references() -> None:
     """Run service reports references introduced after the baseline."""
     from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
@@ -699,7 +691,6 @@ async def test_run_service_reports_new_remediation_references() -> None:
     store.async_set.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_run_service_builds_remediation_lifecycle_summary() -> None:
     """Run service summarizes remediation lifecycle against prior history."""
     from custom_components.ha_inspector.const import (
@@ -827,7 +818,6 @@ async def test_run_service_builds_remediation_lifecycle_summary() -> None:
 
 
 
-@pytest.mark.asyncio
 async def test_run_service_persists_remediation_state() -> None:
     """Run service persists latest remediation progress and lifecycle."""
     inspector = MagicMock()
@@ -924,7 +914,6 @@ async def test_run_service_persists_remediation_state() -> None:
     assert response is result_data
 
 
-@pytest.mark.asyncio
 async def test_run_service_exposes_existing_remediation_entity_summary() -> None:
     """Run service exposes persisted baseline age and remediation urgency."""
     from time import time
@@ -1022,7 +1011,6 @@ async def test_run_service_exposes_existing_remediation_entity_summary() -> None
     assert 10 * 86400 <= summary["age_seconds"] < 10 * 86400 + 60
 
 
-@pytest.mark.asyncio
 async def test_run_service_exposes_new_remediation_entity_summary() -> None:
     """New remediation baselines receive an initial age and urgency."""
     from custom_components.ha_inspector.const import DATA_REMEDIATION_BASELINES
@@ -1117,7 +1105,6 @@ async def test_run_service_exposes_new_remediation_entity_summary() -> None:
     store._store.async_save.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_run_service_exposes_resolved_remediation_entity_summary() -> None:
     """Resolved remediation retains baseline age without urgency."""
     from time import time
@@ -1219,7 +1206,6 @@ async def test_run_service_exposes_resolved_remediation_entity_summary() -> None
     store._store.async_save.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_run_service_exposes_high_urgency_for_new_references() -> None:
     """Stalled remediation with new references has high urgency."""
     from time import time
@@ -1343,3 +1329,285 @@ async def test_run_service_exposes_high_urgency_for_new_references() -> None:
 
     assert store.get("sensor.regressed") == baseline
     store._store.async_save.assert_not_awaited()
+
+
+async def test_run_service_serializes_concurrent_inspections() -> None:
+    """Concurrent inspections must not overlap."""
+    import asyncio
+
+    first_started = asyncio.Event()
+    release_first = asyncio.Event()
+    active_inspections = 0
+    maximum_active = 0
+
+    result = MagicMock()
+    result.metadata = {}
+    result.as_dict.return_value = {
+        "findings": [],
+        "metadata": result.metadata,
+    }
+
+    async def run_inspection(*args: Any, **kwargs: Any) -> Any:
+        """Simulate an inspection that waits before finishing."""
+        nonlocal active_inspections, maximum_active
+
+        active_inspections += 1
+        maximum_active = max(maximum_active, active_inspections)
+
+        try:
+            if not first_started.is_set():
+                first_started.set()
+                await release_first.wait()
+
+            return result
+        finally:
+            active_inspections -= 1
+
+    inspector = MagicMock()
+    inspector.run = AsyncMock(side_effect=run_inspection)
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    registrations = {
+        call.args[1]: call.args[2]
+        for call in hass.services.async_register.call_args_list
+        if call.args[0] == DOMAIN
+    }
+
+    run_service = registrations[SERVICE_RUN]
+
+    first_task = asyncio.create_task(
+        run_service(MagicMock(data={}))
+    )
+
+    second_task = None
+
+    try:
+        await asyncio.wait_for(first_started.wait(), timeout=2)
+
+        second_task = asyncio.create_task(
+            run_service(MagicMock(data={}))
+        )
+
+        # Allow the second task to attempt acquiring the lock.
+        await asyncio.sleep(0)
+
+        assert inspector.run.await_count == 1
+        assert maximum_active == 1
+        assert not second_task.done()
+
+    finally:
+        release_first.set()
+
+        tasks = [first_task]
+        if second_task is not None:
+            tasks.append(second_task)
+
+        await asyncio.wait_for(
+            asyncio.gather(*tasks),
+            timeout=2,
+        )
+
+    assert inspector.run.await_count == 2
+    assert maximum_active == 1
+    assert active_inspections == 0
+
+
+async def test_periodic_inspection_skips_when_manual_inspection_is_running() -> None:
+    """Periodic inspections must skip an occupied inspection engine."""
+    import asyncio
+
+    manual_started = asyncio.Event()
+    release_manual = asyncio.Event()
+
+    result = MagicMock()
+    result.metadata = {}
+    result.as_dict.return_value = {
+        "findings": [],
+        "metadata": result.metadata,
+    }
+
+    async def run_inspection(*args: Any, **kwargs: Any) -> Any:
+        """Keep the first inspection active until explicitly released."""
+        if not manual_started.is_set():
+            manual_started.set()
+            await release_manual.wait()
+
+        return result
+
+    inspector = MagicMock()
+    inspector.run = AsyncMock(side_effect=run_inspection)
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    registrations = {
+        call.args[1]: call.args[2]
+        for call in hass.services.async_register.call_args_list
+        if call.args[0] == DOMAIN
+    }
+
+    run_service = registrations[SERVICE_RUN]
+
+    run_periodic = hass.data[DOMAIN][
+        "async_run_periodic_inspection"
+    ]
+
+    manual_task = asyncio.create_task(
+        run_service(MagicMock(data={}))
+    )
+
+    try:
+        await asyncio.wait_for(manual_started.wait(), timeout=2)
+
+        assert inspector.run.await_count == 1
+
+        skipped = await asyncio.wait_for(
+            run_periodic("quick"),
+            timeout=2,
+        )
+
+        assert skipped is False
+        assert inspector.run.await_count == 1
+
+    finally:
+        release_manual.set()
+        await asyncio.wait_for(manual_task, timeout=2)
+
+    executed = await asyncio.wait_for(
+        run_periodic("quick"),
+        timeout=2,
+    )
+
+    assert executed is True
+    assert inspector.run.await_count == 2
+
+
+async def test_manual_inspection_waits_for_periodic_inspection() -> None:
+    """Manual inspections must wait for an active periodic inspection."""
+    import asyncio
+
+    periodic_started = asyncio.Event()
+    release_periodic = asyncio.Event()
+
+    active_inspections = 0
+    maximum_active = 0
+
+    result = MagicMock()
+    result.metadata = {}
+    result.as_dict.return_value = {
+        "findings": [],
+        "metadata": result.metadata,
+    }
+
+    async def run_inspection(*args: Any, **kwargs: Any) -> Any:
+        """Keep the first inspection active until explicitly released."""
+        nonlocal active_inspections, maximum_active
+
+        active_inspections += 1
+        maximum_active = max(maximum_active, active_inspections)
+
+        try:
+            if not periodic_started.is_set():
+                periodic_started.set()
+                await release_periodic.wait()
+
+            return result
+        finally:
+            active_inspections -= 1
+
+    inspector = MagicMock()
+    inspector.run = AsyncMock(side_effect=run_inspection)
+
+    inspector_type = MagicMock(return_value=inspector)
+
+    registry = MagicMock()
+    registry.collector_ids = ()
+    registry.rule_ids = ()
+    registry.create_collectors.return_value = []
+    registry.create_rules.return_value = []
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.async_add_executor_job = AsyncMock(
+        return_value=(inspector_type, registry)
+    )
+
+    await async_setup(hass, {})
+
+    registrations = {
+        call.args[1]: call.args[2]
+        for call in hass.services.async_register.call_args_list
+        if call.args[0] == DOMAIN
+    }
+
+    run_service = registrations[SERVICE_RUN]
+    run_periodic = hass.data[DOMAIN][
+        "async_run_periodic_inspection"
+    ]
+
+    periodic_task = asyncio.create_task(
+        run_periodic("quick")
+    )
+    manual_task = None
+
+    try:
+        await asyncio.wait_for(
+            periodic_started.wait(),
+            timeout=2,
+        )
+
+        manual_task = asyncio.create_task(
+            run_service(MagicMock(data={}))
+        )
+
+        # Allow the manual request to reach the inspection lock.
+        await asyncio.sleep(0)
+
+        assert inspector.run.await_count == 1
+        assert maximum_active == 1
+        assert not manual_task.done()
+
+    finally:
+        release_periodic.set()
+
+        tasks = [periodic_task]
+        if manual_task is not None:
+            tasks.append(manual_task)
+
+        await asyncio.wait_for(
+            asyncio.gather(*tasks),
+            timeout=2,
+        )
+
+    assert periodic_task.result() is True
+    assert inspector.run.await_count == 2
+    assert maximum_active == 1
+    assert active_inspections == 0
