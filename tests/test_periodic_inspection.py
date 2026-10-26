@@ -292,6 +292,8 @@ async def test_scheduler_recovers_after_inspection_failure() -> None:
         if inspection_calls == 1:
             second_interval_started.set()
             await release_second_interval.wait()
+        elif inspection_calls >= 2:
+            await asyncio.Event().wait()
 
     async def run_inspection() -> None:
         """Fail once and succeed on the following inspection."""
