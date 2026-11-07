@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from asyncio import Lock
 from collections.abc import Mapping
 from time import time
 from typing import TYPE_CHECKING, Any
@@ -18,12 +19,20 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CONF_PERIODIC_INSPECTION_ENABLED,
+    CONF_PERIODIC_INSPECTION_INTERVAL,
+    CONF_PERIODIC_INSPECTION_PROFILE,
     DATA_ACKNOWLEDGEMENTS,
     DATA_INSPECTION_HISTORY,
     DATA_LAST_RESULT,
+    DATA_PERIODIC_RUNNER,
+    DATA_PERIODIC_SCHEDULER,
     DATA_REMEDIATION_BASELINES,
     DATA_REMEDIATION_STATE,
     DATA_RESTART_HISTORY,
+    DEFAULT_PERIODIC_INSPECTION_ENABLED,
+    DEFAULT_PERIODIC_INSPECTION_INTERVAL,
+    DEFAULT_PERIODIC_INSPECTION_PROFILE,
     DOMAIN,
     PLATFORMS,
     SIGNAL_INSPECTION_FINISHED,
@@ -268,16 +277,25 @@ async def async_setup(
             },
     }
 
-    async def async_handle_run(
-        call: ServiceCall,
+    inspection_lock = Lock()
+
+    async def async_execute_inspection(
+        data: Mapping[str, Any],
     ) -> ServiceResponse:
-        """Run an HA Inspector inspection."""
+        """Execute an inspection and update its persistent state."""
+        async with inspection_lock:
+            return await async_execute_inspection_locked(data)
+
+    async def async_execute_inspection_locked(
+        data: Mapping[str, Any],
+    ) -> ServiceResponse:
+        """Execute an inspection while holding the inspection lock."""
         inspector = inspector_type(
             collectors=registry.create_collectors(),
             rules=registry.create_rules(),
         )
 
-        request = _build_request(call.data)
+        request = _build_request(data)
 
         domain_data = hass.data.setdefault(DOMAIN, {})
         acknowledgements = domain_data.get(DATA_ACKNOWLEDGEMENTS)
@@ -355,9 +373,9 @@ async def async_setup(
             "rules": list(registry.rule_ids),
         }
 
-        if "profile" in call.data:
+        if "profile" in data:
             profile_id, _ = _profile_definition(
-                call.data["profile"]
+                data["profile"]
             )
             result.metadata["profile"] = profile_id.strip().lower()
 
@@ -402,6 +420,28 @@ async def async_setup(
         )
 
         return result_data
+
+    async def async_run_periodic_inspection(
+        profile: str,
+    ) -> bool:
+        """Run a periodic inspection unless another inspection is active."""
+        if inspection_lock.locked():
+            return False
+
+        async with inspection_lock:
+            await async_execute_inspection_locked({"profile": profile})
+
+        return True
+
+    hass.data.setdefault(DOMAIN, {})[
+        DATA_PERIODIC_RUNNER
+    ] = async_run_periodic_inspection
+
+    async def async_handle_run(
+        call: ServiceCall,
+    ) -> ServiceResponse:
+        """Run an HA Inspector inspection."""
+        return await async_execute_inspection(call.data)
 
     hass.services.async_register(
         DOMAIN,
@@ -986,6 +1026,14 @@ async def async_setup(
     return True
 
 
+async def async_update_options(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+) -> None:
+    """Reload HA Inspector when its configuration options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -1038,6 +1086,42 @@ async def async_setup_entry(
         entry,
         PLATFORMS,
     )
+
+    enabled = entry.options.get(
+        CONF_PERIODIC_INSPECTION_ENABLED,
+        DEFAULT_PERIODIC_INSPECTION_ENABLED,
+    )
+
+    if enabled:
+        from .periodic_inspection import PeriodicInspectionScheduler
+
+        interval = entry.options.get(
+            CONF_PERIODIC_INSPECTION_INTERVAL,
+            DEFAULT_PERIODIC_INSPECTION_INTERVAL,
+        )
+        profile = entry.options.get(
+            CONF_PERIODIC_INSPECTION_PROFILE,
+            DEFAULT_PERIODIC_INSPECTION_PROFILE,
+        )
+
+        runner = domain_data.get(DATA_PERIODIC_RUNNER)
+
+        if runner is not None:
+
+            async def run_periodic() -> None:
+                await runner(profile)
+
+            scheduler = PeriodicInspectionScheduler(
+                interval_minutes=interval,
+                run_inspection=run_periodic,
+            )
+            scheduler.start()
+            domain_data[DATA_PERIODIC_SCHEDULER] = scheduler
+
+    entry.async_on_unload(
+        entry.add_update_listener(async_update_options)
+    )
+
     return True
 
 
@@ -1050,4 +1134,14 @@ async def async_unload_entry(
         entry,
         PLATFORMS,
     )
-    return bool(unloaded)
+
+    if not unloaded:
+        return False
+
+    domain_data = hass.data.get(DOMAIN, {})
+    scheduler = domain_data.pop(DATA_PERIODIC_SCHEDULER, None)
+
+    if scheduler is not None:
+        await scheduler.stop()
+
+    return True

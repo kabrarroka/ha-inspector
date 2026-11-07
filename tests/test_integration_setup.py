@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from custom_components.ha_inspector import (
     _load_engine,
     async_setup_entry,
@@ -31,7 +29,6 @@ def test_load_engine_returns_inspector_and_registry() -> None:
     assert isinstance(registry, EngineRegistry)
 
 
-@pytest.mark.asyncio
 async def test_setup_entry_forwards_platforms() -> None:
     hass = MagicMock()
     hass.data = {}
@@ -100,7 +97,6 @@ async def test_setup_entry_forwards_platforms() -> None:
     )
 
 
-@pytest.mark.asyncio
 async def test_setup_entry_does_not_initialize_histories_twice() -> None:
     existing_restart_history = MagicMock()
     existing_inspection_history = MagicMock()
@@ -147,9 +143,9 @@ async def test_setup_entry_does_not_initialize_histories_twice() -> None:
     remediation_state_store_type.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_unload_entry_unloads_platforms() -> None:
     hass = MagicMock()
+    hass.data = {}
     hass.config_entries.async_unload_platforms = AsyncMock(
         return_value=True
     )
@@ -160,4 +156,222 @@ async def test_unload_entry_unloads_platforms() -> None:
     hass.config_entries.async_unload_platforms.assert_awaited_once_with(
         entry,
         PLATFORMS,
+    )
+
+
+async def test_setup_entry_does_not_start_periodic_scheduler_by_default() -> None:
+    """Periodic scheduling must remain disabled by default."""
+    from custom_components.ha_inspector.const import (
+        DATA_PERIODIC_RUNNER,
+        DATA_PERIODIC_SCHEDULER,
+    )
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_RESTART_HISTORY: MagicMock(),
+            DATA_INSPECTION_HISTORY: MagicMock(),
+            DATA_ACKNOWLEDGEMENTS: MagicMock(),
+            DATA_REMEDIATION_BASELINES: MagicMock(),
+            DATA_REMEDIATION_STATE: MagicMock(),
+            DATA_PERIODIC_RUNNER: AsyncMock(),
+        }
+    }
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    entry = MagicMock()
+    entry.options = {}
+
+    with patch(
+        "custom_components.ha_inspector.periodic_inspection."
+        "PeriodicInspectionScheduler"
+    ) as scheduler_type:
+        assert await async_setup_entry(hass, entry) is True
+
+    scheduler_type.assert_not_called()
+
+    assert DATA_PERIODIC_SCHEDULER not in hass.data[DOMAIN]
+
+    hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(
+        entry,
+        PLATFORMS,
+    )
+
+
+async def test_setup_entry_starts_enabled_periodic_scheduler() -> None:
+    """Enabled periodic scheduling must use the configured interval and profile."""
+    from custom_components.ha_inspector.const import (
+        CONF_PERIODIC_INSPECTION_ENABLED,
+        CONF_PERIODIC_INSPECTION_INTERVAL,
+        CONF_PERIODIC_INSPECTION_PROFILE,
+        DATA_PERIODIC_RUNNER,
+        DATA_PERIODIC_SCHEDULER,
+    )
+
+    runner = AsyncMock(return_value=True)
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_RESTART_HISTORY: MagicMock(),
+            DATA_INSPECTION_HISTORY: MagicMock(),
+            DATA_ACKNOWLEDGEMENTS: MagicMock(),
+            DATA_REMEDIATION_BASELINES: MagicMock(),
+            DATA_REMEDIATION_STATE: MagicMock(),
+            DATA_PERIODIC_RUNNER: runner,
+        }
+    }
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    entry = MagicMock()
+    entry.options = {
+        CONF_PERIODIC_INSPECTION_ENABLED: True,
+        CONF_PERIODIC_INSPECTION_INTERVAL: 15,
+        CONF_PERIODIC_INSPECTION_PROFILE: "system",
+    }
+
+    scheduler = MagicMock()
+
+    with patch(
+        "custom_components.ha_inspector.periodic_inspection."
+        "PeriodicInspectionScheduler",
+        return_value=scheduler,
+    ) as scheduler_type:
+        assert await async_setup_entry(hass, entry) is True
+
+    scheduler_type.assert_called_once()
+
+    assert scheduler_type.call_args.kwargs["interval_minutes"] == 15
+
+    run_inspection = scheduler_type.call_args.kwargs[
+        "run_inspection"
+    ]
+
+    assert hass.data[DOMAIN][DATA_PERIODIC_SCHEDULER] is scheduler
+
+    scheduler.start.assert_called_once()
+
+    await run_inspection()
+
+    runner.assert_awaited_once_with("system")
+
+    hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(
+        entry,
+        PLATFORMS,
+    )
+
+
+async def test_unload_entry_stops_periodic_scheduler() -> None:
+    """Successful unload must stop and remove the periodic scheduler."""
+    from custom_components.ha_inspector.const import (
+        DATA_PERIODIC_SCHEDULER,
+    )
+
+    scheduler = MagicMock()
+    scheduler.stop = AsyncMock()
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_PERIODIC_SCHEDULER: scheduler,
+        }
+    }
+    hass.config_entries.async_unload_platforms = AsyncMock(
+        return_value=True
+    )
+
+    entry = MagicMock()
+
+    assert await async_unload_entry(hass, entry) is True
+
+    hass.config_entries.async_unload_platforms.assert_awaited_once_with(
+        entry,
+        PLATFORMS,
+    )
+
+    scheduler.stop.assert_awaited_once()
+
+    assert DATA_PERIODIC_SCHEDULER not in hass.data[DOMAIN]
+
+
+async def test_unload_entry_keeps_scheduler_when_platform_unload_fails() -> None:
+    """Failed platform unload must leave the scheduler running."""
+    from custom_components.ha_inspector.const import (
+        DATA_PERIODIC_SCHEDULER,
+    )
+
+    scheduler = MagicMock()
+    scheduler.stop = AsyncMock()
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_PERIODIC_SCHEDULER: scheduler,
+        }
+    }
+    hass.config_entries.async_unload_platforms = AsyncMock(
+        return_value=False
+    )
+
+    entry = MagicMock()
+
+    assert await async_unload_entry(hass, entry) is False
+
+    hass.config_entries.async_unload_platforms.assert_awaited_once_with(
+        entry,
+        PLATFORMS,
+    )
+
+    scheduler.stop.assert_not_awaited()
+
+    assert hass.data[DOMAIN][DATA_PERIODIC_SCHEDULER] is scheduler
+
+
+async def test_update_options_reloads_config_entry() -> None:
+    """Changing options must request a reload of the config entry."""
+    from custom_components.ha_inspector import async_update_options
+
+    hass = MagicMock()
+    hass.config_entries.async_reload = AsyncMock()
+
+    entry = MagicMock()
+    entry.entry_id = "ha_inspector_test_entry"
+
+    await async_update_options(hass, entry)
+
+    hass.config_entries.async_reload.assert_awaited_once_with(
+        "ha_inspector_test_entry"
+    )
+
+
+async def test_setup_entry_registers_options_update_listener() -> None:
+    """Setup must register an options listener with unload cleanup."""
+    from custom_components.ha_inspector import async_update_options
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_RESTART_HISTORY: MagicMock(),
+            DATA_INSPECTION_HISTORY: MagicMock(),
+            DATA_ACKNOWLEDGEMENTS: MagicMock(),
+            DATA_REMEDIATION_BASELINES: MagicMock(),
+            DATA_REMEDIATION_STATE: MagicMock(),
+        }
+    }
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    entry = MagicMock()
+    entry.options = {}
+
+    unsubscribe = MagicMock()
+    entry.add_update_listener.return_value = unsubscribe
+
+    assert await async_setup_entry(hass, entry) is True
+
+    entry.add_update_listener.assert_called_once_with(
+        async_update_options
+    )
+
+    entry.async_on_unload.assert_called_once_with(
+        unsubscribe
     )
