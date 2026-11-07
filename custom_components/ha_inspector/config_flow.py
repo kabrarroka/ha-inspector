@@ -9,9 +9,13 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
+    CONF_EVENT_INSPECTION_ENABLED,
+    CONF_EVENT_INSPECTION_PROFILE,
     CONF_PERIODIC_INSPECTION_ENABLED,
     CONF_PERIODIC_INSPECTION_INTERVAL,
     CONF_PERIODIC_INSPECTION_PROFILE,
+    DEFAULT_EVENT_INSPECTION_ENABLED,
+    DEFAULT_EVENT_INSPECTION_PROFILE,
     DEFAULT_PERIODIC_INSPECTION_ENABLED,
     DEFAULT_PERIODIC_INSPECTION_INTERVAL,
     DEFAULT_PERIODIC_INSPECTION_PROFILE,
@@ -70,6 +74,20 @@ class HAInspectorOptionsFlow(
 
         schema = vol.Schema(
             {
+                vol.Required(
+                    CONF_EVENT_INSPECTION_ENABLED,
+                    default=options.get(
+                        CONF_EVENT_INSPECTION_ENABLED,
+                        DEFAULT_EVENT_INSPECTION_ENABLED,
+                    ),
+                ): bool,
+                vol.Required(
+                    CONF_EVENT_INSPECTION_PROFILE,
+                    default=options.get(
+                        CONF_EVENT_INSPECTION_PROFILE,
+                        DEFAULT_EVENT_INSPECTION_PROFILE,
+                    ),
+                ): vol.In(profiles),
                 vol.Required(
                     CONF_PERIODIC_INSPECTION_ENABLED,
                     default=options.get(

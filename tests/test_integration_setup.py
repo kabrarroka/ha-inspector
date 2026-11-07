@@ -327,6 +327,182 @@ async def test_unload_entry_keeps_scheduler_when_platform_unload_fails() -> None
     assert hass.data[DOMAIN][DATA_PERIODIC_SCHEDULER] is scheduler
 
 
+
+async def test_setup_entry_does_not_start_event_scheduler_by_default() -> None:
+    """Event monitoring must remain disabled by default."""
+    from custom_components.ha_inspector.const import (
+        DATA_EVENT_SCHEDULER,
+        DATA_PERIODIC_RUNNER,
+    )
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_RESTART_HISTORY: MagicMock(),
+            DATA_INSPECTION_HISTORY: MagicMock(),
+            DATA_ACKNOWLEDGEMENTS: MagicMock(),
+            DATA_REMEDIATION_BASELINES: MagicMock(),
+            DATA_REMEDIATION_STATE: MagicMock(),
+            DATA_PERIODIC_RUNNER: AsyncMock(return_value=True),
+        }
+    }
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    entry = MagicMock()
+    entry.options = {}
+
+    with patch(
+        "custom_components.ha_inspector.event_inspection."
+        "EventInspectionScheduler"
+    ) as scheduler_type:
+        assert await async_setup_entry(hass, entry) is True
+
+    scheduler_type.assert_not_called()
+    assert DATA_EVENT_SCHEDULER not in hass.data[DOMAIN]
+
+
+async def test_setup_entry_starts_enabled_event_scheduler() -> None:
+    """Enabled event monitoring must use the configured profile."""
+    from custom_components.ha_inspector.const import (
+        CONF_EVENT_INSPECTION_ENABLED,
+        CONF_EVENT_INSPECTION_PROFILE,
+        DATA_EVENT_SCHEDULER,
+        DATA_PERIODIC_RUNNER,
+    )
+
+    runner = AsyncMock(return_value=True)
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_RESTART_HISTORY: MagicMock(),
+            DATA_INSPECTION_HISTORY: MagicMock(),
+            DATA_ACKNOWLEDGEMENTS: MagicMock(),
+            DATA_REMEDIATION_BASELINES: MagicMock(),
+            DATA_REMEDIATION_STATE: MagicMock(),
+            DATA_PERIODIC_RUNNER: runner,
+        }
+    }
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    entry = MagicMock()
+    entry.options = {
+        CONF_EVENT_INSPECTION_ENABLED: True,
+        CONF_EVENT_INSPECTION_PROFILE: "system",
+    }
+
+    scheduler = MagicMock()
+
+    with patch(
+        "custom_components.ha_inspector.event_inspection."
+        "EventInspectionScheduler",
+        return_value=scheduler,
+    ) as scheduler_type:
+        assert await async_setup_entry(hass, entry) is True
+
+    scheduler_type.assert_called_once()
+
+    assert scheduler_type.call_args.kwargs["hass"] is hass
+    assert hass.data[DOMAIN][DATA_EVENT_SCHEDULER] is scheduler
+
+    scheduler.start.assert_called_once()
+
+    run_inspection = scheduler_type.call_args.kwargs[
+        "run_inspection"
+    ]
+
+    assert await run_inspection() is True
+
+    runner.assert_awaited_once_with("system")
+
+
+async def test_unload_entry_stops_event_scheduler() -> None:
+    """Successful unload must stop event monitoring."""
+    from custom_components.ha_inspector.const import (
+        DATA_EVENT_SCHEDULER,
+    )
+
+    scheduler = MagicMock()
+    scheduler.stop = AsyncMock()
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_EVENT_SCHEDULER: scheduler,
+        }
+    }
+    hass.config_entries.async_unload_platforms = AsyncMock(
+        return_value=True
+    )
+
+    entry = MagicMock()
+
+    assert await async_unload_entry(hass, entry) is True
+
+    scheduler.stop.assert_awaited_once()
+    assert DATA_EVENT_SCHEDULER not in hass.data[DOMAIN]
+
+
+async def test_unload_entry_keeps_event_scheduler_on_failure() -> None:
+    """Failed platform unload must leave event monitoring active."""
+    from custom_components.ha_inspector.const import (
+        DATA_EVENT_SCHEDULER,
+    )
+
+    scheduler = MagicMock()
+    scheduler.stop = AsyncMock()
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_EVENT_SCHEDULER: scheduler,
+        }
+    }
+    hass.config_entries.async_unload_platforms = AsyncMock(
+        return_value=False
+    )
+
+    entry = MagicMock()
+
+    assert await async_unload_entry(hass, entry) is False
+
+    scheduler.stop.assert_not_awaited()
+    assert hass.data[DOMAIN][DATA_EVENT_SCHEDULER] is scheduler
+
+
+async def test_enabled_event_scheduler_without_runner() -> None:
+    """Event monitoring must not start without an inspection runner."""
+    from custom_components.ha_inspector.const import (
+        CONF_EVENT_INSPECTION_ENABLED,
+        DATA_EVENT_SCHEDULER,
+    )
+
+    hass = MagicMock()
+    hass.data = {
+        DOMAIN: {
+            DATA_RESTART_HISTORY: MagicMock(),
+            DATA_INSPECTION_HISTORY: MagicMock(),
+            DATA_ACKNOWLEDGEMENTS: MagicMock(),
+            DATA_REMEDIATION_BASELINES: MagicMock(),
+            DATA_REMEDIATION_STATE: MagicMock(),
+        }
+    }
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    entry = MagicMock()
+    entry.options = {
+        CONF_EVENT_INSPECTION_ENABLED: True,
+    }
+
+    with patch(
+        "custom_components.ha_inspector.event_inspection."
+        "EventInspectionScheduler"
+    ) as scheduler_type:
+        assert await async_setup_entry(hass, entry) is True
+
+    scheduler_type.assert_not_called()
+    assert DATA_EVENT_SCHEDULER not in hass.data[DOMAIN]
+
 async def test_update_options_reloads_config_entry() -> None:
     """Changing options must request a reload of the config entry."""
     from custom_components.ha_inspector import async_update_options

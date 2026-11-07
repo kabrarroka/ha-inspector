@@ -14,11 +14,13 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configure periodic inspections",
+        "title": "Configure automatic inspections",
         "data": {
           "periodic_inspection_enabled": "Enable periodic inspections",
           "periodic_inspection_interval": "Inspection interval (minutes)",
-          "periodic_inspection_profile": "Inspection profile"
+          "periodic_inspection_profile": "Inspection profile",
+          "event_inspection_enabled": "Enable event-triggered inspections",
+          "event_inspection_profile": "Event inspection profile"
         }
       }
     },

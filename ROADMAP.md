@@ -143,8 +143,8 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 ## Epic O — Automated inspection and proactive monitoring
 
-- [ ] Configurable periodic inspection scheduling
-- [ ] Event-triggered automatic inspections
+- [x] Configurable periodic inspection scheduling
+- [x] Event-triggered automatic inspections
 - [ ] Detection of new findings between inspections
 - [ ] Classification and prioritization of actionable changes
 - [ ] Configurable notifications for important findings
