@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 
 from custom_components.ha_inspector.event_inspection import (
@@ -358,3 +359,168 @@ async def test_event_scheduler_handles_busy_inspection_runner() -> None:
     await scheduler.stop()
 
     assert scheduler.running is False
+
+
+
+async def test_event_is_ignored_after_stop() -> None:
+    """Events received after stopping must be ignored."""
+    from unittest.mock import MagicMock
+
+    from custom_components.ha_inspector.event_inspection import (
+        EventInspectionScheduler,
+    )
+
+    hass = MagicMock()
+    runner = AsyncMock(return_value=True)
+
+    scheduler = EventInspectionScheduler(
+        hass=hass,
+        run_inspection=runner,
+        debounce_seconds=0.01,
+    )
+
+    scheduler.start()
+    await scheduler.stop()
+
+    scheduler._handle_event(MagicMock())
+
+    hass.async_create_task.assert_not_called()
+    runner.assert_not_awaited()
+
+
+async def test_inspection_runner_exception_is_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Runner exceptions must be logged without crashing monitoring."""
+    import asyncio
+    import logging
+    from unittest.mock import MagicMock
+
+    from custom_components.ha_inspector.event_inspection import (
+        EventInspectionScheduler,
+    )
+
+    hass = MagicMock()
+
+    hass.async_create_task.side_effect = (
+        lambda coroutine, name: asyncio.create_task(
+            coroutine,
+            name=name,
+        )
+    )
+
+    runner = AsyncMock(
+        side_effect=RuntimeError("Simulated inspection failure")
+    )
+
+    scheduler = EventInspectionScheduler(
+        hass=hass,
+        run_inspection=runner,
+        debounce_seconds=0.01,
+    )
+
+    scheduler.start()
+
+    with caplog.at_level(logging.ERROR):
+        scheduler._handle_event(MagicMock())
+        await asyncio.sleep(0.05)
+
+    runner.assert_awaited_once()
+
+    assert "Event-triggered HA Inspector inspection failed" in caplog.text
+
+    await scheduler.stop()
+
+
+async def test_stop_handles_running_inspection_exception(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Stopping must handle exceptions from an active inspection."""
+    import asyncio
+    import logging
+    from unittest.mock import MagicMock
+
+    from custom_components.ha_inspector.event_inspection import (
+        EventInspectionScheduler,
+    )
+
+    hass = MagicMock()
+
+    hass.async_create_task.side_effect = (
+        lambda coroutine, name: asyncio.create_task(
+            coroutine,
+            name=name,
+        )
+    )
+
+    inspection_started = asyncio.Event()
+    release_inspection = asyncio.Event()
+
+    async def failing_runner() -> bool:
+        inspection_started.set()
+        await release_inspection.wait()
+        raise RuntimeError("Simulated shutdown failure")
+
+    scheduler = EventInspectionScheduler(
+        hass=hass,
+        run_inspection=failing_runner,
+        debounce_seconds=0.01,
+    )
+
+    scheduler.start()
+    scheduler._handle_event(MagicMock())
+
+    await asyncio.wait_for(
+        inspection_started.wait(),
+        timeout=2,
+    )
+
+    with caplog.at_level(logging.ERROR):
+        stop_task = asyncio.create_task(scheduler.stop())
+
+        await asyncio.sleep(0)
+
+        release_inspection.set()
+
+        await asyncio.wait_for(
+            stop_task,
+            timeout=2,
+        )
+
+    assert scheduler.running is False
+
+    assert "Event-triggered HA Inspector inspection failed" in caplog.text
+
+
+
+async def test_stop_propagates_inspection_cancellation() -> None:
+    """Stopping propagates cancellation from the inspection task."""
+    import asyncio
+    from unittest.mock import MagicMock
+
+    from custom_components.ha_inspector.event_inspection import (
+        EventInspectionScheduler,
+    )
+
+    hass = MagicMock()
+
+    scheduler = EventInspectionScheduler(
+        hass=hass,
+        run_inspection=AsyncMock(return_value=True),
+        debounce_seconds=0.01,
+    )
+
+    async def cancelled_inspection() -> None:
+        raise asyncio.CancelledError
+
+    task = asyncio.create_task(cancelled_inspection())
+
+    from contextlib import suppress
+
+    with suppress(asyncio.CancelledError):
+        await task
+
+    scheduler._inspection_task = task
+
+    with pytest.raises(asyncio.CancelledError):
+        await scheduler.stop()
