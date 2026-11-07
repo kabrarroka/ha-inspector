@@ -20,6 +20,14 @@ DATA_REMEDIATION_STATE: Final = "remediation_state"
 DATA_RESTART_HISTORY: Final = "restart_history"
 DATA_PERIODIC_SCHEDULER: Final = "periodic_scheduler"
 DATA_PERIODIC_RUNNER: Final = "async_run_periodic_inspection"
+DATA_EVENT_SCHEDULER: Final = "event_scheduler"
+
+CONF_EVENT_INSPECTION_ENABLED: Final = "event_inspection_enabled"
+CONF_EVENT_INSPECTION_PROFILE: Final = "event_inspection_profile"
+
+DEFAULT_EVENT_INSPECTION_ENABLED: Final = False
+DEFAULT_EVENT_INSPECTION_PROFILE: Final = "quick"
+
 SIGNAL_INSPECTION_FINISHED: Final = f"{DOMAIN}_inspection_finished"
 
 # Periodic inspection configuration.

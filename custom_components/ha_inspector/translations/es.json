@@ -14,11 +14,13 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configurar inspecciones periódicas",
+        "title": "Configurar inspecciones automáticas",
         "data": {
           "periodic_inspection_enabled": "Activar inspecciones periódicas",
           "periodic_inspection_interval": "Intervalo entre inspecciones (minutos)",
-          "periodic_inspection_profile": "Perfil de inspección"
+          "periodic_inspection_profile": "Perfil de inspección",
+          "event_inspection_enabled": "Activar inspecciones por eventos",
+          "event_inspection_profile": "Perfil de inspección por eventos"
         }
       }
     },

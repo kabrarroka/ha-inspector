@@ -160,7 +160,11 @@ async def test_options_flow_preserves_saved_values(
     result = await flow.async_step_init()
     options = result["data_schema"]({})
 
-    assert options == entry.options
+    assert options == {
+        **entry.options,
+        "event_inspection_enabled": False,
+        "event_inspection_profile": "quick",
+    }
 
 
 @pytest.mark.parametrize("interval", [5, 1440])  # type: ignore[untyped-decorator]

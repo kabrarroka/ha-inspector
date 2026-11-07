@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from asyncio import Lock
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -19,10 +19,13 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CONF_EVENT_INSPECTION_ENABLED,
+    CONF_EVENT_INSPECTION_PROFILE,
     CONF_PERIODIC_INSPECTION_ENABLED,
     CONF_PERIODIC_INSPECTION_INTERVAL,
     CONF_PERIODIC_INSPECTION_PROFILE,
     DATA_ACKNOWLEDGEMENTS,
+    DATA_EVENT_SCHEDULER,
     DATA_INSPECTION_HISTORY,
     DATA_LAST_RESULT,
     DATA_PERIODIC_RUNNER,
@@ -30,6 +33,8 @@ from .const import (
     DATA_REMEDIATION_BASELINES,
     DATA_REMEDIATION_STATE,
     DATA_RESTART_HISTORY,
+    DEFAULT_EVENT_INSPECTION_ENABLED,
+    DEFAULT_EVENT_INSPECTION_PROFILE,
     DEFAULT_PERIODIC_INSPECTION_ENABLED,
     DEFAULT_PERIODIC_INSPECTION_INTERVAL,
     DEFAULT_PERIODIC_INSPECTION_PROFILE,
@@ -1118,6 +1123,38 @@ async def async_setup_entry(
             scheduler.start()
             domain_data[DATA_PERIODIC_SCHEDULER] = scheduler
 
+    event_enabled = entry.options.get(
+        CONF_EVENT_INSPECTION_ENABLED,
+        DEFAULT_EVENT_INSPECTION_ENABLED,
+    )
+
+    if event_enabled:
+        from .event_inspection import EventInspectionScheduler
+
+        event_profile = entry.options.get(
+            CONF_EVENT_INSPECTION_PROFILE,
+            DEFAULT_EVENT_INSPECTION_PROFILE,
+        )
+
+        event_runner = domain_data.get(DATA_PERIODIC_RUNNER)
+
+        if event_runner is not None:
+
+            typed_event_runner = cast(
+                Callable[[str], Awaitable[bool]],
+                event_runner,
+            )
+
+            async def run_event_inspection() -> bool:
+                return await typed_event_runner(event_profile)
+
+            event_scheduler = EventInspectionScheduler(
+                hass=hass,
+                run_inspection=run_event_inspection,
+            )
+            event_scheduler.start()
+            domain_data[DATA_EVENT_SCHEDULER] = event_scheduler
+
     entry.async_on_unload(
         entry.add_update_listener(async_update_options)
     )
@@ -1140,8 +1177,12 @@ async def async_unload_entry(
 
     domain_data = hass.data.get(DOMAIN, {})
     scheduler = domain_data.pop(DATA_PERIODIC_SCHEDULER, None)
+    event_scheduler = domain_data.pop(DATA_EVENT_SCHEDULER, None)
 
     if scheduler is not None:
         await scheduler.stop()
+
+    if event_scheduler is not None:
+        await event_scheduler.stop()
 
     return True
