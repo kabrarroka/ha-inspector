@@ -145,7 +145,7 @@ Home Assistant evolves and new diagnostic needs are identified.
 
 - [x] Configurable periodic inspection scheduling
 - [x] Event-triggered automatic inspections
-- [ ] Detection of new findings between inspections
+- [x] Detection of new findings between inspections
 - [ ] Classification and prioritization of actionable changes
 - [ ] Configurable notifications for important findings
 - [ ] Notification deduplication and cooldown

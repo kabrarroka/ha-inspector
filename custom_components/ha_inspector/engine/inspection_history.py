@@ -10,6 +10,7 @@ from homeassistant.helpers.storage import Store
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
+    from .finding_deltas import FindingDeltas
     from .historical_comparison import (
         HistoricalDomainComparison,
         HistoricalInspectionComparison,
@@ -124,6 +125,37 @@ class InspectionHistory:
             self._entries[-1],
         )
 
+    def latest_finding_deltas(
+        self,
+    ) -> FindingDeltas | None:
+        """Compare findings between the two latest persisted inspections."""
+        if len(self._entries) < 2:
+            return None
+
+        from .finding_deltas import compare_finding_deltas
+
+        return compare_finding_deltas(
+            self._entries[-2],
+            self._entries[-1],
+        )
+
+    def finding_deltas_with(
+        self,
+        result: dict[str, Any],
+    ) -> FindingDeltas | None:
+        """Compare latest persisted findings with a current inspection."""
+        if not self._entries:
+            return None
+
+        from .finding_deltas import compare_finding_deltas
+
+        current_entry = self._build_entry(result)
+
+        return compare_finding_deltas(
+            self._entries[-1],
+            current_entry,
+        )
+
     def latest_domain_comparisons(
         self,
     ) -> dict[str, HistoricalDomainComparison] | None:
@@ -193,6 +225,18 @@ class InspectionHistory:
 
         remediation = InspectionHistory._build_remediation_entry(result)
 
+        collectors_failed = (
+            metadata.get("collectors_failed")
+            if isinstance(metadata, dict)
+            else None
+        )
+        if (
+            not isinstance(collectors_failed, int)
+            or isinstance(collectors_failed, bool)
+            or collectors_failed < 0
+        ):
+            collectors_failed = None
+
         return {
             "started_at": result.get("started_at"),
             "finished_at": result.get("finished_at"),
@@ -204,6 +248,10 @@ class InspectionHistory:
             "domain_health": deepcopy(domain_health),
             "profile": profile,
             "inspection_scope": inspection_scope,
+            "collectors_failed": collectors_failed,
+            "findings": InspectionHistory._history_findings(
+                result.get("findings")
+            ),
             "remediation": remediation,
         }
 
@@ -251,6 +299,45 @@ class InspectionHistory:
             "resolved_items": resolved_items,
             "new_reference_items": new_reference_items,
         }
+
+
+    @staticmethod
+    def _history_findings(
+        value: object,
+    ) -> list[dict[str, str]] | None:
+        """Preserve complete finding identities or mark data as unknown."""
+        from .severity import Severity
+
+        if not isinstance(value, (list, tuple)):
+            return None
+
+        valid_severities = {severity.label for severity in Severity}
+        findings: list[dict[str, str]] = []
+        seen_ids: set[str] = set()
+
+        for item in value:
+            if not isinstance(item, dict):
+                return None
+
+            finding_id = item.get("id")
+            severity = item.get("severity")
+
+            if (
+                not isinstance(finding_id, str)
+                or not finding_id
+                or not isinstance(severity, str)
+                or severity not in valid_severities
+                or finding_id in seen_ids
+            ):
+                return None
+
+            seen_ids.add(finding_id)
+            findings.append({
+                "id": finding_id,
+                "severity": severity,
+            })
+
+        return findings
 
     @staticmethod
     def _history_count(value: object) -> int:

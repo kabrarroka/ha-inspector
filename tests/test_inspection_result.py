@@ -679,3 +679,49 @@ def test_result_serializes_remediation_dashboard_values() -> None:
     assert dashboard["oldest_active_age_seconds"] == stalled_age
     assert dashboard["trend"] == "insufficient_data"
     assert dashboard["regression_count"] == 0
+
+
+def test_finding_deltas_default_to_none() -> None:
+    """Finding deltas are unavailable without a previous inspection."""
+    result = InspectionResult()
+
+    assert result.finding_deltas is None
+    assert result.as_dict()["finding_deltas"] is None
+
+
+def test_finding_deltas_are_serialized() -> None:
+    """Inspection results expose finding changes as dictionaries."""
+    from custom_components.ha_inspector.engine.finding_deltas import (
+        FindingDeltas,
+    )
+
+    result = InspectionResult()
+    result.finding_deltas = FindingDeltas(
+        added=({"id": "NEW", "severity": "warning"},),
+        resolved=({"id": "OLD", "severity": "error"},),
+        persistent=({"id": "STABLE", "severity": "info"},),
+        severity_changed=(
+            {
+                "id": "CHANGED",
+                "previous_severity": "warning",
+                "current_severity": "error",
+                "direction": "worsened",
+            },
+        ),
+    )
+
+    payload = result.as_dict()
+
+    assert payload["finding_deltas"] == {
+        "added": [{"id": "NEW", "severity": "warning"}],
+        "resolved": [{"id": "OLD", "severity": "error"}],
+        "persistent": [{"id": "STABLE", "severity": "info"}],
+        "severity_changed": [
+            {
+                "id": "CHANGED",
+                "previous_severity": "warning",
+                "current_severity": "error",
+                "direction": "worsened",
+            }
+        ],
+    }

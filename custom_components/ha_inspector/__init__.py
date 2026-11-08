@@ -403,6 +403,10 @@ async def async_setup(
                 current_result_data
             )
 
+            result.finding_deltas = inspection_history.finding_deltas_with(
+                current_result_data
+            )
+
         result_data = result.as_dict()
 
         domain_data[DATA_LAST_RESULT] = result_data

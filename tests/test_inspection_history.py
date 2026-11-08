@@ -97,6 +97,8 @@ async def test_add_persists_compact_summary() -> None:
             },
             "profile": "quick",
             "inspection_scope": None,
+            "collectors_failed": None,
+            "findings": None,
             "remediation": {
                 "tracked_entities": 0,
                 "pending": 0,
@@ -112,9 +114,122 @@ async def test_add_persists_compact_summary() -> None:
         }
     ]
 
-    assert "findings" not in entries[0]
+    assert entries[0]["findings"] is None
     history._store.async_save.assert_awaited_once()
 
+
+
+@pytest.mark.asyncio
+async def test_add_persists_compact_findings() -> None:
+    """Persist finding identities and severities without their details."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_save = AsyncMock()
+
+    result = _result()
+    result["findings"] = [
+        {
+            "id": "DISK_FREE_SPACE",
+            "severity": "critical",
+            "title": "Low disk space",
+            "description": "Disk space is running low",
+            "data": {"free_bytes": 100},
+        },
+        {
+            "id": "UNAVAILABLE_ENTITIES",
+            "severity": "warning",
+            "title": "Unavailable entities",
+        },
+    ]
+
+    await history.async_add(result)
+
+    assert history.entries()[0]["findings"] == [
+        {"id": "DISK_FREE_SPACE", "severity": "critical"},
+        {"id": "UNAVAILABLE_ENTITIES", "severity": "warning"},
+    ]
+    history._store.async_save.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_add_normalizes_invalid_findings() -> None:
+    """Invalid findings are excluded from compact history."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_save = AsyncMock()
+
+    result = _result()
+    result["findings"] = [
+        None,
+        "invalid",
+        123,
+        {},
+        {"id": "", "severity": "warning"},
+        {"id": "MISSING_SEVERITY"},
+        {"id": "EMPTY_SEVERITY", "severity": ""},
+        {"id": 123, "severity": "warning"},
+        {"id": "INVALID_SEVERITY", "severity": 123},
+        {"id": "VALID_FINDING", "severity": "warning"},
+    ]
+
+    await history.async_add(result)
+
+    assert history.entries()[0]["findings"] is None
+
+    result["findings"] = "invalid"
+    await history.async_add(result)
+
+    assert history.entries()[1]["findings"] is None
+
+
+@pytest.mark.asyncio
+async def test_add_persists_collector_failure_count() -> None:
+    """Persist collector failures without assuming missing data means zero."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_save = AsyncMock()
+
+    result = _result()
+    result["metadata"]["collectors_failed"] = 2
+
+    await history.async_add(result)
+
+    assert history.entries()[0]["collectors_failed"] == 2
+
+    result["metadata"]["collectors_failed"] = 0
+    await history.async_add(result)
+
+    assert history.entries()[1]["collectors_failed"] == 0
+
+    del result["metadata"]["collectors_failed"]
+    await history.async_add(result)
+
+    assert history.entries()[2]["collectors_failed"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "value",
+    [
+        -1,
+        True,
+        False,
+        "2",
+        1.5,
+        [],
+        {},
+    ],
+)
+async def test_add_normalizes_invalid_collector_failures(
+    value: object,
+) -> None:
+    """Invalid collector failure counts are treated as unknown."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_save = AsyncMock()
+
+    result = _result()
+    result["metadata"]["collectors_failed"] = value
+
+    await history.async_add(result)
+
+    assert history.entries()[0]["collectors_failed"] is None
 
 @pytest.mark.asyncio
 async def test_entries_returns_copy() -> None:
@@ -189,6 +304,31 @@ async def test_loads_and_limits_persisted_entries() -> None:
     assert entries[0]["score"] == 5
     assert entries[-1]["score"] == 104
 
+
+
+@pytest.mark.asyncio
+async def test_load_preserves_legacy_entries_without_findings() -> None:
+    """Legacy history entries retain their unknown finding state."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(
+        return_value={
+            "entries": [
+                {
+                    "score": 90,
+                    "profile": "quick",
+                    "inspection_scope": "legacy-scope",
+                },
+            ],
+        }
+    )
+
+    await history.async_load()
+
+    entries = history.entries()
+
+    assert len(entries) == 1
+    assert entries[0]["score"] == 90
+    assert "findings" not in entries[0]
 
 @pytest.mark.asyncio
 async def test_invalid_stored_entries_are_ignored() -> None:
@@ -762,3 +902,204 @@ def test_remediation_comparison_with_requires_history() -> None:
     history = InspectionHistory(MagicMock())
 
     assert history.remediation_comparison_with({}) is None
+
+
+
+def test_latest_finding_deltas_without_enough_history() -> None:
+    """Finding comparison requires two persisted inspections."""
+    history = InspectionHistory(MagicMock())
+
+    assert history.latest_finding_deltas() is None
+
+
+def test_latest_finding_deltas_detects_changes() -> None:
+    """Compare findings from the two latest history entries."""
+    history = InspectionHistory(MagicMock())
+
+    history._entries = [
+        {
+            "profile": "quick",
+            "inspection_scope": "same-scope",
+            "collectors_failed": 0,
+            "findings": [
+                {"id": "RESOLVED", "severity": "warning"},
+                {"id": "PERSISTENT", "severity": "info"},
+            ],
+        },
+        {
+            "profile": "quick",
+            "inspection_scope": "same-scope",
+            "collectors_failed": 0,
+            "findings": [
+                {"id": "ADDED", "severity": "error"},
+                {"id": "PERSISTENT", "severity": "info"},
+            ],
+        },
+    ]
+
+    comparison = history.latest_finding_deltas()
+
+    assert comparison is not None
+    assert comparison.added == (
+        {"id": "ADDED", "severity": "error"},
+    )
+    assert comparison.resolved == (
+        {"id": "RESOLVED", "severity": "warning"},
+    )
+    assert comparison.persistent == (
+        {"id": "PERSISTENT", "severity": "info"},
+    )
+    assert comparison.severity_changed == ()
+
+
+def test_finding_deltas_with_requires_history() -> None:
+    """Current finding comparison requires a previous inspection."""
+    history = InspectionHistory(MagicMock())
+
+    assert history.finding_deltas_with({}) is None
+
+
+def test_finding_deltas_with_detects_changes() -> None:
+    """Compare current findings with the latest persisted inspection."""
+    history = InspectionHistory(MagicMock())
+
+    history._entries = [
+        {
+            "profile": "quick",
+            "inspection_scope": "same-scope",
+            "collectors_failed": 0,
+            "findings": [
+                {"id": "RESOLVED", "severity": "warning"},
+                {"id": "PERSISTENT", "severity": "info"},
+            ],
+        }
+    ]
+
+    current_result = {
+        "metadata": {
+            "profile": "quick",
+            "inspection_scope": "same-scope",
+            "collectors_failed": 0,
+        },
+        "findings": [
+            {"id": "ADDED", "severity": "error"},
+            {"id": "PERSISTENT", "severity": "info"},
+        ],
+    }
+
+    previous_entries = [
+        {
+            **entry,
+            "findings": [
+                finding.copy()
+                for finding in entry["findings"]
+            ],
+        }
+        for entry in history._entries
+    ]
+
+    comparison = history.finding_deltas_with(current_result)
+
+    assert comparison is not None
+    assert comparison.added == (
+        {"id": "ADDED", "severity": "error"},
+    )
+    assert comparison.resolved == (
+        {"id": "RESOLVED", "severity": "warning"},
+    )
+    assert comparison.persistent == (
+        {"id": "PERSISTENT", "severity": "info"},
+    )
+    assert comparison.severity_changed == ()
+
+    assert history._entries == previous_entries
+    assert len(history._entries) == 1
+
+
+@pytest.mark.asyncio
+async def test_finding_deltas_with_real_history() -> None:
+    """Detect finding changes across two persisted inspections."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_load = AsyncMock(return_value=None)
+    history._store.async_save = AsyncMock()
+
+    await history.async_load()
+
+    first = _result()
+    first["metadata"]["inspection_scope"] = "same-scope"
+    first["metadata"]["collectors_failed"] = 0
+    first["findings"] = [
+        {"id": "RESOLVED", "severity": "warning"},
+        {"id": "PERSISTENT", "severity": "info"},
+    ]
+
+    assert history.finding_deltas_with(first) is None
+
+    await history.async_add(first)
+
+    second = _result()
+    second["metadata"]["inspection_scope"] = "same-scope"
+    second["metadata"]["collectors_failed"] = 0
+    second["findings"] = [
+        {"id": "ADDED", "severity": "error"},
+        {"id": "PERSISTENT", "severity": "info"},
+    ]
+
+    before = history.entries()
+    comparison = history.finding_deltas_with(second)
+
+    assert comparison is not None
+    assert comparison.added == (
+        {"id": "ADDED", "severity": "error"},
+    )
+    assert comparison.resolved == (
+        {"id": "RESOLVED", "severity": "warning"},
+    )
+    assert comparison.persistent == (
+        {"id": "PERSISTENT", "severity": "info"},
+    )
+    assert comparison.severity_changed == ()
+
+    assert history.entries() == before
+    assert len(history.entries()) == 1
+
+    await history.async_add(second)
+
+    assert len(history.entries()) == 2
+    assert history.latest_finding_deltas() == comparison
+
+
+
+@pytest.mark.asyncio
+async def test_incomplete_findings_never_produce_false_resolutions() -> None:
+    """Incomplete inspection findings must not imply resolved problems."""
+    history = InspectionHistory(MagicMock())
+    history._store.async_save = AsyncMock()
+
+    previous = _result()
+    previous["metadata"] = {
+        "profile": "quick",
+        "inspection_scope": "same-scope",
+        "collectors_failed": 0,
+    }
+    previous["findings"] = [
+        {"id": "EXISTING_PROBLEM", "severity": "warning"},
+    ]
+    await history.async_add(previous)
+
+    current = _result()
+    current["metadata"] = dict(previous["metadata"])
+    current["findings"] = [
+        {"id": "VALID_FINDING", "severity": "warning"},
+        {"id": "BROKEN_FINDING"},
+    ]
+
+    assert history.finding_deltas_with(current) is None
+
+    current["findings"] = []
+    deltas = history.finding_deltas_with(current)
+
+    assert deltas is not None
+    assert deltas.resolved == (
+        {"id": "EXISTING_PROBLEM", "severity": "warning"},
+    )
