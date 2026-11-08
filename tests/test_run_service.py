@@ -129,6 +129,11 @@ async def test_run_service_persists_inspection_history() -> None:
         **result_data,
         "remediation_progress": result.remediation_progress,
         "remediation_trend": result.remediation_trend.as_dict(),
+        "finding_deltas": (
+            result.finding_deltas.as_dict()
+            if result.finding_deltas is not None
+            else None
+        ),
     }
     inspector.run.return_value = result
 
@@ -150,6 +155,18 @@ async def test_run_service_persists_inspection_history() -> None:
 
     expected_trend = remediation_lifecycle_trend([])
     history.remediation_trend_with.return_value = expected_trend
+
+    from custom_components.ha_inspector.engine.finding_deltas import (
+        FindingDeltas,
+    )
+
+    expected_deltas = FindingDeltas(
+        added=({"id": "NEW", "severity": "warning"},),
+        resolved=(),
+        persistent=(),
+        severity_changed=(),
+    )
+    history.finding_deltas_with.return_value = expected_deltas
 
     hass = MagicMock()
     hass.data = {
@@ -175,6 +192,13 @@ async def test_run_service_persists_inspection_history() -> None:
     response = await registrations["run"](service_call)
 
     history.remediation_trend_with.assert_called_once()
+    history.finding_deltas_with.assert_called_once()
+    assert (
+        history.finding_deltas_with.call_args.args[0]
+        is history.remediation_trend_with.call_args.args[0]
+    )
+    assert response["finding_deltas"] == expected_deltas.as_dict()
+    assert result.finding_deltas is expected_deltas
     current_result = history.remediation_trend_with.call_args.args[0]
     assert current_result["remediation_progress"] == result.remediation_progress
 

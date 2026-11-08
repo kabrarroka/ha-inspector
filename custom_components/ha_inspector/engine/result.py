@@ -12,6 +12,7 @@ from .dependency_diagnostics import (
     DependencyDiagnostics,
     empty_dependency_diagnostics,
 )
+from .finding_deltas import FindingDeltas
 from .models import Finding
 from .remediation_dashboard import (
     RemediationDashboardSummary,
@@ -91,6 +92,7 @@ class InspectionResult:
     remediation_lifecycle_summary: RemediationLifecycleSummary = field(
         default_factory=empty_remediation_lifecycle_summary
     )
+    finding_deltas: FindingDeltas | None = None
     remediation_trend: RemediationLifecycleTrend = field(
         default_factory=lambda: remediation_lifecycle_trend([])
     )
@@ -289,6 +291,11 @@ class InspectionResult:
             ),
             "remediation_lifecycle": self.remediation_lifecycle_summary,
             "remediation_trend": self.remediation_trend.as_dict(),
+            "finding_deltas": (
+                self.finding_deltas.as_dict()
+                if self.finding_deltas is not None
+                else None
+            ),
             "remediation_dashboard_summary": (
                 self.remediation_dashboard_summary
             ),

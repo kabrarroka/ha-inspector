@@ -539,6 +539,48 @@ but are excluded from remediation lifecycle trend calculations.
 At least two comparable inspection samples are required to establish
 a remediation trend.
 
+### Finding changes between inspections
+
+HA Inspector detects finding changes between consecutive compatible
+inspections.
+
+Each `ha_inspector.run` response includes `finding_deltas`, containing
+four categories when a valid comparison is available:
+
+- `added`: findings appearing in the current inspection.
+- `resolved`: findings no longer present.
+- `persistent`: findings present in both inspections.
+- `severity_changed`: persistent findings whose severity has changed.
+
+Findings are identified by their stable `id`.
+
+Added, resolved, and persistent entries contain `id` and `severity`.
+Severity changes contain `id`, `previous_severity`,
+`current_severity`, and `direction` (`improved` or `worsened`).
+
+A finding with changed severity appears in both `persistent`
+and `severity_changed`.
+
+Comparisons require matching inspection scopes and profiles.
+Both inspections must have zero collector failures and complete,
+valid finding identities.
+
+Inspections without an explicitly selected profile can be compared
+when both have no profile and their inspection scopes match.
+
+The `finding_deltas` field is `null` when a safe comparison is
+unavailable, including incompatible inspections, missing history,
+collector failures, invalid findings, or rule execution errors.
+
+An empty findings list means no findings were detected.
+Missing or incomplete findings are treated as unknown, preventing
+false resolutions.
+
+Comparisons use the latest persisted inspection without modifying
+history during comparison.
+
+The public API and inspection result schema versions remain unchanged.
+
 ### `ha_inspector.remediation_status`
 
 Returns the latest available remediation status without running a new
