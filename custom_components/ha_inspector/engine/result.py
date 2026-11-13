@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from .actionable_changes import ActionableChange
 from .analytics import InspectionAnalytics
 from .dependency_diagnostics import (
     DependencyDiagnostics,
@@ -93,6 +94,7 @@ class InspectionResult:
         default_factory=empty_remediation_lifecycle_summary
     )
     finding_deltas: FindingDeltas | None = None
+    actionable_changes: tuple[ActionableChange, ...] = field(default_factory=tuple)
     remediation_trend: RemediationLifecycleTrend = field(
         default_factory=lambda: remediation_lifecycle_trend([])
     )
@@ -296,6 +298,7 @@ class InspectionResult:
                 if self.finding_deltas is not None
                 else None
             ),
+            "actionable_changes": list(self.actionable_changes),
             "remediation_dashboard_summary": (
                 self.remediation_dashboard_summary
             ),

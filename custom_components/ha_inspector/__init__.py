@@ -407,6 +407,14 @@ async def async_setup(
                 current_result_data
             )
 
+            from .engine.actionable_changes import (
+                classify_actionable_changes,
+            )
+
+            result.actionable_changes = classify_actionable_changes(
+                result.finding_deltas
+            )
+
         result_data = result.as_dict()
 
         domain_data[DATA_LAST_RESULT] = result_data

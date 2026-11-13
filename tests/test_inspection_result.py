@@ -725,3 +725,53 @@ def test_finding_deltas_are_serialized() -> None:
             }
         ],
     }
+
+
+def test_actionable_changes_default_to_empty() -> None:
+    """Actionable changes are empty without a previous comparison."""
+    result = InspectionResult()
+
+    assert result.actionable_changes == ()
+    assert result.as_dict()["actionable_changes"] == []
+
+
+def test_actionable_changes_are_serialized() -> None:
+    """Inspection results expose classified finding changes."""
+    result = InspectionResult()
+
+    result.actionable_changes = (
+        {
+            "id": "NEW_ERROR",
+            "change_type": "new",
+            "severity": "error",
+            "priority": "high",
+            "requires_action": True,
+        },
+        {
+            "id": "RESOLVED_WARNING",
+            "change_type": "resolved",
+            "severity": "warning",
+            "priority": "none",
+            "requires_action": False,
+        },
+    )
+
+    payload = result.as_dict()
+
+    assert payload["actionable_changes"] == [
+        {
+            "id": "NEW_ERROR",
+            "change_type": "new",
+            "severity": "error",
+            "priority": "high",
+            "requires_action": True,
+        },
+        {
+            "id": "RESOLVED_WARNING",
+            "change_type": "resolved",
+            "severity": "warning",
+            "priority": "none",
+            "requires_action": False,
+        },
+    ]
+    assert payload["finding_deltas"] is None

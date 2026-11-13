@@ -134,6 +134,7 @@ async def test_run_service_persists_inspection_history() -> None:
             if result.finding_deltas is not None
             else None
         ),
+        "actionable_changes": list(result.actionable_changes),
     }
     inspector.run.return_value = result
 
@@ -199,6 +200,19 @@ async def test_run_service_persists_inspection_history() -> None:
     )
     assert response["finding_deltas"] == expected_deltas.as_dict()
     assert result.finding_deltas is expected_deltas
+
+    expected_changes = [
+        {
+            "id": "NEW",
+            "change_type": "new",
+            "severity": "warning",
+            "priority": "medium",
+            "requires_action": True,
+        }
+    ]
+
+    assert response["actionable_changes"] == expected_changes
+    assert list(result.actionable_changes) == expected_changes
     current_result = history.remediation_trend_with.call_args.args[0]
     assert current_result["remediation_progress"] == result.remediation_progress
 
