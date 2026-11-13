@@ -539,6 +539,36 @@ but are excluded from remediation lifecycle trend calculations.
 At least two comparable inspection samples are required to establish
 a remediation trend.
 
+### Actionable finding changes and prioritization
+
+HA Inspector classifies finding changes between compatible inspections
+and exposes them through `actionable_changes` in `ha_inspector.run`.
+
+Each change includes `id`, `change_type`, `severity`, `priority`,
+and `requires_action`.
+
+Supported change types: `new`, `worsened`, `improved`, and `resolved`.
+
+New and worsened findings require action. Their priority depends on severity:
+
+| Severity | Priority |
+| --- | --- |
+| `critical` | `critical` |
+| `error` | `high` |
+| `warning` | `medium` |
+| `info` | `low` |
+
+Improved and resolved findings have priority `none` and do not require
+action. Unchanged persistent findings do not generate entries.
+
+Changes are ordered deterministically by priority, change type, and ID.
+When no valid comparison is available, `actionable_changes` is an empty
+list. The existing `finding_deltas` field remains unchanged.
+
+The result schema remains at version 2. These classified changes provide
+the foundation for future proactive monitoring notifications.
+
+
 ### Finding changes between inspections
 
 HA Inspector detects finding changes between consecutive compatible
